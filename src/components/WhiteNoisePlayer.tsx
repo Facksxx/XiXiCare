@@ -44,6 +44,7 @@ interface CustomTrackMeta {
   name: string;
   path: string;
   mimeType: string;
+  category?: TrackCategory;
 }
 
 const BUILTIN_TRACKS: PlayerTrack[] = [
@@ -109,6 +110,7 @@ function fileExtension(file: File) {
 export function WhiteNoisePlayer({ isOpen, onClose, onPlaybackChange }: WhiteNoisePlayerProps) {
   const audioRef = useRef<HTMLAudioElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const addCategoryRef = useRef<TrackCategory>('music');
   const isPlayingRef = useRef(false);
   const playOnLoadRef = useRef<string | null>(null);
   const [trackId, setTrackId] = useLocalStorage<string>('babycare_white_noise_track', 'forest-birds');
@@ -162,8 +164,8 @@ export function WhiteNoisePlayer({ isOpen, onClose, onPlaybackChange }: WhiteNoi
     ...customTracks.map((track) => ({
       ...track,
       src: customSources[track.id] ?? '',
-      icon: Music2,
-      category: 'music' as const,
+      icon: track.category === 'ambient' ? Volume2 : Music2,
+      category: track.category ?? 'music',
       custom: true
     }))
   ], [customSources, customTracks]);
@@ -360,16 +362,17 @@ export function WhiteNoisePlayer({ isOpen, onClose, onPlaybackChange }: WhiteNoi
         data: Capacitor.isNativePlatform() ? await fileToDataUrl(file) : file
       });
       const source = Capacitor.isNativePlatform() ? Capacitor.convertFileSrc(result.uri) : URL.createObjectURL(file);
-      const name = file.name.replace(/\.[^.]+$/, '').trim() || '本地音乐';
-      const nextTrack: CustomTrackMeta = { id, name, path, mimeType: file.type || 'audio/mpeg' };
+      const category = addCategoryRef.current;
+      const name = file.name.replace(/\.[^.]+$/, '').trim() || (category === 'ambient' ? '本地环境声音' : '本地音乐');
+      const nextTrack: CustomTrackMeta = { id, name, path, mimeType: file.type || 'audio/mpeg', category };
       setCustomSources((current) => ({ ...current, [id]: source }));
       setCustomTracks((current) => [...current, nextTrack]);
       playOnLoadRef.current = id;
       setTrackId(id);
-      setBrowseCategory('music');
+      setBrowseCategory(category);
       setError('');
     } catch {
-      setError('添加音乐失败，请重新选择文件');
+      setError('添加声音失败，请重新选择文件');
     }
   };
 
@@ -388,11 +391,20 @@ export function WhiteNoisePlayer({ isOpen, onClose, onPlaybackChange }: WhiteNoi
       // Metadata still needs removing if the underlying file is already gone.
     }
     setCustomTracks((tracks) => tracks.filter((item) => item.id !== track.id));
-    if (track.id === currentTrack.id) playTrack(BUILTIN_TRACKS.find((item) => item.category === 'music')!);
+    if (track.id === currentTrack.id) {
+      const category = track.category ?? 'music';
+      playTrack(BUILTIN_TRACKS.find((item) => item.category === category)!);
+    }
+  };
+
+  const openFilePicker = (category: TrackCategory) => {
+    addCategoryRef.current = category;
+    fileInputRef.current?.click();
   };
 
   const activeLoop = LOOP_OPTIONS.find((option) => option.value === loopMode) ?? LOOP_OPTIONS[0];
   const visibleBuiltinTracks = BUILTIN_TRACKS.filter((track) => track.category === browseCategory);
+  const visibleCustomTracks = customTracks.filter((track) => (track.category ?? 'music') === browseCategory);
 
   return (
     <>
@@ -437,36 +449,37 @@ export function WhiteNoisePlayer({ isOpen, onClose, onPlaybackChange }: WhiteNoi
                 })}
               </div>
 
-              {browseCategory === 'music' && (
-                <div className="custom-music-section">
-                  <div className="custom-music-heading">
-                    <h3>我的音乐</h3>
-                    <button type="button" onClick={() => fileInputRef.current?.click()}><Plus size={15} />添加</button>
-                  </div>
-                  {customTracks.length === 0 ? (
-                    <p className="custom-music-empty">暂无本地音乐</p>
-                  ) : (
-                    <div className="custom-music-list">
-                      {customTracks.map((track) => (
-                        <div className={`custom-music-row ${track.id === currentTrack.id ? 'active' : ''}`} key={track.id}>
-                          {editingCustomId === track.id ? (
-                            <>
-                              <input value={editingName} onChange={(event) => setEditingName(event.target.value)} aria-label="音乐名称" autoFocus onKeyDown={(event) => { if (event.key === 'Enter') saveCustomName(track.id); }} />
-                              <button type="button" aria-label="保存名称" onClick={() => saveCustomName(track.id)}><Check size={16} /></button>
-                            </>
-                          ) : (
-                            <>
-                              <button className="custom-music-select" type="button" onClick={() => playTrack(allTracks.find((item) => item.id === track.id)!)}><Music2 size={16} /><span>{track.name}</span></button>
-                              <button type="button" aria-label={`修改${track.name}名称`} onClick={() => { setEditingCustomId(track.id); setEditingName(track.name); }}><Edit2 size={15} /></button>
-                              <button type="button" aria-label={`移除${track.name}`} onClick={() => void deleteCustomTrack(track)}><Trash2 size={15} /></button>
-                            </>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
+              <div className="custom-music-section">
+                <div className="custom-music-heading">
+                  <h3>{browseCategory === 'ambient' ? '我的环境声音' : '我的音乐'}</h3>
+                  <button type="button" onClick={() => openFilePicker(browseCategory)}><Plus size={15} />添加</button>
                 </div>
-              )}
+                {visibleCustomTracks.length === 0 ? (
+                  <p className="custom-music-empty">{browseCategory === 'ambient' ? '暂无本地环境声音' : '暂无本地音乐'}</p>
+                ) : (
+                  <div className="custom-music-list">
+                    {visibleCustomTracks.map((track) => (
+                      <div className={`custom-music-row ${track.id === currentTrack.id ? 'active' : ''}`} key={track.id}>
+                        {editingCustomId === track.id ? (
+                          <>
+                            <input value={editingName} onChange={(event) => setEditingName(event.target.value)} aria-label="声音名称" autoFocus onKeyDown={(event) => { if (event.key === 'Enter') saveCustomName(track.id); }} />
+                            <button type="button" aria-label="保存名称" onClick={() => saveCustomName(track.id)}><Check size={16} /></button>
+                          </>
+                        ) : (
+                          <>
+                            <button className="custom-music-select" type="button" onClick={() => playTrack(allTracks.find((item) => item.id === track.id)!)}>
+                              {browseCategory === 'ambient' ? <Volume2 size={16} /> : <Music2 size={16} />}
+                              <span>{track.name}</span>
+                            </button>
+                            <button type="button" aria-label={`修改${track.name}名称`} onClick={() => { setEditingCustomId(track.id); setEditingName(track.name); }}><Edit2 size={15} /></button>
+                            <button type="button" aria-label={`移除${track.name}`} onClick={() => void deleteCustomTrack(track)}><Trash2 size={15} /></button>
+                          </>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
 
             <div className="noise-now-playing">
