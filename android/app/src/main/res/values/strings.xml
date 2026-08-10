@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">XiXiCare</string>
+    <string name="title_activity_main">XiXiCare</string>
+    <string name="package_name">com.babycare.app</string>
+    <string name="custom_url_scheme">com.babycare.app</string>
+</resources>
