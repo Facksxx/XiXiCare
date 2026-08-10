@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, type TouchEvent as ReactTouchEvent } from 'react';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import type { ActivityLog, BabyInfo, TimeInferenceMode } from './types/baby';
 import { compressImage } from './utils/imageCompress';
@@ -12,7 +12,36 @@ import { Settings as SettingsPage } from './components/Settings';
 import { WhiteNoisePlayer } from './components/WhiteNoisePlayer';
 import { ConfirmModal } from './components/ConfirmModal';
 import { Sun, Moon, Calendar, BookOpen, BarChart2, Edit2, Check, Sparkles, Settings, Music2, ChevronDown, Plus } from 'lucide-react';
+import type { Icon } from 'lucide-react';
 import './index.css';
+
+type AppTab = 'dashboard' | 'records' | 'guide' | 'stats';
+type NavigationDirection = 'left' | 'right';
+
+const APP_TABS: AppTab[] = ['dashboard', 'records', 'guide', 'stats'];
+
+function NavIcon({ icon: IconComponent, active }: { icon: Icon; active: boolean }) {
+  return (
+    <span className={`nav-icon ${active ? 'filled' : ''}`} aria-hidden="true">
+      <IconComponent className="nav-icon-fill" />
+      <IconComponent className="nav-icon-outline" />
+    </span>
+  );
+}
+
+const blocksPageSwipe = (target: EventTarget | null, boundary: HTMLElement) => {
+  if (!(target instanceof Element)) return true;
+  if (target.closest('input, textarea, select, button, a, [contenteditable="true"], [role="slider"]')) return true;
+
+  let element: Element | null = target;
+  while (element && element !== boundary) {
+    const node = element as HTMLElement;
+    const overflowX = window.getComputedStyle(node).overflowX;
+    if (node.scrollWidth > node.clientWidth + 4 && (overflowX === 'auto' || overflowX === 'scroll')) return true;
+    element = element.parentElement;
+  }
+  return false;
+};
 
 const readInitialBabies = (): BabyInfo[] => {
   try {
@@ -29,7 +58,8 @@ const createBabyId = () => `baby-${Date.now()}-${Math.random().toString(36).slic
 
 export default function App() {
   // Navigation tabs: 'dashboard' | 'guide' | 'stats' | 'records'
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'guide' | 'stats' | 'records'>('dashboard');
+  const [activeTab, setActiveTab] = useState<AppTab>('dashboard');
+  const [navigationMotion, setNavigationMotion] = useState<{ direction: NavigationDirection | null; key: number }>({ direction: null, key: 0 });
   const [showSettings, setShowSettings] = useState(false);
   const [showWhiteNoise, setShowWhiteNoise] = useState(false);
   const [showBabySwitcher, setShowBabySwitcher] = useState(false);
@@ -69,7 +99,111 @@ export default function App() {
   const [editBirthday, setEditBirthday] = useState(baby.birthday);
   const [editAvatar, setEditAvatar] = useState<string | undefined>(baby.avatar);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const pageViewRef = useRef<HTMLDivElement>(null);
+  const swipeStartRef = useRef<{ x: number; y: number; time: number; blocked: boolean; horizontal: boolean } | null>(null);
+  const swipeCommitTimerRef = useRef<number | null>(null);
   const legacyBabyInfo = JSON.stringify(baby);
+
+  useEffect(() => () => {
+    if (swipeCommitTimerRef.current !== null) window.clearTimeout(swipeCommitTimerRef.current);
+  }, []);
+
+  const navigateToTab = (nextTab: AppTab, direction?: NavigationDirection) => {
+    if (nextTab === activeTab) {
+      setShowSettings(false);
+      return;
+    }
+    const currentIndex = APP_TABS.indexOf(activeTab);
+    const nextIndex = APP_TABS.indexOf(nextTab);
+    const nextDirection = direction ?? (nextIndex >= currentIndex ? 'left' : 'right');
+    setNavigationMotion((current) => ({ direction: nextTab === activeTab ? null : nextDirection, key: current.key + 1 }));
+    setActiveTab(nextTab);
+    setShowSettings(false);
+  };
+
+  const resetSwipeView = () => {
+    const view = pageViewRef.current;
+    if (!view) return;
+    view.style.transition = 'transform 260ms cubic-bezier(0.2, 0.8, 0.2, 1), opacity 180ms ease';
+    view.style.transform = 'translate3d(0, 0, 0)';
+    view.style.opacity = '1';
+    window.setTimeout(() => {
+      if (view === pageViewRef.current) view.removeAttribute('style');
+    }, 270);
+  };
+
+  const handlePageTouchStart = (event: ReactTouchEvent<HTMLElement>) => {
+    if (showSettings || event.touches.length !== 1) return;
+    const touch = event.touches[0];
+    swipeStartRef.current = {
+      x: touch.clientX,
+      y: touch.clientY,
+      time: performance.now(),
+      blocked: blocksPageSwipe(event.target, event.currentTarget),
+      horizontal: false
+    };
+  };
+
+  const handlePageTouchMove = (event: ReactTouchEvent<HTMLElement>) => {
+    const start = swipeStartRef.current;
+    const view = pageViewRef.current;
+    if (!start || start.blocked || !view || event.touches.length !== 1) return;
+    const touch = event.touches[0];
+    const deltaX = touch.clientX - start.x;
+    const deltaY = touch.clientY - start.y;
+
+    if (!start.horizontal) {
+      if (Math.abs(deltaY) > 10 && Math.abs(deltaY) > Math.abs(deltaX)) {
+        start.blocked = true;
+        return;
+      }
+      if (Math.abs(deltaX) < 8 || Math.abs(deltaX) <= Math.abs(deltaY)) return;
+      start.horizontal = true;
+    }
+
+    event.preventDefault();
+    const currentIndex = APP_TABS.indexOf(activeTab);
+    const pullingPastStart = currentIndex === 0 && deltaX > 0;
+    const pullingPastEnd = currentIndex === APP_TABS.length - 1 && deltaX < 0;
+    const resistance = pullingPastStart || pullingPastEnd ? 0.24 : 0.72;
+    const offset = Math.max(-110, Math.min(110, deltaX * resistance));
+    view.style.transition = 'none';
+    view.style.transform = `translate3d(${offset}px, 0, 0)`;
+    view.style.opacity = String(1 - Math.min(0.16, Math.abs(offset) / 700));
+  };
+
+  const handlePageTouchEnd = (event: ReactTouchEvent<HTMLElement>) => {
+    const start = swipeStartRef.current;
+    swipeStartRef.current = null;
+    const view = pageViewRef.current;
+    if (!start || start.blocked || !start.horizontal || !view || event.changedTouches.length === 0) {
+      resetSwipeView();
+      return;
+    }
+
+    const deltaX = event.changedTouches[0].clientX - start.x;
+    const elapsed = Math.max(1, performance.now() - start.time);
+    const velocity = Math.abs(deltaX) / elapsed;
+    const direction: NavigationDirection = deltaX < 0 ? 'left' : 'right';
+    const currentIndex = APP_TABS.indexOf(activeTab);
+    const nextIndex = direction === 'left' ? currentIndex + 1 : currentIndex - 1;
+    const shouldSwitch = nextIndex >= 0
+      && nextIndex < APP_TABS.length
+      && (Math.abs(deltaX) >= 54 || (Math.abs(deltaX) >= 26 && velocity >= 0.42));
+
+    if (!shouldSwitch) {
+      resetSwipeView();
+      return;
+    }
+
+    view.style.transition = 'transform 150ms cubic-bezier(0.4, 0, 1, 1), opacity 140ms ease';
+    view.style.transform = `translate3d(${direction === 'left' ? '-18%' : '18%'}, 0, 0)`;
+    view.style.opacity = '0.25';
+    swipeCommitTimerRef.current = window.setTimeout(() => {
+      navigateToTab(APP_TABS[nextIndex], direction);
+      swipeCommitTimerRef.current = null;
+    }, 135);
+  };
 
   useEffect(() => {
     if (isFirstSetup) {
@@ -375,8 +509,19 @@ export default function App() {
       </header>
 
       {/* Main Content Area */}
-      <main style={{ flex: 1 }}>
-        {showSettings ? (
+      <main
+        className="app-main"
+        onTouchStart={handlePageTouchStart}
+        onTouchMove={handlePageTouchMove}
+        onTouchEnd={handlePageTouchEnd}
+        onTouchCancel={() => { swipeStartRef.current = null; resetSwipeView(); }}
+      >
+        <div
+          key={`${showSettings ? 'settings' : activeTab}-${navigationMotion.key}`}
+          ref={pageViewRef}
+          className={`page-swipe-view ${!showSettings && navigationMotion.direction ? `enter-from-${navigationMotion.direction}` : ''}`}
+        >
+          {showSettings ? (
           <SettingsPage
             timeInferenceMode={timeInferenceMode}
             onTimeInferenceModeChange={setTimeInferenceMode}
@@ -403,51 +548,52 @@ export default function App() {
           <Guide key={baby.id} babyId={baby.id} />
         ) : activeTab === 'stats' ? (
           <Stats logs={activeLogs} />
-        ) : (
+          ) : (
           <Records
             logs={activeLogs}
             onEditLog={handleEditLogFromRecords}
             onDeleteLog={handleDeleteLog}
           />
-        )}
+          )}
+        </div>
       </main>
 
       {/* Bottom Floating Navigation Tabs */}
       <nav className="nav-tabs">
         <button 
           type="button"
-          onClick={() => { setActiveTab('dashboard'); setShowSettings(false); }} 
+          onClick={() => navigateToTab('dashboard')}
           className={`nav-tab-item ${activeTab === 'dashboard' ? 'active' : ''}`}
           aria-current={activeTab === 'dashboard' ? 'page' : undefined}
         >
-          <Calendar fill={activeTab === 'dashboard' ? 'currentColor' : 'none'} />
+          <NavIcon icon={Calendar} active={activeTab === 'dashboard'} />
           <span>记录大盘</span>
         </button>
         <button 
           type="button"
-          onClick={() => { setActiveTab('records'); setShowSettings(false); }} 
+          onClick={() => navigateToTab('records')}
           className={`nav-tab-item ${activeTab === 'records' ? 'active' : ''}`}
           aria-current={activeTab === 'records' ? 'page' : undefined}
         >
-          <Sparkles fill={activeTab === 'records' ? 'currentColor' : 'none'} />
+          <NavIcon icon={Sparkles} active={activeTab === 'records'} />
           <span>时间轴</span>
         </button>
         <button 
           type="button"
-          onClick={() => { setActiveTab('guide'); setShowSettings(false); }} 
+          onClick={() => navigateToTab('guide')}
           className={`nav-tab-item ${activeTab === 'guide' ? 'active' : ''}`}
           aria-current={activeTab === 'guide' ? 'page' : undefined}
         >
-          <BookOpen fill={activeTab === 'guide' ? 'currentColor' : 'none'} />
+          <NavIcon icon={BookOpen} active={activeTab === 'guide'} />
           <span>喂养指南</span>
         </button>
         <button 
           type="button"
-          onClick={() => { setActiveTab('stats'); setShowSettings(false); }} 
+          onClick={() => navigateToTab('stats')}
           className={`nav-tab-item ${activeTab === 'stats' ? 'active' : ''}`}
           aria-current={activeTab === 'stats' ? 'page' : undefined}
         >
-          <BarChart2 fill={activeTab === 'stats' ? 'currentColor' : 'none'} />
+          <NavIcon icon={BarChart2} active={activeTab === 'stats'} />
           <span>成长统计</span>
         </button>
       </nav>

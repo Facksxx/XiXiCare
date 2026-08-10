@@ -380,18 +380,42 @@ select {
   animation: navSelectionHalo 480ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
-.nav-tab-item svg {
+.nav-icon {
+  position: relative;
   width: 24px;
   height: 24px;
-  fill: transparent;
-  stroke-width: 2;
+  flex: 0 0 24px;
+  display: block;
   transform-origin: center;
-  transition: color 180ms ease, fill 220ms ease, stroke-width 220ms ease, filter 220ms ease;
+  transition: color 180ms ease, filter 220ms ease;
 }
 
-.nav-tab-item.active svg {
+.nav-icon svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  stroke: currentColor;
+  stroke-width: 2;
+  transition: opacity 220ms ease, fill 220ms ease;
+}
+
+.nav-icon-fill {
   fill: currentColor;
-  stroke-width: 2.7;
+  stroke-width: 4.8px !important;
+  opacity: 0;
+}
+
+.nav-icon-outline {
+  fill: none;
+  opacity: 1;
+}
+
+.nav-icon.filled .nav-icon-fill {
+  opacity: 0.28;
+}
+
+.nav-tab-item.active .nav-icon {
   filter: drop-shadow(0 4px 4px rgba(103, 151, 130, 0.2));
   animation: navIconSelected 520ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
@@ -453,6 +477,37 @@ select {
 
 [data-theme='dark'] .nav-tab-item.active::after {
   border-color: #D2F0DF;
+}
+
+.app-main {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  touch-action: pan-y;
+}
+
+.page-swipe-view {
+  min-height: 100%;
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+}
+
+.page-swipe-view.enter-from-left {
+  animation: pageEnterFromRight 260ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.page-swipe-view.enter-from-right {
+  animation: pageEnterFromLeft 260ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes pageEnterFromRight {
+  from { opacity: 0.35; transform: translate3d(34px, 0, 0); }
+  to { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+
+@keyframes pageEnterFromLeft {
+  from { opacity: 0.35; transform: translate3d(-34px, 0, 0); }
+  to { opacity: 1; transform: translate3d(0, 0, 0); }
 }
 
 .container {
@@ -3224,9 +3279,14 @@ select {
     animation: none;
   }
 
-  .nav-tab-item.active svg {
+  .nav-tab-item.active .nav-icon {
     animation: none;
     transform: translateY(-2px) scale(1.08);
+  }
+
+  .page-swipe-view.enter-from-left,
+  .page-swipe-view.enter-from-right {
+    animation: none;
   }
 }
 
@@ -3574,6 +3634,12 @@ select {
   .nav-tab-item svg {
     width: 20px;
     height: 20px;
+  }
+
+  .nav-icon {
+    width: 20px;
+    height: 20px;
+    flex-basis: 20px;
   }
 
   .guide-scroller {
