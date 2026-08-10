@@ -15,23 +15,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-
-      - name: Setup Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '21'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build APK
-        run: npm run apk:ci
+      # XiXiCare.apk is built locally with the long-lived signing key and
+      # committed by release-apk.mjs. Rebuilding in CI would change its signature.
+      - name: Verify packaged APK
+        run: test -f XiXiCare.apk && sha256sum XiXiCare.apk
 
       - name: Publish GitHub Release
         env:
