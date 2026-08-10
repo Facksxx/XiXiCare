@@ -415,31 +415,39 @@ export default function App() {
       {/* Bottom Floating Navigation Tabs */}
       <nav className="nav-tabs">
         <button 
+          type="button"
           onClick={() => { setActiveTab('dashboard'); setShowSettings(false); }} 
           className={`nav-tab-item ${activeTab === 'dashboard' ? 'active' : ''}`}
+          aria-current={activeTab === 'dashboard' ? 'page' : undefined}
         >
-          <Calendar />
+          <Calendar fill={activeTab === 'dashboard' ? 'currentColor' : 'none'} />
           <span>记录大盘</span>
         </button>
         <button 
+          type="button"
           onClick={() => { setActiveTab('records'); setShowSettings(false); }} 
           className={`nav-tab-item ${activeTab === 'records' ? 'active' : ''}`}
+          aria-current={activeTab === 'records' ? 'page' : undefined}
         >
-          <Sparkles />
+          <Sparkles fill={activeTab === 'records' ? 'currentColor' : 'none'} />
           <span>时间轴</span>
         </button>
         <button 
+          type="button"
           onClick={() => { setActiveTab('guide'); setShowSettings(false); }} 
           className={`nav-tab-item ${activeTab === 'guide' ? 'active' : ''}`}
+          aria-current={activeTab === 'guide' ? 'page' : undefined}
         >
-          <BookOpen />
+          <BookOpen fill={activeTab === 'guide' ? 'currentColor' : 'none'} />
           <span>喂养指南</span>
         </button>
         <button 
+          type="button"
           onClick={() => { setActiveTab('stats'); setShowSettings(false); }} 
           className={`nav-tab-item ${activeTab === 'stats' ? 'active' : ''}`}
+          aria-current={activeTab === 'stats' ? 'page' : undefined}
         >
-          <BarChart2 />
+          <BarChart2 fill={activeTab === 'stats' ? 'currentColor' : 'none'} />
           <span>成长统计</span>
         </button>
       </nav>
