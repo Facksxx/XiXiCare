@@ -16,7 +16,7 @@ if (dirty) {
   process.exit(1);
 }
 
-run('npm', ['run', 'apk']);
+run('npm', ['run', 'apk:build']);
 const version = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')).version;
 const tag = `v${version}`;
 

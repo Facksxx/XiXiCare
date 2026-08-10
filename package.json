@@ -8,9 +8,10 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
-    "apk": "node scripts/package-apk.mjs",
+    "apk": "node scripts/release-apk.mjs",
+    "apk:build": "node scripts/package-apk.mjs",
     "apk:ci": "node scripts/package-apk.mjs --no-bump",
-    "release:apk": "node scripts/release-apk.mjs"
+    "release:apk": "npm run apk"
   },
   "dependencies": {
     "@capacitor/android": "^8.4.2",
