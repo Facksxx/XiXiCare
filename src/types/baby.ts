@@ -4,6 +4,13 @@ export type TimeInferenceMode = 'start' | 'end';
 
 export type FeedingType = 'breast' | 'bottle' | 'solids';
 
+export interface BabyInfo {
+  id: string;
+  name: string;
+  birthday: string;
+  avatar?: string;
+}
+
 export interface BreastFeedingMetadata {
   leftMinutes: number;
   rightMinutes: number;

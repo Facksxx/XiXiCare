@@ -11,10 +11,10 @@ interface VaccineStatus {
   [key: string]: boolean;
 }
 
-export function Guide() {
+export function Guide({ babyId }: { babyId: string }) {
   const [activeStageId, setActiveStageId] = useState('1');
-  const [allergenStatus, setAllergenStatus] = useLocalStorage<AllergenStatus>('babycare_allergens', {});
-  const [vaccineStatus, setVaccineStatus] = useLocalStorage<VaccineStatus>('babycare_vaccines', {});
+  const [allergenStatus, setAllergenStatus] = useLocalStorage<AllergenStatus>(`babycare_allergens_${babyId}`, {});
+  const [vaccineStatus, setVaccineStatus] = useLocalStorage<VaccineStatus>(`babycare_vaccines_${babyId}`, {});
   const scrollerRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isStuck, setIsStuck] = useState(false);

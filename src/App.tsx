@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useLocalStorage } from './hooks/useLocalStorage';
-import type { ActivityLog, TimeInferenceMode } from './types/baby';
+import type { ActivityLog, BabyInfo, TimeInferenceMode } from './types/baby';
 import { compressImage } from './utils/imageCompress';
 import { fixTimezoneIssues, hasTimezoneIssues } from './utils/timezoneFix';
 
@@ -11,20 +11,28 @@ import { Records } from './components/Records';
 import { Settings as SettingsPage } from './components/Settings';
 import { WhiteNoisePlayer } from './components/WhiteNoisePlayer';
 import { ConfirmModal } from './components/ConfirmModal';
-import { Sun, Moon, Calendar, BookOpen, BarChart2, Edit2, Check, Sparkles, Settings, Music2 } from 'lucide-react';
+import { Sun, Moon, Calendar, BookOpen, BarChart2, Edit2, Check, Sparkles, Settings, Music2, ChevronDown, Plus } from 'lucide-react';
 import './index.css';
 
-interface BabyInfo {
-  name: string;
-  birthday: string;
-  avatar?: string;
-}
+const readInitialBabies = (): BabyInfo[] => {
+  try {
+    const stored = JSON.parse(localStorage.getItem('babycare_babies') ?? '[]') as BabyInfo[];
+    if (Array.isArray(stored) && stored.length > 0) return stored;
+    const legacy = JSON.parse(localStorage.getItem('babycare_info') ?? '{}') as Partial<BabyInfo>;
+    return legacy.name ? [{ id: 'baby-1', name: legacy.name, birthday: legacy.birthday ?? '', avatar: legacy.avatar }] : [];
+  } catch {
+    return [];
+  }
+};
+
+const createBabyId = () => `baby-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 
 export default function App() {
   // Navigation tabs: 'dashboard' | 'guide' | 'stats' | 'records'
   const [activeTab, setActiveTab] = useState<'dashboard' | 'guide' | 'stats' | 'records'>('dashboard');
   const [showSettings, setShowSettings] = useState(false);
   const [showWhiteNoise, setShowWhiteNoise] = useState(false);
+  const [showBabySwitcher, setShowBabySwitcher] = useState(false);
   const [isWhiteNoisePlaying, setIsWhiteNoisePlaying] = useState(false);
 
   // Theme: 'light' | 'dark'
@@ -48,27 +56,53 @@ export default function App() {
   // External editing log (triggered from Records tab)
   const [externalEditingLog, setExternalEditingLog] = useState<ActivityLog | null>(null);
 
-  // Baby details state
-  const [baby, setBaby] = useLocalStorage<BabyInfo>('babycare_info', {
-    name: '',
-    birthday: ''
-  });
-
-  const isFirstSetup = !baby.name;
+  const [babies, setBabies] = useLocalStorage<BabyInfo[]>('babycare_babies', readInitialBabies());
+  const [activeBabyId, setActiveBabyId] = useLocalStorage<string>('babycare_active_baby_id', babies[0]?.id ?? '');
+  const baby = babies.find((item) => item.id === activeBabyId) ?? babies[0] ?? { id: '', name: '', birthday: '' };
+  const activeLogs = logs.filter((log) => log.babyId === baby.id);
+  const isFirstSetup = babies.length === 0;
 
   // Edit baby info modal state
   const [showEditModal, setShowEditModal] = useState(false);
+  const [editingBabyId, setEditingBabyId] = useState<string | null>(null);
   const [editName, setEditName] = useState(baby.name);
   const [editBirthday, setEditBirthday] = useState(baby.birthday);
+  const [editAvatar, setEditAvatar] = useState<string | undefined>(baby.avatar);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const legacyBabyInfo = JSON.stringify(baby);
 
   useEffect(() => {
     if (isFirstSetup) {
+      setEditingBabyId(null);
       setEditName('');
       setEditBirthday('');
+      setEditAvatar(undefined);
       setShowEditModal(true);
     }
   }, [isFirstSetup]);
+
+  useEffect(() => {
+    if (!baby.id) return;
+    if (activeBabyId !== baby.id) setActiveBabyId(baby.id);
+    if (!localStorage.getItem('babycare_babies')) setBabies((current) => current);
+    if (localStorage.getItem('babycare_multi_baby_migrated') === '1') return;
+    setLogs((current) => current.map((log) => ({ ...log, babyId: baby.id })));
+    const legacyVaccines = localStorage.getItem('babycare_vaccines');
+    const legacyAllergens = localStorage.getItem('babycare_allergens');
+    if (legacyVaccines && !localStorage.getItem(`babycare_vaccines_${baby.id}`)) localStorage.setItem(`babycare_vaccines_${baby.id}`, legacyVaccines);
+    if (legacyAllergens && !localStorage.getItem(`babycare_allergens_${baby.id}`)) localStorage.setItem(`babycare_allergens_${baby.id}`, legacyAllergens);
+    ['weight', 'height', 'temp'].forEach((type) => {
+      const legacy = localStorage.getItem(`babycare_growth_${type}`);
+      if (legacy && !localStorage.getItem(`babycare_growth_${type}_${baby.id}`)) localStorage.setItem(`babycare_growth_${type}_${baby.id}`, legacy);
+    });
+    localStorage.setItem('babycare_multi_baby_migrated', '1');
+    // Migration must run once for the first active baby; later switching must never remap records.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [baby.id]);
+
+  useEffect(() => {
+    if (baby.id) localStorage.setItem('babycare_info', legacyBabyInfo);
+  }, [baby.id, legacyBabyInfo]);
 
   // Confirm modal state
   const [confirmModal, setConfirmModal] = useState<{ show: boolean; message: string; onConfirm: () => void }>({ show: false, message: '', onConfirm: () => {} });
@@ -112,25 +146,50 @@ export default function App() {
   // Import logs (merge, by ID: update existing, add new)
   const handleImportLogs = (imported: ActivityLog[]) => {
     const existingMap = new Map(logs.map(l => [l.id, l]));
-    let updated = 0;
-    let added = 0;
     imported.forEach(l => {
       if (existingMap.has(l.id)) {
         existingMap.set(l.id, l);
-        updated++;
       } else {
         existingMap.set(l.id, l);
-        added++;
       }
     });
     const merged = Array.from(existingMap.values()).sort((a, b) => b.timestamp.localeCompare(a.timestamp));
     setLogs(merged);
   };
 
-  const handleEditBaby = () => {
-    setEditName(baby.name);
-    setEditBirthday(baby.birthday);
+  const handleImportBabies = (imported: BabyInfo[]) => {
+    if (imported.length === 0) return;
+    setBabies((current) => {
+      const merged = new Map(current.map((item) => [item.id, item]));
+      imported.forEach((item) => merged.set(item.id, { ...merged.get(item.id), ...item }));
+      return Array.from(merged.values());
+    });
+    if (!activeBabyId) setActiveBabyId(imported[0].id);
+  };
+
+  const handleEditBaby = (babyId = baby.id) => {
+    const target = babies.find((item) => item.id === babyId);
+    if (!target) return;
+    setEditingBabyId(target.id);
+    setEditName(target.name);
+    setEditBirthday(target.birthday);
+    setEditAvatar(target.avatar);
     setShowEditModal(true);
+  };
+
+  const handleAddBaby = () => {
+    setEditingBabyId(null);
+    setEditName('');
+    setEditBirthday('');
+    setEditAvatar(undefined);
+    setShowBabySwitcher(false);
+    setShowEditModal(true);
+  };
+
+  const handleSwitchBaby = (babyId: string) => {
+    setActiveBabyId(babyId);
+    setExternalEditingLog(null);
+    setShowBabySwitcher(false);
   };
 
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -145,7 +204,7 @@ export default function App() {
         quality: 0.85,
         cropToSquare: true
       });
-      setBaby({ ...baby, avatar: compressedImage });
+      setEditAvatar(compressedImage);
     } catch (error) {
       console.error('图片压缩失败:', error);
     }
@@ -158,7 +217,7 @@ export default function App() {
       show: true,
       message: '确认移除头像？',
       onConfirm: () => {
-        setBaby({ ...baby, avatar: undefined });
+        setEditAvatar(undefined);
         setConfirmModal({ show: false, message: '', onConfirm: () => {} });
       }
     });
@@ -173,12 +232,43 @@ export default function App() {
       setAlertModal({ show: true, message: '输入的日期格式有误，请使用 YYYY-MM-DD' });
       return;
     }
-    setBaby({
-      ...baby,
-      name: editName.trim(),
-      birthday: editBirthday
-    });
+    if (editingBabyId) {
+      setBabies((current) => current.map((item) => item.id === editingBabyId ? {
+        ...item,
+        name: editName.trim(),
+        birthday: editBirthday,
+        avatar: editAvatar
+      } : item));
+    } else {
+      const newBaby: BabyInfo = {
+        id: createBabyId(),
+        name: editName.trim(),
+        birthday: editBirthday,
+        avatar: editAvatar
+      };
+      setBabies((current) => [...current, newBaby]);
+      setActiveBabyId(newBaby.id);
+    }
     setShowEditModal(false);
+  };
+
+  const handleDeleteBaby = (babyId: string) => {
+    const target = babies.find((item) => item.id === babyId);
+    if (!target || babies.length <= 1) return;
+    setConfirmModal({
+      show: true,
+      message: `删除“${target.name}”及其全部记录、疫苗和过敏排查数据？此操作不可恢复。`,
+      onConfirm: () => {
+        const remaining = babies.filter((item) => item.id !== babyId);
+        setBabies(remaining);
+        setLogs((current) => current.filter((log) => log.babyId !== babyId));
+        localStorage.removeItem(`babycare_vaccines_${babyId}`);
+        localStorage.removeItem(`babycare_allergens_${babyId}`);
+        ['weight', 'height', 'temp'].forEach((type) => localStorage.removeItem(`babycare_growth_${type}_${babyId}`));
+        if (activeBabyId === babyId) setActiveBabyId(remaining[0].id);
+        setConfirmModal({ show: false, message: '', onConfirm: () => {} });
+      }
+    });
   };
 
   // Calculate age string dynamically
@@ -223,9 +313,9 @@ export default function App() {
         <div className="baby-info">
           <div 
             className="avatar-ring"
-            onClick={() => { if (!isFirstSetup) fileInputRef.current?.click(); }}
+            onClick={() => { if (!isFirstSetup) handleEditBaby(); }}
             style={{ cursor: isFirstSetup ? 'default' : 'pointer', overflow: 'hidden' }}
-            title={isFirstSetup ? '' : '点击更换头像'}
+            title={isFirstSetup ? '' : '编辑当前宝宝'}
           >
             {baby.avatar ? (
               <img 
@@ -245,13 +335,12 @@ export default function App() {
             onChange={handleAvatarChange}
           />
           <div className="baby-meta">
-            <h2 
-              onClick={isFirstSetup ? undefined : handleEditBaby} 
-              style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: isFirstSetup ? 'default' : 'pointer' }}
-              title={isFirstSetup ? '' : '点击修改宝宝信息'}
-            >
-              {baby.name || '未设置'} {!isFirstSetup && <Edit2 size={12} className="text-[var(--text-muted)]" />}
-            </h2>
+            <div className="baby-name-row">
+              <button type="button" className="baby-switch-button" disabled={isFirstSetup} onClick={() => setShowBabySwitcher(true)} aria-label="切换宝宝">
+                <span>{baby.name || '未设置'}</span>{!isFirstSetup && <ChevronDown size={15} />}
+              </button>
+              {!isFirstSetup && <button type="button" className="baby-edit-button" onClick={() => handleEditBaby()} aria-label="编辑当前宝宝"><Edit2 size={13} /></button>}
+            </div>
             <p>{baby.birthday || '--'} {baby.birthday && `(${calculateAgeStr(baby.birthday)})`}</p>
           </div>
         </div>
@@ -293,9 +382,17 @@ export default function App() {
             onTimeInferenceModeChange={setTimeInferenceMode}
             logs={logs}
             onImportLogs={handleImportLogs}
+            onImportBabies={handleImportBabies}
+            babies={babies}
+            activeBabyId={baby.id}
+            onAddBaby={handleAddBaby}
+            onEditBaby={handleEditBaby}
+            onDeleteBaby={handleDeleteBaby}
           />
         ) : activeTab === 'dashboard' ? (
           <Dashboard 
+            key={baby.id}
+            babyId={baby.id}
             onAddLog={handleAddLog} 
             onUpdateLog={handleUpdateLog}
             editingLog={externalEditingLog}
@@ -303,12 +400,12 @@ export default function App() {
             timeInferenceMode={timeInferenceMode}
           />
         ) : activeTab === 'guide' ? (
-          <Guide />
+          <Guide key={baby.id} babyId={baby.id} />
         ) : activeTab === 'stats' ? (
-          <Stats logs={logs} />
+          <Stats logs={activeLogs} />
         ) : (
           <Records
-            logs={logs}
+            logs={activeLogs}
             onEditLog={handleEditLogFromRecords}
             onDeleteLog={handleDeleteLog}
           />
@@ -353,6 +450,27 @@ export default function App() {
         onPlaybackChange={setIsWhiteNoisePlaying}
       />
 
+      {showBabySwitcher && (
+        <div className="modal-overlay baby-switcher-overlay" onClick={() => setShowBabySwitcher(false)}>
+          <section className="baby-switcher" role="dialog" aria-modal="true" aria-labelledby="baby-switcher-title" onClick={(event) => event.stopPropagation()}>
+            <div className="baby-switcher-header">
+              <h3 id="baby-switcher-title">选择宝宝</h3>
+              <button type="button" className="modal-close-btn" onClick={() => setShowBabySwitcher(false)} aria-label="关闭">×</button>
+            </div>
+            <div className="baby-switcher-list">
+              {babies.map((item) => (
+                <button type="button" key={item.id} className={`baby-switcher-item ${item.id === baby.id ? 'active' : ''}`} onClick={() => handleSwitchBaby(item.id)}>
+                  <span className="baby-switcher-avatar">{item.avatar ? <img src={item.avatar} alt="" /> : item.name.slice(0, 1)}</span>
+                  <span className="baby-switcher-copy"><strong>{item.name}</strong><small>{item.birthday} · {calculateAgeStr(item.birthday)}</small></span>
+                  {item.id === baby.id && <Check size={18} />}
+                </button>
+              ))}
+            </div>
+            <button type="button" className="baby-add-button" onClick={handleAddBaby}><Plus size={17} />添加宝宝</button>
+          </section>
+        </div>
+      )}
+
       {showEditModal && (
         <div 
           className="modal-overlay"
@@ -363,7 +481,7 @@ export default function App() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="modal-header">
-              <h3>{isFirstSetup ? '添加宝宝信息' : '编辑宝宝信息'}</h3>
+              <h3>{editingBabyId ? '编辑宝宝信息' : '添加宝宝信息'}</h3>
               {!isFirstSetup && (
                 <button 
                   onClick={() => setShowEditModal(false)}
@@ -388,9 +506,9 @@ export default function App() {
                   onClick={() => fileInputRef.current?.click()}
                   title="点击更换头像"
                 >
-                  {baby.avatar ? (
+                  {editAvatar ? (
                     <img 
-                      src={baby.avatar} 
+                      src={editAvatar}
                       alt="宝宝头像" 
                       style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                     />
@@ -407,7 +525,7 @@ export default function App() {
                   >
                     上传头像
                   </button>
-                  {baby.avatar && (
+                  {editAvatar && (
                     <button
                       type="button"
                       className="btn-secondary"
@@ -450,7 +568,7 @@ export default function App() {
                 onClick={handleSaveBabyInfo}
                 style={isFirstSetup ? { width: '100%' } : {}}
               >
-                <Check size={16} /> {isFirstSetup ? '开始使用' : '保存'}
+                <Check size={16} /> {isFirstSetup ? '开始使用' : editingBabyId ? '保存' : '添加'}
               </button>
             </div>
           </div>

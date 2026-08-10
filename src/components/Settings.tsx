@@ -1,5 +1,5 @@
-import { Clock3, Database, Info } from 'lucide-react';
-import type { ActivityLog, TimeInferenceMode } from '../types/baby';
+import { Clock3, Database, Edit2, Info, Plus, Trash2, Users } from 'lucide-react';
+import type { ActivityLog, BabyInfo, TimeInferenceMode } from '../types/baby';
 import { DataTransfer } from './DataTransfer';
 import { UpdateChecker } from './UpdateChecker';
 
@@ -8,14 +8,38 @@ interface SettingsProps {
   onTimeInferenceModeChange: (mode: TimeInferenceMode) => void;
   logs: ActivityLog[];
   onImportLogs: (logs: ActivityLog[]) => void;
+  onImportBabies: (babies: BabyInfo[]) => void;
+  babies: BabyInfo[];
+  activeBabyId: string;
+  onAddBaby: () => void;
+  onEditBaby: (babyId: string) => void;
+  onDeleteBaby: (babyId: string) => void;
 }
 
-export function Settings({ timeInferenceMode, onTimeInferenceModeChange, logs, onImportLogs }: SettingsProps) {
+export function Settings({ timeInferenceMode, onTimeInferenceModeChange, logs, onImportLogs, onImportBabies, babies, activeBabyId, onAddBaby, onEditBaby, onDeleteBaby }: SettingsProps) {
   return (
     <div className="container settings-page fade-in">
       <div className="settings-heading">
         <h1>设置</h1>
       </div>
+
+      <section className="settings-section" aria-labelledby="baby-management-title">
+        <div className="settings-item-heading settings-baby-heading">
+          <span className="settings-icon" aria-hidden="true"><Users size={18} /></span>
+          <div><h2 id="baby-management-title">宝宝管理</h2><p>当前共 {babies.length} 位宝宝</p></div>
+          <button type="button" className="settings-add-baby" onClick={onAddBaby}><Plus size={15} />添加</button>
+        </div>
+        <div className="settings-baby-list">
+          {babies.map((baby) => (
+            <div className={`settings-baby-row ${baby.id === activeBabyId ? 'active' : ''}`} key={baby.id}>
+              <span className="settings-baby-avatar">{baby.avatar ? <img src={baby.avatar} alt="" /> : baby.name.slice(0, 1)}</span>
+              <span className="settings-baby-copy"><strong>{baby.name}</strong><small>{baby.birthday}{baby.id === activeBabyId ? ' · 当前宝宝' : ''}</small></span>
+              <button type="button" onClick={() => onEditBaby(baby.id)} aria-label={`编辑${baby.name}`}><Edit2 size={15} /></button>
+              <button type="button" disabled={babies.length <= 1} onClick={() => onDeleteBaby(baby.id)} aria-label={`删除${baby.name}`}><Trash2 size={15} /></button>
+            </div>
+          ))}
+        </div>
+      </section>
 
       <section className="settings-section" aria-labelledby="time-inference-title">
         <div className="settings-item-heading">
@@ -58,7 +82,7 @@ export function Settings({ timeInferenceMode, onTimeInferenceModeChange, logs, o
             <p>完整备份与记录导入</p>
           </div>
         </div>
-        <DataTransfer logs={logs} onImportLogs={onImportLogs} />
+        <DataTransfer logs={logs} onImportLogs={onImportLogs} onImportBabies={onImportBabies} babies={babies} activeBabyId={activeBabyId} />
       </section>
 
       <section className="settings-section" aria-labelledby="about-title">

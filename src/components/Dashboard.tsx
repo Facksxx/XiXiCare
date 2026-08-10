@@ -7,6 +7,7 @@ import { ConfirmModal } from './ConfirmModal';
 import { Incrementor } from './Incrementor';
 
 interface DashboardProps {
+  babyId: string;
   onAddLog: (log: ActivityLog) => void;
   onUpdateLog: (log: ActivityLog) => void;
   editingLog?: ActivityLog | null;
@@ -69,7 +70,7 @@ const getLogTypeLabel = (logType: LogType) => {
   return labels[logType] || logType;
 };
 
-export function Dashboard({ onAddLog, onUpdateLog, editingLog: externalEditingLog, onEditingDone, timeInferenceMode }: DashboardProps) {
+export function Dashboard({ babyId, onAddLog, onUpdateLog, editingLog: externalEditingLog, onEditingDone, timeInferenceMode }: DashboardProps) {
   const [activeTab, setActiveTab] = useState<LogType>('feeding');
   const [feedingType, setFeedingType] = useState<FeedingType>('breast');
 
@@ -93,9 +94,9 @@ export function Dashboard({ onAddLog, onUpdateLog, editingLog: externalEditingLo
 
   // Growth State - 选择式
   const [growthType, setGrowthType] = useState<'weight' | 'height' | 'temp'>('weight');
-  const [growthWeight, setGrowthWeight] = useState(() => localStorage.getItem('babycare_growth_weight') || '');
-  const [growthHeight, setGrowthHeight] = useState(() => localStorage.getItem('babycare_growth_height') || '');
-  const [growthTemp, setGrowthTemp] = useState(() => localStorage.getItem('babycare_growth_temp') || '');
+  const [growthWeight, setGrowthWeight] = useState(() => localStorage.getItem(`babycare_growth_weight_${babyId}`) || '');
+  const [growthHeight, setGrowthHeight] = useState(() => localStorage.getItem(`babycare_growth_height_${babyId}`) || '');
+  const [growthTemp, setGrowthTemp] = useState(() => localStorage.getItem(`babycare_growth_temp_${babyId}`) || '');
 
   // 编辑状态
   const [editingLog, setEditingLog] = useState<ActivityLog | null>(null);
@@ -245,13 +246,13 @@ export function Dashboard({ onAddLog, onUpdateLog, editingLog: externalEditingLo
       
       if (growthType === 'weight' && growthWeight) {
         metadata.weightKg = parseFloat(growthWeight);
-        localStorage.setItem('babycare_growth_weight', growthWeight);
+        localStorage.setItem(`babycare_growth_weight_${babyId}`, growthWeight);
       } else if (growthType === 'height' && growthHeight) {
         metadata.heightCm = parseFloat(growthHeight);
-        localStorage.setItem('babycare_growth_height', growthHeight);
+        localStorage.setItem(`babycare_growth_height_${babyId}`, growthHeight);
       } else if (growthType === 'temp' && growthTemp) {
         metadata.temperatureC = parseFloat(growthTemp);
-        localStorage.setItem('babycare_growth_temp', growthTemp);
+        localStorage.setItem(`babycare_growth_temp_${babyId}`, growthTemp);
       }
     }
 
@@ -266,7 +267,7 @@ export function Dashboard({ onAddLog, onUpdateLog, editingLog: externalEditingLo
     } else {
       const newLog: ActivityLog = {
         id: `${activeTab}-${Date.now()}`,
-        babyId: 'baby-1',
+        babyId,
         timestamp: toISO(startTime),
         logType: activeTab,
         metadata

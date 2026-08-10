@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import { AlertTriangle, Check, Download, Upload } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
 import { Directory, Filesystem } from '@capacitor/filesystem';
-import type { ActivityLog } from '../types/baby';
+import type { ActivityLog, BabyInfo } from '../types/baby';
 import { guideData } from '../data/guideData';
 import { createXlsxWorkbook, parseXlsxWorkbook } from '../utils/xlsx';
 import { ConfirmModal } from './ConfirmModal';
@@ -10,6 +10,9 @@ import { ConfirmModal } from './ConfirmModal';
 interface DataTransferProps {
   logs: ActivityLog[];
   onImportLogs: (logs: ActivityLog[]) => void;
+  babies: BabyInfo[];
+  activeBabyId: string;
+  onImportBabies: (babies: BabyInfo[]) => void;
 }
 
 const LOG_TYPE_LABEL: Record<string, string> = {
@@ -18,6 +21,8 @@ const LOG_TYPE_LABEL: Record<string, string> = {
   diaper: '尿布',
   growth: '体征'
 };
+
+const createBabyId = () => `baby-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 
 const TABLE_HEADERS = [
   { key: 'id', label: '记录ID' },
@@ -84,35 +89,39 @@ const logToRow = (log: ActivityLog) => {
   };
 };
 
-const buildCompleteWorkbook = (logs: ActivityLog[], now: Date) => {
+const buildCompleteWorkbook = (logs: ActivityLog[], babies: BabyInfo[], now: Date) => {
   const rows = [...logs].sort((a, b) => b.timestamp.localeCompare(a.timestamp)).map(log => {
     const source = logToRow(log);
     const row: Record<string, string | number | boolean> = {};
     TABLE_HEADERS.forEach(header => { row[header.label] = source[header.key as keyof typeof source]; });
     return row;
   });
-  const vaccines = readStoredObject<Record<string, boolean>>('babycare_vaccines');
-  const allergens = readStoredObject<Record<string, 'untested' | 'safe' | 'allergic'>>('babycare_allergens');
-  const babyInfo = readStoredObject<Record<string, unknown>>('babycare_info');
-  const vaccineRows = guideData.flatMap(stage => (stage.vaccineGuide?.vaccines ?? []).map(vaccine => ({
-    '年龄阶段': stage.ageRange,
-    '疫苗名称': vaccine.name,
-    '建议接种时间': vaccine.age,
-    '接种状态': vaccines[`${stage.id}:${vaccine.name}`] ? '已接种' : '未接种',
-    '接种说明': vaccine.note ?? ''
-  })));
-  const allergenRows = guideData.flatMap(stage => (stage.solidsGuide?.allergenChecklist ?? []).map(food => {
-    const status = allergens[food] ?? 'untested';
-    return {
+  const vaccineRows = babies.flatMap(baby => {
+    const vaccines = readStoredObject<Record<string, boolean>>(`babycare_vaccines_${baby.id}`);
+    return guideData.flatMap(stage => (stage.vaccineGuide?.vaccines ?? []).map(vaccine => ({
+      '宝宝ID': baby.id,
+      '宝宝名字': baby.name,
       '年龄阶段': stage.ageRange,
-      '过敏原/食物': food,
-      '排查状态': status === 'safe' ? '安全' : status === 'allergic' ? '过敏' : '未排查'
-    };
-  }));
+      '疫苗名称': vaccine.name,
+      '建议接种时间': vaccine.age,
+      '接种状态': vaccines[`${stage.id}:${vaccine.name}`] ? '已接种' : '未接种',
+      '接种说明': vaccine.note ?? ''
+    })));
+  });
+  const allergenRows = babies.flatMap(baby => {
+    const allergens = readStoredObject<Record<string, 'untested' | 'safe' | 'allergic'>>(`babycare_allergens_${baby.id}`);
+    return guideData.flatMap(stage => (stage.solidsGuide?.allergenChecklist ?? []).map(food => {
+      const status = allergens[food] ?? 'untested';
+      return {
+        '宝宝ID': baby.id,
+        '宝宝名字': baby.name,
+        '年龄阶段': stage.ageRange,
+        '过敏原/食物': food,
+        '排查状态': status === 'safe' ? '安全' : status === 'allergic' ? '过敏' : '未排查'
+      };
+    }));
+  });
   const settingRows = [
-    { '设置项': '宝宝名字', '当前值': String(babyInfo.name ?? '') },
-    { '设置项': '出生日期', '当前值': String(babyInfo.birthday ?? '') },
-    { '设置项': '头像', '当前值': babyInfo.avatar ? '已设置（图片文件不写入表格）' : '未设置' },
     { '设置项': '时间推断方式', '当前值': localStorage.getItem('babycare_time_inference_mode') === '"start"' ? '当前时间为开始时间' : '当前时间为结束时间' },
     { '设置项': '主题', '当前值': localStorage.getItem('babycare_theme') === '"dark"' ? '深色' : '浅色' },
     { '设置项': '睡眠声音', '当前值': localStorage.getItem('babycare_white_noise_track') ?? '' },
@@ -124,9 +133,10 @@ const buildCompleteWorkbook = (logs: ActivityLog[], now: Date) => {
   ];
 
   return createXlsxWorkbook([
+    { name: '宝宝列表', headers: ['宝宝ID', '宝宝名字', '出生日期', '头像状态'], rows: babies.map(baby => ({ '宝宝ID': baby.id, '宝宝名字': baby.name, '出生日期': baby.birthday, '头像状态': baby.avatar ? '已设置（图片不写入表格）' : '未设置' })) },
     { name: '全部记录', headers: TABLE_HEADERS.map(header => header.label), rows },
-    { name: '疫苗接种记录', headers: ['年龄阶段', '疫苗名称', '建议接种时间', '接种状态', '接种说明'], rows: vaccineRows },
-    { name: '过敏排查记录', headers: ['年龄阶段', '过敏原/食物', '排查状态'], rows: allergenRows },
+    { name: '疫苗接种记录', headers: ['宝宝ID', '宝宝名字', '年龄阶段', '疫苗名称', '建议接种时间', '接种状态', '接种说明'], rows: vaccineRows },
+    { name: '过敏排查记录', headers: ['宝宝ID', '宝宝名字', '年龄阶段', '过敏原/食物', '排查状态'], rows: allergenRows },
     { name: '宝宝与程序设置', headers: ['设置项', '当前值'], rows: settingRows }
   ]);
 };
@@ -169,7 +179,7 @@ const rowToLog = (row: Record<string, string>): ActivityLog | null => {
   return { id: row['记录ID'] || `imp_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`, babyId: row['宝宝ID'] || 'imported', timestamp, logType, metadata };
 };
 
-export function DataTransfer({ logs, onImportLogs }: DataTransferProps) {
+export function DataTransfer({ logs, onImportLogs, babies, activeBabyId, onImportBabies }: DataTransferProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [dialog, setDialog] = useState<{ show: boolean; message: string; confirm?: () => void }>({ show: false, message: '' });
   const [toast, setToast] = useState<{ message: string; error: boolean } | null>(null);
@@ -183,7 +193,7 @@ export function DataTransfer({ logs, onImportLogs }: DataTransferProps) {
     const now = new Date();
     const pad = (value: number) => String(value).padStart(2, '0');
     const fileName = `XiXiCare_完整数据_${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}.xlsx`;
-    const fileBytes = buildCompleteWorkbook(logs, now);
+    const fileBytes = buildCompleteWorkbook(logs, babies, now);
     const mimeType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 
     try {
@@ -242,46 +252,60 @@ export function DataTransfer({ logs, onImportLogs }: DataTransferProps) {
     try {
       const workbook = await parseXlsxWorkbook(await file.arrayBuffer());
       const recordsSheet = workbook.find(sheet => sheet.name === '全部记录') ?? workbook[0];
+      const babiesSheet = workbook.find(sheet => sheet.name === '宝宝列表');
       const vaccineSheet = workbook.find(sheet => sheet.name === '疫苗接种记录');
       const allergenSheet = workbook.find(sheet => sheet.name === '过敏排查记录');
       const settingsSheet = workbook.find(sheet => sheet.name === '宝宝与程序设置');
-      const importedLogs = recordsSheet.rows.map(rowToLog).filter((log): log is ActivityLog => Boolean(log));
-      const importedVaccines: Record<string, boolean> = {};
+      const importedBabies = babiesSheet?.rows.map((row) => ({
+        id: row['宝宝ID'] || createBabyId(),
+        name: row['宝宝名字'] || '宝宝',
+        birthday: row['出生日期'] || ''
+      } satisfies BabyInfo)).filter((item) => item.birthday) ?? [];
+      const importedLogs = recordsSheet.rows.map(rowToLog).filter((log): log is ActivityLog => Boolean(log)).map((log) => babiesSheet ? log : { ...log, babyId: activeBabyId });
+      const importedVaccines: Record<string, Record<string, boolean>> = {};
       vaccineSheet?.rows.forEach(row => {
         const stage = guideData.find(item => item.ageRange === row['年龄阶段'] && item.vaccineGuide?.vaccines.some(vaccine => vaccine.name === row['疫苗名称']));
-        if (stage && row['疫苗名称']) importedVaccines[`${stage.id}:${row['疫苗名称']}`] = row['接种状态'] === '已接种';
+        const babyId = row['宝宝ID'] || activeBabyId;
+        if (stage && row['疫苗名称']) {
+          importedVaccines[babyId] ??= {};
+          importedVaccines[babyId][`${stage.id}:${row['疫苗名称']}`] = row['接种状态'] === '已接种';
+        }
       });
-      const importedAllergens: Record<string, 'untested' | 'safe' | 'allergic'> = {};
+      const importedAllergens: Record<string, Record<string, 'untested' | 'safe' | 'allergic'>> = {};
       allergenSheet?.rows.forEach(row => {
         if (!row['过敏原/食物']) return;
-        importedAllergens[row['过敏原/食物']] = row['排查状态'] === '安全' ? 'safe' : row['排查状态'] === '过敏' ? 'allergic' : 'untested';
+        const babyId = row['宝宝ID'] || activeBabyId;
+        importedAllergens[babyId] ??= {};
+        importedAllergens[babyId][row['过敏原/食物']] = row['排查状态'] === '安全' ? 'safe' : row['排查状态'] === '过敏' ? 'allergic' : 'untested';
       });
       const importedSettings = new Map(settingsSheet?.rows.map(row => [row['设置项'], row['当前值']]) ?? []);
-      const hasCompleteData = Boolean(vaccineSheet || allergenSheet || settingsSheet);
+      const hasCompleteData = Boolean(babiesSheet || vaccineSheet || allergenSheet || settingsSheet);
 
       if (importedLogs.length === 0 && !hasCompleteData) {
         setDialog({ show: true, message: '导入失败：未解析到有效数据' });
       } else {
         const summary = [
           `${importedLogs.length} 条大盘记录`,
-          vaccineSheet ? `${Object.values(importedVaccines).filter(Boolean).length} 项已接种状态` : '',
-          allergenSheet ? `${Object.keys(importedAllergens).length} 项过敏排查` : '',
-          settingsSheet ? '宝宝资料与程序设置' : ''
+          babiesSheet ? `${importedBabies.length} 位宝宝` : '',
+          vaccineSheet ? `${Object.values(importedVaccines).flatMap(Object.values).filter(Boolean).length} 项已接种状态` : '',
+          allergenSheet ? `${Object.values(importedAllergens).flatMap(Object.keys).length} 项过敏排查` : '',
+          settingsSheet ? '程序设置' : ''
         ].filter(Boolean).join('、');
         setDialog({
           show: true,
           message: `将导入：${summary}。是否继续？`,
           confirm: () => {
             if (importedLogs.length > 0) onImportLogs(importedLogs);
-            if (vaccineSheet) localStorage.setItem('babycare_vaccines', JSON.stringify(importedVaccines));
-            if (allergenSheet) localStorage.setItem('babycare_allergens', JSON.stringify(importedAllergens));
+            if (importedBabies.length > 0) onImportBabies(importedBabies);
+            if (vaccineSheet) Object.entries(importedVaccines).forEach(([babyId, status]) => localStorage.setItem(`babycare_vaccines_${babyId}`, JSON.stringify(status)));
+            if (allergenSheet) Object.entries(importedAllergens).forEach(([babyId, status]) => localStorage.setItem(`babycare_allergens_${babyId}`, JSON.stringify(status)));
             if (settingsSheet) {
-              const currentBaby = readStoredObject<Record<string, unknown>>('babycare_info');
-              localStorage.setItem('babycare_info', JSON.stringify({
-                ...currentBaby,
-                name: importedSettings.get('宝宝名字') ?? currentBaby.name ?? '',
-                birthday: importedSettings.get('出生日期') ?? currentBaby.birthday ?? ''
-              }));
+              const legacyName = importedSettings.get('宝宝名字');
+              const legacyBirthday = importedSettings.get('出生日期');
+              if (!babiesSheet && legacyName && legacyBirthday) {
+                const current = babies.find((item) => item.id === activeBabyId);
+                onImportBabies([{ id: activeBabyId, name: legacyName, birthday: legacyBirthday, avatar: current?.avatar }]);
+              }
               const timeMode = importedSettings.get('时间推断方式');
               if (timeMode) localStorage.setItem('babycare_time_inference_mode', JSON.stringify(timeMode.includes('开始') ? 'start' : 'end'));
               const theme = importedSettings.get('主题');
@@ -313,8 +337,8 @@ export function DataTransfer({ logs, onImportLogs }: DataTransferProps) {
   return (
     <>
       <div className="settings-data-actions">
-        <button type="button" onClick={handleExport}><Download size={17} /><span><strong>导出全部数据</strong><small>记录、疫苗、过敏排查与设置</small></span></button>
-        <button type="button" onClick={() => fileInputRef.current?.click()}><Upload size={17} /><span><strong>导入全部数据</strong><small>恢复记录、疫苗、过敏排查与设置</small></span></button>
+        <button type="button" onClick={handleExport}><Download size={17} /><span><strong>导出全部数据</strong><small>宝宝、记录、疫苗、过敏排查与设置</small></span></button>
+        <button type="button" onClick={() => fileInputRef.current?.click()}><Upload size={17} /><span><strong>导入全部数据</strong><small>恢复全部宝宝与对应记录</small></span></button>
         <input ref={fileInputRef} type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden onChange={handleFileChange} />
       </div>
       <ConfirmModal
