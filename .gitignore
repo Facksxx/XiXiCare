@@ -10,5 +10,6 @@ android/local.properties
 android/capacitor-cordova-android-plugins/
 *.log
 .DS_Store
+.trae*
 
 # XiXiCare.apk is intentionally committed for direct download from the repository.
