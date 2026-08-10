@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import type { ActivityLog, LogType } from '../types/baby';
+import type { ActivityLog, FeedingType, LogType } from '../types/baby';
 import { Calendar, Droplets, Edit2, Milk, Moon, Scale, Trash2 } from 'lucide-react';
 import { ConfirmModal } from './ConfirmModal';
 
@@ -10,6 +10,7 @@ interface RecordsProps {
 }
 
 type TypeFilter = 'all' | LogType;
+type FeedingFilter = 'all' | FeedingType;
 
 const TYPE_FILTERS: Array<{ value: TypeFilter; label: string }> = [
   { value: 'all', label: '全部' },
@@ -19,10 +20,29 @@ const TYPE_FILTERS: Array<{ value: TypeFilter; label: string }> = [
   { value: 'growth', label: '体征' }
 ];
 
+const FEEDING_FILTERS: Array<{ value: FeedingFilter; label: string }> = [
+  { value: 'all', label: '全部喂养' },
+  { value: 'breast', label: '母乳亲喂' },
+  { value: 'bottle', label: '奶瓶喂养' },
+  { value: 'solids', label: '辅食' }
+];
+
+const feedingTypeLabel = (type?: FeedingType) => (
+  type === 'bottle' ? '奶瓶' : type === 'solids' ? '辅食' : '母乳'
+);
+
+const formatInterval = (minutes: number) => {
+  if (minutes < 60) return `${minutes}分钟`;
+  const hours = Math.floor(minutes / 60);
+  const rest = minutes % 60;
+  return rest ? `${hours}小时${rest}分钟` : `${hours}小时`;
+};
+
 export function Records({ logs, onEditLog, onDeleteLog }: RecordsProps) {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');
+  const [feedingFilter, setFeedingFilter] = useState<FeedingFilter>('all');
   const [confirmModal, setConfirmModal] = useState<{ show: boolean; message: string; onConfirm: () => void }>({ show: false, message: '', onConfirm: () => {} });
 
   const sortedLogs = useMemo(() => [...logs].sort((a, b) => b.timestamp.localeCompare(a.timestamp)), [logs]);
@@ -31,8 +51,28 @@ export function Records({ logs, onEditLog, onDeleteLog }: RecordsProps) {
     if (startDate && logDate < startDate) return false;
     if (endDate && logDate > endDate) return false;
     if (typeFilter !== 'all' && log.logType !== typeFilter) return false;
+    if (typeFilter === 'feeding' && feedingFilter !== 'all' && log.metadata.feedingType !== feedingFilter) return false;
     return true;
-  }), [sortedLogs, startDate, endDate, typeFilter]);
+  }), [sortedLogs, startDate, endDate, typeFilter, feedingFilter]);
+
+  const feedingIntervals = useMemo(() => {
+    const result = new Map<string, number>();
+    const previousEndByType = new Map<FeedingType, number>();
+    [...logs]
+      .filter(log => log.logType === 'feeding')
+      .sort((a, b) => a.timestamp.localeCompare(b.timestamp))
+      .forEach(log => {
+        const feedingType = log.metadata.feedingType ?? 'breast';
+        const start = new Date(log.timestamp).getTime();
+        const previousEnd = previousEndByType.get(feedingType);
+        if (previousEnd !== undefined && start >= previousEnd) {
+          result.set(log.id, Math.round((start - previousEnd) / 60000));
+        }
+        const end = log.metadata.endTime ? new Date(log.metadata.endTime).getTime() : start;
+        previousEndByType.set(feedingType, Number.isFinite(end) ? end : start);
+      });
+    return result;
+  }, [logs]);
 
   const groupedLogs = useMemo(() => {
     const groups: Record<string, ActivityLog[]> = {};
@@ -100,11 +140,12 @@ export function Records({ logs, onEditLog, onDeleteLog }: RecordsProps) {
     });
   };
 
-  const hasFilter = Boolean(startDate || endDate || typeFilter !== 'all');
+  const hasFilter = Boolean(startDate || endDate || typeFilter !== 'all' || feedingFilter !== 'all');
   const clearFilter = () => {
     setStartDate('');
     setEndDate('');
     setTypeFilter('all');
+    setFeedingFilter('all');
   };
 
   return (
@@ -127,12 +168,31 @@ export function Records({ logs, onEditLog, onDeleteLog }: RecordsProps) {
               role="radio"
               aria-checked={typeFilter === option.value}
               className={typeFilter === option.value ? 'active' : ''}
-              onClick={() => setTypeFilter(option.value)}
+              onClick={() => {
+                setTypeFilter(option.value);
+                if (option.value !== 'feeding') setFeedingFilter('all');
+              }}
             >
               {option.label}
             </button>
           ))}
         </div>
+        {typeFilter === 'feeding' && (
+          <div className="records-feeding-filter" role="radiogroup" aria-label="喂养类型">
+            {FEEDING_FILTERS.map(option => (
+              <button
+                key={option.value}
+                type="button"
+                role="radio"
+                aria-checked={feedingFilter === option.value}
+                className={feedingFilter === option.value ? 'active' : ''}
+                onClick={() => setFeedingFilter(option.value)}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        )}
         <div className="records-count"><Calendar size={14} /><span>共 <strong>{filteredLogs.length}</strong> 条记录{hasFilter && '（已筛选）'}</span></div>
       </div>
 
@@ -156,6 +216,12 @@ export function Records({ logs, onEditLog, onDeleteLog }: RecordsProps) {
                   </div>
                   <div className="timeline-details">
                     <h4>{getLogDisplayDetails(log)}</h4>
+                    {log.logType === 'feeding' && (
+                      <p className="timeline-feeding-meta">
+                        <span>{feedingTypeLabel(log.metadata.feedingType)}</span>
+                        {feedingIntervals.has(log.id) && <span>距上次同类 {formatInterval(feedingIntervals.get(log.id) ?? 0)}</span>}
+                      </p>
+                    )}
                     <p className="timeline-time-line"><span>{log.timestamp.split('T')[0]}</span><span>{getFormatTime(log.timestamp)}</span></p>
                   </div>
                 </div>

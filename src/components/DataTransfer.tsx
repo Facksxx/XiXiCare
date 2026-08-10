@@ -59,6 +59,15 @@ const readStoredObject = <T extends Record<string, unknown>>(key: string): T => 
   }
 };
 
+const readStoredValue = <T,>(key: string, fallback: T): T => {
+  try {
+    const stored = localStorage.getItem(key);
+    return stored === null ? fallback : JSON.parse(stored) as T;
+  } catch {
+    return fallback;
+  }
+};
+
 const logToRow = (log: ActivityLog) => {
   const meta = log.metadata;
   return {
@@ -128,6 +137,11 @@ const buildCompleteWorkbook = (logs: ActivityLog[], babies: BabyInfo[], now: Dat
     { '设置项': '声音循环方式', '当前值': localStorage.getItem('babycare_white_noise_loop') ?? '' },
     { '设置项': '声音音量', '当前值': localStorage.getItem('babycare_white_noise_volume') ?? '' },
     { '设置项': '自定义音乐信息', '当前值': localStorage.getItem('babycare_custom_audio') ?? '[]' },
+    { '设置项': '各宝宝喂养偏好', '当前值': JSON.stringify(Object.fromEntries(babies.map(baby => [baby.id, {
+      feedingType: readStoredValue(`babycare_last_feeding_type_${baby.id}`, 'breast'),
+      bottleVolume: readStoredValue(`babycare_last_bottle_volume_${baby.id}`, 120),
+      bottleType: readStoredValue(`babycare_last_bottle_type_${baby.id}`, 'formula')
+    }]))) },
     { '设置项': '导出时间', '当前值': now.toISOString() },
     { '设置项': '记录总数', '当前值': logs.length }
   ];
@@ -320,6 +334,19 @@ export function DataTransfer({ logs, onImportLogs, babies, activeBabyId, onImpor
                 const value = importedSettings.get(label);
                 if (value) localStorage.setItem(key, value);
               });
+              const feedingPreferences = importedSettings.get('各宝宝喂养偏好');
+              if (feedingPreferences) {
+                try {
+                  const preferences = JSON.parse(feedingPreferences) as Record<string, { feedingType?: string; bottleVolume?: number; bottleType?: string }>;
+                  Object.entries(preferences).forEach(([babyId, preference]) => {
+                    if (['breast', 'bottle', 'solids'].includes(preference.feedingType ?? '')) localStorage.setItem(`babycare_last_feeding_type_${babyId}`, JSON.stringify(preference.feedingType));
+                    if (Number(preference.bottleVolume) > 0) localStorage.setItem(`babycare_last_bottle_volume_${babyId}`, JSON.stringify(Number(preference.bottleVolume)));
+                    if (['formula', 'breastmilk'].includes(preference.bottleType ?? '')) localStorage.setItem(`babycare_last_bottle_type_${babyId}`, JSON.stringify(preference.bottleType));
+                  });
+                } catch {
+                  // Older backups do not contain per-baby feeding preferences.
+                }
+              }
             }
             setDialog({ show: false, message: '' });
             showToast('全部数据导入成功，正在刷新');

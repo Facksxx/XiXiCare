@@ -12,11 +12,12 @@ interface SettingsProps {
   babies: BabyInfo[];
   activeBabyId: string;
   onAddBaby: () => void;
+  onSwitchBaby: (babyId: string) => void;
   onEditBaby: (babyId: string) => void;
   onDeleteBaby: (babyId: string) => void;
 }
 
-export function Settings({ timeInferenceMode, onTimeInferenceModeChange, logs, onImportLogs, onImportBabies, babies, activeBabyId, onAddBaby, onEditBaby, onDeleteBaby }: SettingsProps) {
+export function Settings({ timeInferenceMode, onTimeInferenceModeChange, logs, onImportLogs, onImportBabies, babies, activeBabyId, onAddBaby, onSwitchBaby, onEditBaby, onDeleteBaby }: SettingsProps) {
   return (
     <div className="container settings-page fade-in">
       <div className="settings-heading">
@@ -32,8 +33,10 @@ export function Settings({ timeInferenceMode, onTimeInferenceModeChange, logs, o
         <div className="settings-baby-list">
           {babies.map((baby) => (
             <div className={`settings-baby-row ${baby.id === activeBabyId ? 'active' : ''}`} key={baby.id}>
-              <span className="settings-baby-avatar">{baby.avatar ? <img src={baby.avatar} alt="" /> : baby.name.slice(0, 1)}</span>
-              <span className="settings-baby-copy"><strong>{baby.name}</strong><small>{baby.birthday}{baby.id === activeBabyId ? ' · 当前宝宝' : ''}</small></span>
+              <button type="button" className="settings-baby-select" onClick={() => onSwitchBaby(baby.id)} aria-pressed={baby.id === activeBabyId}>
+                <span className="settings-baby-avatar">{baby.avatar ? <img src={baby.avatar} alt="" /> : baby.name.slice(0, 1)}</span>
+                <span className="settings-baby-copy"><strong>{baby.name}</strong><small>{baby.birthday}{baby.id === activeBabyId ? ' · 当前宝宝' : ' · 点击切换'}</small></span>
+              </button>
               <button type="button" onClick={() => onEditBaby(baby.id)} aria-label={`编辑${baby.name}`}><Edit2 size={15} /></button>
               <button type="button" disabled={babies.length <= 1} onClick={() => onDeleteBaby(baby.id)} aria-label={`删除${baby.name}`}><Trash2 size={15} /></button>
             </div>

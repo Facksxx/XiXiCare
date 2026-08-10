@@ -16,6 +16,7 @@ import type { Icon } from 'lucide-react';
 import './index.css';
 
 type AppTab = 'dashboard' | 'records' | 'guide' | 'stats';
+type SwipePreview = { tab: AppTab; side: -1 | 1 };
 const APP_TABS: AppTab[] = ['dashboard', 'records', 'guide', 'stats'];
 
 function NavIcon({ icon: IconComponent, active }: { icon: Icon; active: boolean }) {
@@ -57,6 +58,7 @@ const createBabyId = () => `baby-${Date.now()}-${Math.random().toString(36).slic
 export default function App() {
   // Navigation tabs: 'dashboard' | 'guide' | 'stats' | 'records'
   const [activeTab, setActiveTab] = useState<AppTab>('dashboard');
+  const [swipePreview, setSwipePreview] = useState<SwipePreview | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [showWhiteNoise, setShowWhiteNoise] = useState(false);
   const [showBabySwitcher, setShowBabySwitcher] = useState(false);
@@ -96,20 +98,76 @@ export default function App() {
   const [editBirthday, setEditBirthday] = useState(baby.birthday);
   const [editAvatar, setEditAvatar] = useState<string | undefined>(baby.avatar);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const currentPageRef = useRef<HTMLDivElement>(null);
+  const previewPageRef = useRef<HTMLDivElement>(null);
+  const swipePreviewRef = useRef<SwipePreview | null>(null);
+  const swipeTimerRef = useRef<number | null>(null);
   const swipeStartRef = useRef<{ x: number; y: number; time: number; blocked: boolean; horizontal: boolean } | null>(null);
   const legacyBabyInfo = JSON.stringify(baby);
 
-  const navigateToTab = (nextTab: AppTab) => {
+  const clearSwipeStyles = () => {
+    [currentPageRef.current, previewPageRef.current].forEach(element => element?.removeAttribute('style'));
+  };
+
+  const completeNavigation = (nextTab: AppTab) => {
+    setActiveTab(nextTab);
+    setSwipePreview(null);
+    swipePreviewRef.current = null;
+    clearSwipeStyles();
+    setShowSettings(false);
+  };
+
+  const animateToTab = (nextTab: AppTab, fromDrag = false) => {
     if (nextTab === activeTab) {
       setShowSettings(false);
       return;
     }
-    setActiveTab(nextTab);
-    setShowSettings(false);
+    if (swipeTimerRef.current !== null) return;
+    const side: -1 | 1 = APP_TABS.indexOf(nextTab) > APP_TABS.indexOf(activeTab) ? 1 : -1;
+    const preview = { tab: nextTab, side };
+    swipePreviewRef.current = preview;
+    setSwipePreview(preview);
+
+    window.requestAnimationFrame(() => window.requestAnimationFrame(() => {
+      const current = currentPageRef.current;
+      const incoming = previewPageRef.current;
+      if (!current || !incoming) return completeNavigation(nextTab);
+      const duration = fromDrag ? 170 : 190;
+      current.style.transition = `transform ${duration}ms cubic-bezier(0.22, 0.72, 0.24, 1)`;
+      incoming.style.transition = current.style.transition;
+      if (!fromDrag) {
+        current.style.transform = 'translate3d(0,0,0)';
+        incoming.style.transform = `translate3d(${side * 100}%,0,0)`;
+        current.getBoundingClientRect();
+      }
+      current.style.transform = `translate3d(${-side * 100}%,0,0)`;
+      incoming.style.transform = 'translate3d(0,0,0)';
+      swipeTimerRef.current = window.setTimeout(() => {
+        swipeTimerRef.current = null;
+        completeNavigation(nextTab);
+      }, duration);
+    }));
+  };
+
+  const resetSwipe = () => {
+    const preview = swipePreviewRef.current;
+    const current = currentPageRef.current;
+    const incoming = previewPageRef.current;
+    if (!preview || !current || !incoming) return;
+    current.style.transition = 'transform 150ms ease-out';
+    incoming.style.transition = current.style.transition;
+    current.style.transform = 'translate3d(0,0,0)';
+    incoming.style.transform = `translate3d(${preview.side * 100}%,0,0)`;
+    window.setTimeout(() => {
+      setSwipePreview(null);
+      swipePreviewRef.current = null;
+      clearSwipeStyles();
+    }, 155);
   };
 
   const handlePageTouchStart = (event: ReactTouchEvent<HTMLElement>) => {
     if (showSettings || event.touches.length !== 1) return;
+    if (swipeTimerRef.current !== null) return;
     const touch = event.touches[0];
     swipeStartRef.current = {
       x: touch.clientX,
@@ -135,7 +193,28 @@ export default function App() {
       if (Math.abs(deltaX) < 8 || Math.abs(deltaX) <= Math.abs(deltaY)) return;
       start.horizontal = true;
     }
-
+    const currentIndex = APP_TABS.indexOf(activeTab);
+    const nextIndex = deltaX < 0 ? currentIndex + 1 : currentIndex - 1;
+    if (nextIndex < 0 || nextIndex >= APP_TABS.length) return;
+    const side: -1 | 1 = deltaX < 0 ? 1 : -1;
+    const preview = swipePreviewRef.current;
+    if (!preview || preview.tab !== APP_TABS[nextIndex]) {
+      const nextPreview = { tab: APP_TABS[nextIndex], side };
+      swipePreviewRef.current = nextPreview;
+      setSwipePreview(nextPreview);
+    }
+    const applyOffset = () => {
+      const current = currentPageRef.current;
+      const incoming = previewPageRef.current;
+      if (!current || !incoming) return;
+      const width = Math.max(current.offsetWidth, 1);
+      const offset = Math.max(-width, Math.min(width, deltaX));
+      current.style.transition = 'none';
+      incoming.style.transition = 'none';
+      current.style.transform = `translate3d(${offset}px,0,0)`;
+      incoming.style.transform = `translate3d(${side * width + offset}px,0,0)`;
+    };
+    window.requestAnimationFrame(applyOffset);
   };
 
   const handlePageTouchEnd = (event: ReactTouchEvent<HTMLElement>) => {
@@ -152,8 +231,16 @@ export default function App() {
       && nextIndex < APP_TABS.length
       && (Math.abs(deltaX) >= 46 || (Math.abs(deltaX) >= 24 && velocity >= 0.38));
 
-    if (shouldSwitch) navigateToTab(APP_TABS[nextIndex]);
+    if (shouldSwitch && swipePreviewRef.current?.tab === APP_TABS[nextIndex]) {
+      animateToTab(APP_TABS[nextIndex], true);
+    } else {
+      resetSwipe();
+    }
   };
+
+  useEffect(() => () => {
+    if (swipeTimerRef.current !== null) window.clearTimeout(swipeTimerRef.current);
+  }, []);
 
   useEffect(() => {
     if (isFirstSetup) {
@@ -390,6 +477,25 @@ export default function App() {
     return parts.join('');
   };
 
+  const renderTab = (tab: AppTab) => {
+    if (tab === 'dashboard') {
+      return (
+        <Dashboard
+          key={`dashboard-${baby.id}`}
+          babyId={baby.id}
+          onAddLog={handleAddLog}
+          onUpdateLog={handleUpdateLog}
+          editingLog={externalEditingLog}
+          onEditingDone={handleEditingDone}
+          timeInferenceMode={timeInferenceMode}
+        />
+      );
+    }
+    if (tab === 'guide') return <Guide key={`guide-${baby.id}`} babyId={baby.id} />;
+    if (tab === 'stats') return <Stats logs={activeLogs} birthday={baby.birthday} />;
+    return <Records logs={activeLogs} onEditLog={handleEditLogFromRecords} onDeleteLog={handleDeleteLog} />;
+  };
+
   return (
     <div className="app-shell">
       {/* Header Bar */}
@@ -464,11 +570,11 @@ export default function App() {
         onTouchStart={handlePageTouchStart}
         onTouchMove={handlePageTouchMove}
         onTouchEnd={handlePageTouchEnd}
-        onTouchCancel={() => { swipeStartRef.current = null; }}
+        onTouchCancel={() => { swipeStartRef.current = null; resetSwipe(); }}
       >
-        <div className="page-swipe-view">
+        <div className="page-swipe-stage">
           {showSettings ? (
-          <SettingsPage
+          <div className="page-swipe-view" ref={currentPageRef}><SettingsPage
             timeInferenceMode={timeInferenceMode}
             onTimeInferenceModeChange={setTimeInferenceMode}
             logs={logs}
@@ -477,29 +583,24 @@ export default function App() {
             babies={babies}
             activeBabyId={baby.id}
             onAddBaby={handleAddBaby}
+            onSwitchBaby={handleSwitchBaby}
             onEditBaby={handleEditBaby}
             onDeleteBaby={handleDeleteBaby}
-          />
-        ) : activeTab === 'dashboard' ? (
-          <Dashboard 
-            key={baby.id}
-            babyId={baby.id}
-            onAddLog={handleAddLog} 
-            onUpdateLog={handleUpdateLog}
-            editingLog={externalEditingLog}
-            onEditingDone={handleEditingDone}
-            timeInferenceMode={timeInferenceMode}
-          />
-        ) : activeTab === 'guide' ? (
-          <Guide key={baby.id} babyId={baby.id} />
-        ) : activeTab === 'stats' ? (
-          <Stats logs={activeLogs} />
+          /></div>
           ) : (
-          <Records
-            logs={activeLogs}
-            onEditLog={handleEditLogFromRecords}
-            onDeleteLog={handleDeleteLog}
-          />
+            <>
+              <div className="page-swipe-view" ref={currentPageRef}>{renderTab(activeTab)}</div>
+              {swipePreview && (
+                <div
+                  className="page-swipe-view page-swipe-preview"
+                  ref={previewPageRef}
+                  style={{ transform: `translate3d(${swipePreview.side * 100}%,0,0)` }}
+                  aria-hidden="true"
+                >
+                  {renderTab(swipePreview.tab)}
+                </div>
+              )}
+            </>
           )}
         </div>
       </main>
@@ -508,7 +609,7 @@ export default function App() {
       <nav className="nav-tabs">
         <button 
           type="button"
-          onClick={() => navigateToTab('dashboard')}
+          onClick={() => animateToTab('dashboard')}
           className={`nav-tab-item ${activeTab === 'dashboard' ? 'active' : ''}`}
           aria-current={activeTab === 'dashboard' ? 'page' : undefined}
         >
@@ -517,7 +618,7 @@ export default function App() {
         </button>
         <button 
           type="button"
-          onClick={() => navigateToTab('records')}
+          onClick={() => animateToTab('records')}
           className={`nav-tab-item ${activeTab === 'records' ? 'active' : ''}`}
           aria-current={activeTab === 'records' ? 'page' : undefined}
         >
@@ -526,7 +627,7 @@ export default function App() {
         </button>
         <button 
           type="button"
-          onClick={() => navigateToTab('guide')}
+          onClick={() => animateToTab('guide')}
           className={`nav-tab-item ${activeTab === 'guide' ? 'active' : ''}`}
           aria-current={activeTab === 'guide' ? 'page' : undefined}
         >
@@ -535,7 +636,7 @@ export default function App() {
         </button>
         <button 
           type="button"
-          onClick={() => navigateToTab('stats')}
+          onClick={() => animateToTab('stats')}
           className={`nav-tab-item ${activeTab === 'stats' ? 'active' : ''}`}
           aria-current={activeTab === 'stats' ? 'page' : undefined}
         >

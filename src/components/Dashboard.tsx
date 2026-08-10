@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { ConfirmModal } from './ConfirmModal';
 import { Incrementor } from './Incrementor';
+import { useLocalStorage } from '../hooks/useLocalStorage';
 
 interface DashboardProps {
   babyId: string;
@@ -72,7 +73,7 @@ const getLogTypeLabel = (logType: LogType) => {
 
 export function Dashboard({ babyId, onAddLog, onUpdateLog, editingLog: externalEditingLog, onEditingDone, timeInferenceMode }: DashboardProps) {
   const [activeTab, setActiveTab] = useState<LogType>('feeding');
-  const [feedingType, setFeedingType] = useState<FeedingType>('breast');
+  const [feedingType, setFeedingType] = useLocalStorage<FeedingType>(`babycare_last_feeding_type_${babyId}`, 'breast');
 
   const [startTime, setStartTime] = useState(getNowLocal);
   const [endTime, setEndTime] = useState(getNowLocal);
@@ -80,8 +81,8 @@ export function Dashboard({ babyId, onAddLog, onUpdateLog, editingLog: externalE
   // Feeding State
   const [breastLeft, setBreastLeft] = useState(10);
   const [breastRight, setBreastRight] = useState(10);
-  const [bottleVolume, setBottleVolume] = useState(120);
-  const [bottleType, setBottleType] = useState<'formula' | 'breastmilk'>('formula');
+  const [bottleVolume, setBottleVolume] = useLocalStorage<number>(`babycare_last_bottle_volume_${babyId}`, 120);
+  const [bottleType, setBottleType] = useLocalStorage<'formula' | 'breastmilk'>(`babycare_last_bottle_type_${babyId}`, 'formula');
   const [solidsName, setSolidsName] = useState('');
   const [solidsAmount, setSolidsAmount] = useState('50g');
   const [solidsReaction, setSolidsReaction] = useState<'none' | 'mild' | 'severe'>('none');
@@ -118,7 +119,6 @@ export function Dashboard({ babyId, onAddLog, onUpdateLog, editingLog: externalE
     setSolidsName('');
     setBreastLeft(10);
     setBreastRight(10);
-    setBottleVolume(120);
     setDiaperPee(true);
     setDiaperPoop(false);
     setGrowthType('weight');

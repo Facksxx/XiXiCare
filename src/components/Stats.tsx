@@ -5,6 +5,7 @@ import { Activity, Calendar, Sparkles, TrendingUp } from 'lucide-react';
 
 interface StatsProps {
   logs: ActivityLog[];
+  birthday: string;
 }
 
 type RangeMode = 'week' | 'month' | 'year';
@@ -32,9 +33,9 @@ interface BucketStat {
 }
 
 const RANGE_OPTIONS: Array<{ mode: RangeMode; label: string; days: number; bucket: BucketMode; hint: string }> = [
-  { mode: 'week', label: '周', days: 7, bucket: 'day', hint: '每日' },
-  { mode: 'month', label: '月', days: 30, bucket: 'week', hint: '按周日均' },
-  { mode: 'year', label: '年', days: 365, bucket: 'month', hint: '按月日均' }
+  { mode: 'week', label: '7天', days: 7, bucket: 'day', hint: '每日' },
+  { mode: 'month', label: '30天', days: 30, bucket: 'week', hint: '按周日均' },
+  { mode: 'year', label: '1年', days: 365, bucket: 'month', hint: '按月日均' }
 ];
 
 const pad = (n: number) => String(n).padStart(2, '0');
@@ -73,27 +74,21 @@ const makePath = (points: Array<{ x: number; y: number }>) => {
 };
 
 const chartMetrics = (count: number) => {
-  const paddingLeft = 56;
-  const paddingRight = 18;
-  const paddingTop = 48;
-  const paddingBottom = 42;
-  const width = 320;
+  const paddingLeft = 52;
+  const paddingRight = 28;
+  const paddingTop = 58;
+  const paddingBottom = 44;
+  const width = 360;
   const plotWidth = width - paddingLeft - paddingRight;
   const slotWidth = plotWidth / Math.max(count, 1);
-  const height = 224;
+  const height = 238;
   const plotHeight = height - paddingTop - paddingBottom;
 
   return { paddingLeft, paddingRight, paddingTop, paddingBottom, slotWidth, plotWidth, width, height, plotHeight };
 };
 
-const valueLabelY = (pointY: number, index: number) => Math.max(pointY - 15 - (index % 2) * 11, 20);
-
-const textAnchorForIndex = (index: number, count: number): 'start' | 'middle' | 'end' => {
-  if (count <= 1) return 'middle';
-  if (index === 0) return 'start';
-  if (index === count - 1) return 'end';
-  return 'middle';
-};
+const valueLabelY = (pointY: number, index: number) => Math.max(pointY - 13 - (index % 2) * 12, 22);
+const slotCenter = (metrics: ReturnType<typeof chartMetrics>, index: number) => metrics.paddingLeft + (index + 0.5) * metrics.slotWidth;
 
 const shouldShowXLabel = (buckets: BucketStat[], index: number) => {
   const count = buckets.length;
@@ -190,7 +185,7 @@ function BarChart({
           <g key={bucket.key}>
             <rect x={x} y={y} width={barWidth} height={height} rx="7" className="stats-soft-bar" style={{ fill: color }} />
             {shouldShowXLabel(dataBuckets, index) && (
-              <text x={x + barWidth / 2} y={metrics.height - 13} textAnchor={textAnchorForIndex(index, dataBuckets.length)} className="stats-x-label">{bucket.label}</text>
+              <text x={x + barWidth / 2} y={metrics.height - 13} textAnchor="middle" className="stats-x-label">{bucket.label}</text>
             )}
           </g>
         );
@@ -201,7 +196,7 @@ function BarChart({
         const height = (rawValue / maxValue) * metrics.plotHeight;
         const x = metrics.paddingLeft + index * metrics.slotWidth + metrics.slotWidth / 2;
         const y = metrics.height - metrics.paddingBottom - height;
-        return <text key={`value-${bucket.key}`} x={x} y={valueLabelY(y, index)} textAnchor={textAnchorForIndex(index, dataBuckets.length)} className="stats-value-label">{Math.round(rawValue)}</text>;
+        return <text key={`value-${bucket.key}`} x={x} y={valueLabelY(y, index)} textAnchor="middle" className="stats-value-label">{Math.round(rawValue)}</text>;
       })}
     </svg>
   );
@@ -216,9 +211,7 @@ function SleepChart({ buckets }: { buckets: BucketStat[] }) {
   const metrics = chartMetrics(dataBuckets.length);
   const maxValue = Math.max(...dataBuckets.map(bucket => bucket.sleepHrs), 8);
   const points = dataBuckets.map((bucket, index) => {
-    const x = dataBuckets.length === 1
-      ? metrics.paddingLeft + metrics.plotWidth / 2
-      : metrics.paddingLeft + index * (metrics.plotWidth / (dataBuckets.length - 1));
+    const x = slotCenter(metrics, index);
     const y = metrics.height - metrics.paddingBottom - (bucket.sleepHrs / maxValue) * metrics.plotHeight;
     return { x, y, bucket };
   });
@@ -239,12 +232,12 @@ function SleepChart({ buckets }: { buckets: BucketStat[] }) {
         <g key={point.bucket.key}>
           <circle cx={point.x} cy={point.y} r="5" className="stats-line-dot" />
           {shouldShowXLabel(dataBuckets, index) && (
-            <text x={point.x} y={metrics.height - 13} textAnchor={textAnchorForIndex(index, dataBuckets.length)} className="stats-x-label">{point.bucket.label}</text>
+            <text x={point.x} y={metrics.height - 13} textAnchor="middle" className="stats-x-label">{point.bucket.label}</text>
           )}
         </g>
       ))}
       {points.map((point, index) => shouldShowValueLabel(dataBuckets.length, index) ? (
-        <text key={`value-${point.bucket.key}`} x={point.x} y={valueLabelY(point.y, index)} textAnchor={textAnchorForIndex(index, dataBuckets.length)} className="stats-value-label">{point.bucket.sleepHrs.toFixed(1)}</text>
+        <text key={`value-${point.bucket.key}`} x={point.x} y={valueLabelY(point.y, index)} textAnchor="middle" className="stats-value-label">{point.bucket.sleepHrs.toFixed(1)}</text>
       ) : null)}
     </svg>
   );
@@ -283,7 +276,7 @@ function DiaperChart({ buckets }: { buckets: BucketStat[] }) {
             {poopHeight > 0 && <rect x={x} y={poopY} width={barWidth} height={poopHeight} rx="6" className="stats-diaper-poop" />}
             {peeHeight > 0 && <rect x={x} y={peeY} width={barWidth} height={peeHeight} rx="6" className="stats-diaper-pee" />}
             {shouldShowXLabel(dataBuckets, index) && (
-              <text x={x + barWidth / 2} y={metrics.height - 13} textAnchor={textAnchorForIndex(index, dataBuckets.length)} className="stats-x-label">{bucket.label}</text>
+              <text x={x + barWidth / 2} y={metrics.height - 13} textAnchor="middle" className="stats-x-label">{bucket.label}</text>
             )}
           </g>
         );
@@ -294,7 +287,7 @@ function DiaperChart({ buckets }: { buckets: BucketStat[] }) {
         const poopHeight = (bucket.poop / maxValue) * metrics.plotHeight;
         const topY = metrics.height - metrics.paddingBottom - peeHeight - poopHeight;
         const x = metrics.paddingLeft + index * metrics.slotWidth + metrics.slotWidth / 2;
-        return <text key={`value-${bucket.key}`} x={x} y={valueLabelY(topY, index)} textAnchor={textAnchorForIndex(index, dataBuckets.length)} className="stats-value-label">{(bucket.pee + bucket.poop).toFixed(1).replace('.0', '')}</text>;
+        return <text key={`value-${bucket.key}`} x={x} y={valueLabelY(topY, index)} textAnchor="middle" className="stats-value-label">{(bucket.pee + bucket.poop).toFixed(1).replace('.0', '')}</text>;
       })}
     </svg>
   );
@@ -312,9 +305,7 @@ function GrowthChart({ buckets }: { buckets: BucketStat[] }) {
   const minValue = Math.min(...weights, 3);
   const diff = maxValue - minValue || 1;
   const pointAt = (value: number, index: number) => {
-    const x = growthBuckets.length === 1
-      ? metrics.paddingLeft + metrics.plotWidth / 2
-      : metrics.paddingLeft + index * (metrics.plotWidth / (growthBuckets.length - 1));
+    const x = slotCenter(metrics, index);
     const y = metrics.height - metrics.paddingBottom - ((value - minValue) / diff) * metrics.plotHeight;
     return { x, y };
   };
@@ -337,26 +328,28 @@ function GrowthChart({ buckets }: { buckets: BucketStat[] }) {
         <g key={point.bucket.key}>
           <circle cx={point.x} cy={point.y} r="5" className="stats-growth-dot" />
           {shouldShowXLabel(growthBuckets, index) && (
-            <text x={point.x} y={metrics.height - 13} textAnchor={textAnchorForIndex(index, growthBuckets.length)} className="stats-x-label">{point.bucket.label}</text>
+            <text x={point.x} y={metrics.height - 13} textAnchor="middle" className="stats-x-label">{point.bucket.label}</text>
           )}
         </g>
       ))}
       {points.map((point, index) => shouldShowValueLabel(growthBuckets.length, index) ? (
-        <text key={`value-${point.bucket.key}`} x={point.x} y={valueLabelY(point.y, index)} textAnchor={textAnchorForIndex(index, growthBuckets.length)} className="stats-value-label">{point.bucket.weight.toFixed(1)}kg</text>
+        <text key={`value-${point.bucket.key}`} x={point.x} y={valueLabelY(point.y, index)} textAnchor="middle" className="stats-value-label">{point.bucket.weight.toFixed(1)}kg</text>
       ) : null)}
     </svg>
   );
 }
 
-export function Stats({ logs }: StatsProps) {
+export function Stats({ logs, birthday }: StatsProps) {
   const [rangeMode, setRangeMode] = useState<RangeMode>('week');
   const range = RANGE_OPTIONS.find(option => option.mode === rangeMode) ?? RANGE_OPTIONS[0];
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const startDate = addDays(today, -(range.days - 1));
+  const firstYearMonth = new Date(today.getFullYear(), today.getMonth() - 11, 1);
+  const startDate = rangeMode === 'year' ? firstYearMonth : addDays(today, -(range.days - 1));
 
-  const dateRange = Array.from({ length: range.days }, (_, i) => toDateKey(addDays(startDate, i)));
+  const rangeDayCount = Math.round((today.getTime() - startDate.getTime()) / 86400000) + 1;
+  const dateRange = Array.from({ length: rangeDayCount }, (_, i) => toDateKey(addDays(startDate, i)));
   const weightLogDates = new Set(
     logs
       .filter(log => log.logType === 'growth' && log.metadata.weightKg)
@@ -440,7 +433,7 @@ export function Stats({ logs }: StatsProps) {
       return chunks;
     }
 
-    const firstMonth = new Date(today.getFullYear(), today.getMonth() - 11, 1);
+    const firstMonth = firstYearMonth;
     return Array.from({ length: 12 }, (_, monthIndex) => {
       const monthStart = addMonths(firstMonth, monthIndex);
       const nextMonth = addMonths(monthStart, 1);
@@ -448,7 +441,22 @@ export function Stats({ logs }: StatsProps) {
         .map(item => ({ item, date: parseDateKey(item.date) }))
         .filter(entry => entry.date >= monthStart && entry.date < nextMonth);
       const fillItems = items.map(entry => entry.item);
-      return makeBucket(fillItems, toDateKey(monthStart), `${monthStart.getMonth() + 1}月`);
+      const bucket = makeBucket(fillItems, toDateKey(monthStart), `${monthStart.getMonth() + 1}月`);
+      const monthWeightLogs = logs
+        .filter(log => log.logType === 'growth' && Number(log.metadata.weightKg) > 0)
+        .filter(log => {
+          const date = new Date(log.timestamp);
+          return date >= monthStart && date < nextMonth;
+        })
+        .sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+      const birthDate = birthday ? parseDateKey(birthday) : null;
+      const isBirthMonth = birthDate
+        && birthDate.getFullYear() === monthStart.getFullYear()
+        && birthDate.getMonth() === monthStart.getMonth();
+      const monthWeightLog = isBirthMonth ? monthWeightLogs[0] : monthWeightLogs.at(-1);
+      return monthWeightLog
+        ? { ...bucket, weight: Number(monthWeightLog.metadata.weightKg), hasWeightLog: true }
+        : bucket;
     }).filter(bucket => bucket.key >= toDateKey(startDate) || rangeMode === 'year');
   })();
 
@@ -489,7 +497,7 @@ export function Stats({ logs }: StatsProps) {
           </div>
         </div>
         <p className="stats-grain-note">
-          {range.label}视图自动{range.hint}汇总，仅显示有记录的时间点
+          {shortDate(toDateKey(startDate))} - {shortDate(toDateKey(today))} · 自动{range.hint}汇总{birthday && rangeMode === 'year' ? ` · 出生 ${birthday.replaceAll('-', '/')}` : ''}
         </p>
       </section>
 
