@@ -1,14 +1,14 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { Directory, Filesystem } from '@capacitor/filesystem';
 import { FileTransfer } from '@capacitor/file-transfer';
-import { AlertTriangle, Check, Download, RefreshCw } from 'lucide-react';
+import { AlertTriangle, Check, Download, Pause, RefreshCw } from 'lucide-react';
 import { APP_VERSION, fetchLatestRelease, isNewer, type RemoteRelease } from '../utils/version';
 import { AppUpdate } from '../plugins/appUpdate';
 import { ConfirmModal } from './ConfirmModal';
 
 type CheckState = 'idle' | 'checking';
-type UpdatePhase = 'prompt' | 'downloading' | 'ready';
+type UpdatePhase = 'prompt' | 'downloading' | 'paused' | 'ready';
 
 interface DownloadProgress {
   percent: number;
@@ -40,6 +40,15 @@ const getErrorMessage = (error: unknown, fallback: string): string => {
   return fallback;
 };
 
+const clearUpdateCache = async () => {
+  if (!Capacitor.isNativePlatform()) return;
+  try {
+    await Filesystem.rmdir({ path: 'updates', directory: Directory.Cache, recursive: true });
+  } catch {
+    // A missing cache directory is already clean.
+  }
+};
+
 export function UpdateChecker() {
   const [checkState, setCheckState] = useState<CheckState>('idle');
   const [toast, setToast] = useState<{ message: string; error: boolean } | null>(null);
@@ -49,6 +58,10 @@ export function UpdateChecker() {
   const [downloadedPath, setDownloadedPath] = useState('');
   const [installNotice, setInstallNotice] = useState('');
   const [errorModal, setErrorModal] = useState<{ show: boolean; message: string }>({ show: false, message: '' });
+
+  useEffect(() => {
+    void clearUpdateCache();
+  }, []);
 
   const showToast = (message: string, error = false) => {
     setToast({ message, error });
@@ -61,6 +74,14 @@ export function UpdateChecker() {
     setDownloadProgress({ percent: 0, bytes: 0, total: 0 });
     setDownloadedPath('');
     setInstallNotice('');
+  };
+
+  const discardUpdate = async () => {
+    if (updatePhase === 'downloading' && Capacitor.isNativePlatform()) {
+      await AppUpdate.pauseDownload();
+    }
+    await clearUpdateCache();
+    resetUpdate();
   };
 
   const handleCheck = async () => {
@@ -101,21 +122,28 @@ export function UpdateChecker() {
 
   const handleDownload = async () => {
     if (!newRelease || updatePhase === 'downloading') return;
+    const isResuming = updatePhase === 'paused' && Boolean(downloadedPath);
     setUpdatePhase('downloading');
     setInstallNotice('');
-    setDownloadProgress({ percent: 0, bytes: 0, total: 0 });
+    if (!isResuming) setDownloadProgress({ percent: 0, bytes: 0, total: 0 });
 
-    let progressListener: Awaited<ReturnType<typeof FileTransfer.addListener>> | null = null;
+    let removeProgressListener: (() => Promise<void>) | null = null;
+    let activePath = downloadedPath;
+    const updateProgress = (bytes: number, contentLength: number, lengthComputable: boolean) => {
+      const percent = lengthComputable && contentLength > 0
+        ? Math.min(100, Math.round((bytes / contentLength) * 100))
+        : 0;
+      setDownloadProgress({ percent, bytes, total: contentLength });
+    };
+
     try {
-      progressListener = await FileTransfer.addListener('progress', (event) => {
-        if (event.type !== 'download' || event.url !== newRelease.apkUrl) return;
-        const percent = event.lengthComputable && event.contentLength > 0
-          ? Math.min(100, Math.round((event.bytes / event.contentLength) * 100))
-          : 0;
-        setDownloadProgress({ percent, bytes: event.bytes, total: event.contentLength });
-      });
-
       if (!Capacitor.isNativePlatform()) {
+        const listener = await FileTransfer.addListener('progress', (event) => {
+          if (event.type === 'download' && event.url === newRelease.apkUrl) {
+            updateProgress(event.bytes, event.contentLength, event.lengthComputable);
+          }
+        });
+        removeProgressListener = () => listener.remove();
         await FileTransfer.downloadFile({
           url: newRelease.apkUrl,
           path: 'XiXiCare.apk',
@@ -126,31 +154,49 @@ export function UpdateChecker() {
         return;
       }
 
-      const relativePath = `updates/XiXiCare-${newRelease.version}.apk`;
-      await Filesystem.mkdir({ path: 'updates', directory: Directory.Cache, recursive: true });
-      try {
-        await Filesystem.deleteFile({ path: relativePath, directory: Directory.Cache });
-      } catch {
-        // The first download has no stale package to remove.
+      if (!isResuming) {
+        await clearUpdateCache();
+        await Filesystem.mkdir({ path: 'updates', directory: Directory.Cache, recursive: true });
+        const relativePath = `updates/XiXiCare-${newRelease.version}.apk`;
+        const file = await Filesystem.getUri({ path: relativePath, directory: Directory.Cache });
+        activePath = file.uri;
+        setDownloadedPath(activePath);
       }
-      const file = await Filesystem.getUri({ path: relativePath, directory: Directory.Cache });
-      const result = await FileTransfer.downloadFile({
-        url: newRelease.apkUrl,
-        path: file.uri,
-        progress: true,
-        connectTimeout: 60_000,
-        readTimeout: 120_000
+
+      const listener = await AppUpdate.addListener('downloadProgress', (event) => {
+        updateProgress(event.bytes, event.contentLength, event.lengthComputable);
       });
-      const localPath = result.path || file.uri;
-      setDownloadedPath(localPath);
+      removeProgressListener = () => listener.remove();
+      const result = await AppUpdate.downloadApk({
+        url: newRelease.apkUrl,
+        path: activePath
+      });
+      if (result.paused) {
+        setUpdatePhase('paused');
+        return;
+      }
+
+      setDownloadedPath(result.path);
       setDownloadProgress((current) => ({ ...current, percent: 100 }));
       setUpdatePhase('ready');
-      await startInstallation(localPath);
+      await startInstallation(result.path);
     } catch (error) {
-      setUpdatePhase(downloadedPath ? 'ready' : 'prompt');
+      await clearUpdateCache();
+      setDownloadedPath('');
+      setUpdatePhase('prompt');
       setErrorModal({ show: true, message: getErrorMessage(error, '下载更新失败，请检查网络后重试') });
     } finally {
-      await progressListener?.remove();
+      await removeProgressListener?.();
+    }
+  };
+
+  const handlePauseDownload = async () => {
+    if (updatePhase !== 'downloading' || !Capacitor.isNativePlatform()) return;
+    try {
+      await AppUpdate.pauseDownload();
+      setUpdatePhase('paused');
+    } catch (error) {
+      setErrorModal({ show: true, message: getErrorMessage(error, '暂停下载失败，请稍后重试') });
     }
   };
 
@@ -184,15 +230,15 @@ export function UpdateChecker() {
       </div>
 
       {newRelease && (
-        <div className="modal-overlay" onClick={canDismissUpdate ? resetUpdate : undefined}>
+        <div className="modal-overlay" onClick={canDismissUpdate ? () => void discardUpdate() : undefined}>
           <div className="modal-content update-modal" onClick={(event) => event.stopPropagation()}>
             <div className="modal-header update-modal-header">
               <div className="update-modal-title">
                 <Download size={19} />
-                <h3>{updatePhase === 'downloading' ? '正在下载更新' : '发现新版本'}</h3>
+                <h3>{updatePhase === 'downloading' ? '正在下载更新' : updatePhase === 'paused' ? '下载已暂停' : '发现新版本'}</h3>
               </div>
               {canDismissUpdate && (
-                <button type="button" onClick={resetUpdate} className="modal-close-btn" aria-label="关闭">
+                <button type="button" onClick={() => void discardUpdate()} className="modal-close-btn" aria-label="关闭">
                   ✕
                 </button>
               )}
@@ -204,7 +250,7 @@ export function UpdateChecker() {
                   <br />当前版本 v{APP_VERSION}，安装包将在应用内直接下载。
                 </p>
               )}
-              {updatePhase === 'downloading' && (
+              {(updatePhase === 'downloading' || updatePhase === 'paused') && (
                 <div className="update-download-progress">
                   <div className="update-download-track" role="progressbar" aria-valuenow={downloadProgress.percent} aria-valuemin={0} aria-valuemax={100}>
                     <span style={{ width: `${downloadProgress.percent}%` }} />
@@ -216,6 +262,7 @@ export function UpdateChecker() {
                       {downloadProgress.total > 0 ? ` / ${formatBytes(downloadProgress.total)}` : ''}
                     </span>
                   </div>
+                  {updatePhase === 'paused' && <p className="update-paused-hint">已保留下载进度，可以继续下载。</p>}
                 </div>
               )}
               {updatePhase === 'ready' && (
@@ -224,16 +271,18 @@ export function UpdateChecker() {
             </div>
             <div className="modal-footer update-modal-footer">
               {canDismissUpdate && (
-                <button type="button" className="btn-secondary" onClick={resetUpdate}>以后再说</button>
+                <button type="button" className="btn-secondary" onClick={() => void discardUpdate()}>{updatePhase === 'paused' ? '取消更新' : '以后再说'}</button>
               )}
               <button
                 type="button"
                 className="btn-primary"
-                onClick={handleUpdateConfirm}
-                disabled={updatePhase === 'downloading'}
+                onClick={updatePhase === 'downloading' ? () => void handlePauseDownload() : handleUpdateConfirm}
+                disabled={updatePhase === 'downloading' && !Capacitor.isNativePlatform()}
               >
                 {updatePhase === 'downloading' ? (
-                  <><RefreshCw size={16} className="spin" /> 下载中</>
+                  <><Pause size={16} /> 暂停下载</>
+                ) : updatePhase === 'paused' ? (
+                  <><Download size={16} /> 继续下载</>
                 ) : updatePhase === 'ready' ? (
                   <><Check size={16} /> 继续安装</>
                 ) : (

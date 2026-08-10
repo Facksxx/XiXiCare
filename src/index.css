@@ -1320,6 +1320,12 @@ select {
   font-size: 13px;
 }
 
+.update-modal-body .update-paused-hint {
+  color: var(--text-muted);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
 .update-modal-footer {
   padding: 14px 18px 18px;
 }
