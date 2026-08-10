@@ -50,7 +50,12 @@ declare module 'lucide-react' {
   export const Database: Icon;
   export const Download: Icon;
   export const Upload: Icon;
+  export const Info: Icon;
+  export const RefreshCw: Icon;
 
   const icons: { [key: string]: Icon };
   export default icons;
 }
+
+// Injected by Vite `define` from package.json version
+declare const __APP_VERSION__: string;

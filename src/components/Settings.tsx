@@ -1,6 +1,7 @@
-import { Clock3, Database } from 'lucide-react';
+import { Clock3, Database, Info } from 'lucide-react';
 import type { ActivityLog, TimeInferenceMode } from '../types/baby';
 import { DataTransfer } from './DataTransfer';
+import { UpdateChecker } from './UpdateChecker';
 
 interface SettingsProps {
   timeInferenceMode: TimeInferenceMode;
@@ -58,6 +59,17 @@ export function Settings({ timeInferenceMode, onTimeInferenceModeChange, logs, o
           </div>
         </div>
         <DataTransfer logs={logs} onImportLogs={onImportLogs} />
+      </section>
+
+      <section className="settings-section" aria-labelledby="about-title">
+        <div className="settings-item-heading">
+          <span className="settings-icon" aria-hidden="true"><Info size={18} /></span>
+          <div>
+            <h2 id="about-title">关于</h2>
+            <p>查看版本号并检查 GitHub 发布的最新版本</p>
+          </div>
+        </div>
+        <UpdateChecker />
       </section>
     </div>
   );
