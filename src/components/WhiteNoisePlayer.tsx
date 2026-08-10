@@ -110,7 +110,7 @@ export function WhiteNoisePlayer({ isOpen, onClose, onPlaybackChange }: WhiteNoi
   const audioRef = useRef<HTMLAudioElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const isPlayingRef = useRef(false);
-  const playOnLoadRef = useRef(false);
+  const playOnLoadRef = useRef<string | null>(null);
   const [trackId, setTrackId] = useLocalStorage<string>('babycare_white_noise_track', 'forest-birds');
   const [loopMode, setLoopMode] = useLocalStorage<LoopMode>('babycare_white_noise_loop', 'track');
   const [volume, setVolume] = useLocalStorage<number>('babycare_white_noise_volume', 0.45);
@@ -185,18 +185,23 @@ export function WhiteNoisePlayer({ isOpen, onClose, onPlaybackChange }: WhiteNoi
     const audio = audioRef.current;
     if (!audio || !currentTrack.src) return;
 
-    const shouldPlay = playOnLoadRef.current || isPlayingRef.current;
-    playOnLoadRef.current = false;
-    const resume = () => {
-      audio.removeEventListener('canplay', resume);
-      if (!shouldPlay) return;
-      void audio.play().catch(() => {
+    const shouldPlay = playOnLoadRef.current === currentTrack.id || isPlayingRef.current;
+    let resumed = false;
+    const resume = async () => {
+      if (resumed || !shouldPlay) return;
+      resumed = true;
+      try {
+        await audio.play();
+        if (playOnLoadRef.current === currentTrack.id) playOnLoadRef.current = null;
+        setError('');
+      } catch {
+        resumed = false;
         setIsPlaying(false);
         setError('暂时无法播放，请重新点击播放');
-      });
+      }
     };
 
-    audio.addEventListener('canplay', resume, { once: true });
+    audio.addEventListener('canplay', resume);
     audio.pause();
     audio.src = currentTrack.src;
     audio.load();
@@ -211,7 +216,7 @@ export function WhiteNoisePlayer({ isOpen, onClose, onPlaybackChange }: WhiteNoi
       });
     }
 
-    if (audio.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) resume();
+    if (shouldPlay) void resume();
     return () => audio.removeEventListener('canplay', resume);
   }, [currentTrack.id, currentTrack.name, currentTrack.src, currentTrack.category]);
 
@@ -226,11 +231,30 @@ export function WhiteNoisePlayer({ isOpen, onClose, onPlaybackChange }: WhiteNoi
 
   useEffect(() => {
     if (!isOpen) return;
+    const scrollY = window.scrollY;
+    const previous = {
+      overflow: document.body.style.overflow,
+      position: document.body.style.position,
+      top: document.body.style.top,
+      width: document.body.style.width
+    };
+    document.body.style.overflow = 'hidden';
+    document.body.style.position = 'fixed';
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.width = '100%';
+
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') onClose();
     };
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = previous.overflow;
+      document.body.style.position = previous.position;
+      document.body.style.top = previous.top;
+      document.body.style.width = previous.width;
+      window.scrollTo(0, scrollY);
+    };
   }, [isOpen, onClose]);
 
   useEffect(() => {
@@ -264,7 +288,7 @@ export function WhiteNoisePlayer({ isOpen, onClose, onPlaybackChange }: WhiteNoi
       void audio.play().catch(() => setError('暂时无法播放，请检查系统媒体音量'));
       return;
     }
-    playOnLoadRef.current = true;
+    playOnLoadRef.current = nextTrack.id;
     setTrackId(nextTrack.id);
   };
 
@@ -272,7 +296,7 @@ export function WhiteNoisePlayer({ isOpen, onClose, onPlaybackChange }: WhiteNoi
     if (categoryQueue.length === 0) return;
     const currentIndex = Math.max(0, categoryQueue.findIndex((track) => track.id === currentTrack.id));
     const nextIndex = (currentIndex + direction + categoryQueue.length) % categoryQueue.length;
-    if (keepPlaying) playOnLoadRef.current = true;
+    if (keepPlaying) playOnLoadRef.current = categoryQueue[nextIndex].id;
     playTrack(categoryQueue[nextIndex]);
   };
 
@@ -340,7 +364,7 @@ export function WhiteNoisePlayer({ isOpen, onClose, onPlaybackChange }: WhiteNoi
       const nextTrack: CustomTrackMeta = { id, name, path, mimeType: file.type || 'audio/mpeg' };
       setCustomSources((current) => ({ ...current, [id]: source }));
       setCustomTracks((current) => [...current, nextTrack]);
-      playOnLoadRef.current = true;
+      playOnLoadRef.current = id;
       setTrackId(id);
       setBrowseCategory('music');
       setError('');
