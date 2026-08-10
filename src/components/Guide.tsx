@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { guideData } from '../data/guideData';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { Utensils, Award, CheckCircle2, AlertTriangle, HelpCircle, Sparkles } from 'lucide-react';
@@ -17,20 +17,8 @@ export function Guide({ babyId }: { babyId: string }) {
   const [vaccineStatus, setVaccineStatus] = useLocalStorage<VaccineStatus>(`babycare_vaccines_${babyId}`, {});
   const scrollerRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
-  const [isStuck, setIsStuck] = useState(false);
   const [startX, setStartX] = useState(0);
   const [scrollLeft, setScrollLeft] = useState(0);
-
-  useEffect(() => {
-    const onScroll = () => {
-      if (!scrollerRef.current) return;
-      const rect = scrollerRef.current.getBoundingClientRect();
-      const threshold = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--safe-top') || '0') + 85;
-      setIsStuck(rect.top <= threshold && rect.bottom > threshold);
-    };
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
-  }, []);
 
   const activeStage = guideData.find((stage) => stage.id === activeStageId) || guideData[0];
 
@@ -102,10 +90,10 @@ export function Guide({ babyId }: { babyId: string }) {
   };
 
   return (
-    <div className="container fade-in">
+    <div className="container guide-page">
       {/* Age Pill Scroller */}
       <div 
-        className={`guide-scroller ${isStuck ? 'is-stuck' : ''}`}
+        className="guide-scroller"
         ref={scrollerRef}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
