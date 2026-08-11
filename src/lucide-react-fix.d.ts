@@ -47,6 +47,10 @@ declare module 'lucide-react' {
   export const Waves: Icon;
   export const X: Icon;
   export const Bird: Icon;
+  export const Heart: Icon;
+  export const LampDesk: Icon;
+  export const Snowflake: Icon;
+  export const Wind: Icon;
   export const Database: Icon;
   export const Download: Icon;
   export const Upload: Icon;

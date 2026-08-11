@@ -1,7 +1,8 @@
-import { Clock3, Database, Edit2, Info, Plus, Trash2, Users } from 'lucide-react';
+import { Clock3, Database, Edit2, Info, Music2, Plus, Trash2, Users } from 'lucide-react';
 import type { ActivityLog, BabyInfo, TimeInferenceMode } from '../types/baby';
 import { DataTransfer } from './DataTransfer';
 import { UpdateChecker } from './UpdateChecker';
+import { SoundPackManager } from './SoundPackManager';
 
 interface SettingsProps {
   timeInferenceMode: TimeInferenceMode;
@@ -86,6 +87,14 @@ export function Settings({ timeInferenceMode, onTimeInferenceModeChange, logs, o
           </div>
         </div>
         <DataTransfer logs={logs} onImportLogs={onImportLogs} onImportBabies={onImportBabies} babies={babies} activeBabyId={activeBabyId} />
+      </section>
+
+      <section className="settings-section" aria-labelledby="sound-packs-title">
+        <div className="settings-item-heading">
+          <span className="settings-icon" aria-hidden="true"><Music2 size={18} /></span>
+          <div><h2 id="sound-packs-title">睡眠声音包</h2><p>下载和管理本地声音资源</p></div>
+        </div>
+        <SoundPackManager />
       </section>
 
       <section className="settings-section" aria-labelledby="about-title">

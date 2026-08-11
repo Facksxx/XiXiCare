@@ -289,10 +289,10 @@ export function UpdateChecker() {
             </div>
             <div className="modal-body update-modal-body">
               {updatePhase === 'prompt' && (
-                <p>
-                  最新版本 v{newRelease.version} 已发布{releaseDate ? `（${releaseDate}）` : ''}。
-                  <br />当前版本 v{APP_VERSION}，安装包将在应用内直接下载。
-                </p>
+                <>
+                  <p>最新版本 v{newRelease.version} 已发布{releaseDate ? `（${releaseDate}）` : ''}，当前版本 v{APP_VERSION}。</p>
+                  <div className="update-release-notes"><strong>更新内容</strong><p>{newRelease.notes || '体验优化与问题修复'}</p></div>
+                </>
               )}
               {(updatePhase === 'downloading' || updatePhase === 'paused') && (
                 <div className="update-download-progress">

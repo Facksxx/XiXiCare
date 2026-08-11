@@ -1489,6 +1489,119 @@ select {
   line-height: 1.4;
 }
 
+.update-release-notes {
+  max-height: 150px;
+  overflow-y: auto;
+  padding: 10px 11px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-input);
+}
+
+.update-release-notes > strong {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--text-heading);
+  font-size: 12px;
+}
+
+.update-modal-body .update-release-notes p {
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+
+.sound-pack-manager {
+  display: grid;
+  gap: 8px;
+}
+
+.sound-pack-row {
+  position: relative;
+  min-height: 62px;
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-input);
+}
+
+.sound-pack-icon {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--sage);
+  background: var(--sage-light);
+}
+
+.sound-pack-copy {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.sound-pack-copy strong {
+  color: var(--text-heading);
+  font-size: 13px;
+}
+
+.sound-pack-copy small {
+  overflow: hidden;
+  color: var(--text-muted);
+  font-size: 10px;
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sound-pack-copy i {
+  height: 3px;
+  overflow: hidden;
+  border-radius: 2px;
+  background: var(--border);
+}
+
+.sound-pack-copy i b {
+  display: block;
+  height: 100%;
+  background: var(--sage);
+}
+
+.sound-pack-download,
+.sound-pack-remove {
+  min-height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  border: 1px solid var(--sage);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--sage);
+  font-size: 11px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.sound-pack-download { min-width: 58px; padding: 0 9px; }
+.sound-pack-remove { width: 36px; color: var(--danger); border-color: var(--border); }
+.sound-pack-download:disabled { opacity: 0.55; }
+.sound-pack-ready { position: absolute; top: 5px; right: 5px; color: var(--sage); }
+.sound-pack-error { color: var(--danger); font-size: 11px; }
+
+.noise-pack-empty {
+  padding: 15px 8px;
+  color: var(--text-muted);
+  font-size: 12px;
+  text-align: center;
+}
+
 .update-modal-footer {
   padding: 12px 18px 14px;
   flex: 0 0 auto;

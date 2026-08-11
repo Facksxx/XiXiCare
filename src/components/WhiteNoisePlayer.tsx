@@ -7,6 +7,8 @@ import {
   CloudRain,
   Droplets,
   Edit2,
+  Heart,
+  LampDesk,
   Music2,
   Moon,
   Pause,
@@ -14,17 +16,21 @@ import {
   Plus,
   Repeat,
   Repeat1,
+  Radio,
   SkipBack,
   SkipForward,
   Sparkles,
+  Snowflake,
   Timer,
   Trash2,
   Volume2,
   Waves,
+  Wind,
   X
 } from 'lucide-react';
 import type { Icon } from 'lucide-react';
 import { useLocalStorage } from '../hooks/useLocalStorage';
+import { getInstalledSoundPacks, resolveSoundTrackUrl, SOUND_PACK_EVENT, SOUND_PACKS, type SoundIconName } from '../utils/soundPacks';
 
 type TrackCategory = 'ambient' | 'music';
 type LoopMode = 'track' | 'list' | 'once';
@@ -47,20 +53,12 @@ interface CustomTrackMeta {
   category?: TrackCategory;
 }
 
-const BUILTIN_TRACKS: PlayerTrack[] = [
-  { id: 'forest-birds', name: '清晨鸟鸣', src: '/audio/forest-birds.mp3', icon: Bird, category: 'ambient' },
-  { id: 'gentle-rain', name: '轻柔雨声', src: '/audio/gentle-rain.mp3', icon: CloudRain, category: 'ambient' },
-  { id: 'sea-waves', name: '舒缓海浪', src: '/audio/sea-waves.mp3', icon: Waves, category: 'ambient' },
-  { id: 'soothing-shush', name: '安抚嘘声', src: '/audio/soothing-shush.m4a', icon: Volume2, category: 'ambient' },
-  { id: 'forest-stream', name: '森林溪流', src: '/audio/forest-stream.mp3', icon: Droplets, category: 'ambient' },
-  { id: 'gentle-wind', name: '轻柔晚风', src: '/audio/gentle-wind.mp3', icon: Waves, category: 'ambient' },
-  { id: 'twinkle-star', name: '小星星', src: '/audio/twinkle-star.ogg', icon: Sparkles, category: 'music' },
-  { id: 'baby-lullaby', name: '摇篮轻梦', src: '/audio/baby-lullaby.mp3', icon: Moon, category: 'music' },
-  { id: 'close-your-eyes', name: '晚安旋律', src: '/audio/close-your-eyes.mp3', icon: Music2, category: 'music' },
-  { id: 'forever-love', name: '暖梦长笛', src: '/audio/forever-love.mp3', icon: Music2, category: 'music' },
-  { id: 'moon-lullaby', name: '月光摇篮', src: '/audio/moon-lullaby.mp3', icon: Moon, category: 'music' },
-  { id: 'christmas-lullaby', name: '冬夜摇篮', src: '/audio/christmas-lullaby.mp3', icon: Sparkles, category: 'music' }
-];
+const TRACK_ICONS: Record<SoundIconName, Icon> = {
+  bird: Bird, rain: CloudRain, waves: Waves, shush: Radio, stream: Droplets, wind: Wind,
+  star: Sparkles, moon: Moon, music: Music2, heart: Heart, lamp: LampDesk, snow: Snowflake
+};
+
+const EMPTY_TRACK: PlayerTrack = { id: '', name: '尚未下载声音包', src: '', icon: Moon, category: 'ambient' };
 
 const LOOP_OPTIONS: Array<{ value: LoopMode; label: string; icon: Icon }> = [
   { value: 'track', label: '单曲循环', icon: Repeat1 },
@@ -120,6 +118,7 @@ export function WhiteNoisePlayer({ isOpen, onClose, onPlaybackChange }: WhiteNoi
   const [volume, setVolume] = useLocalStorage<number>('babycare_white_noise_volume', 0.45);
   const [customTracks, setCustomTracks] = useLocalStorage<CustomTrackMeta[]>('babycare_custom_audio', []);
   const [customSources, setCustomSources] = useState<Record<string, string>>({});
+  const [packTracks, setPackTracks] = useState<PlayerTrack[]>([]);
   const [browseCategory, setBrowseCategory] = useState<TrackCategory>('ambient');
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -161,8 +160,26 @@ export function WhiteNoisePlayer({ isOpen, onClose, onPlaybackChange }: WhiteNoi
     };
   }, [customTracks]);
 
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      const installed = getInstalledSoundPacks();
+      const tracks = (await Promise.all(SOUND_PACKS.filter(pack => installed.includes(pack.id)).flatMap(pack =>
+        pack.tracks.map(async track => ({
+          id: track.id, name: track.name, src: await resolveSoundTrackUrl(pack.id, track.file),
+          icon: TRACK_ICONS[track.icon], category: pack.id
+        } satisfies PlayerTrack))
+      ))).filter(track => track.src);
+      if (!cancelled) setPackTracks(tracks);
+    };
+    const refresh = () => void load();
+    void load();
+    window.addEventListener(SOUND_PACK_EVENT, refresh);
+    return () => { cancelled = true; window.removeEventListener(SOUND_PACK_EVENT, refresh); };
+  }, []);
+
   const allTracks = useMemo<PlayerTrack[]>(() => [
-    ...BUILTIN_TRACKS,
+    ...packTracks,
     ...customTracks.map((track) => ({
       ...track,
       src: customSources[track.id] ?? '',
@@ -170,9 +187,9 @@ export function WhiteNoisePlayer({ isOpen, onClose, onPlaybackChange }: WhiteNoi
       category: track.category ?? 'music',
       custom: true
     }))
-  ], [customSources, customTracks]);
+  ], [customSources, customTracks, packTracks]);
 
-  const currentTrack = allTracks.find((track) => track.id === trackId) ?? BUILTIN_TRACKS[0];
+  const currentTrack = allTracks.find((track) => track.id === trackId) ?? allTracks[0] ?? EMPTY_TRACK;
   const CurrentIcon = currentTrack.icon;
 
   useEffect(() => {
@@ -395,7 +412,8 @@ export function WhiteNoisePlayer({ isOpen, onClose, onPlaybackChange }: WhiteNoi
     setCustomTracks((tracks) => tracks.filter((item) => item.id !== track.id));
     if (track.id === currentTrack.id) {
       const category = track.category ?? 'music';
-      playTrack(BUILTIN_TRACKS.find((item) => item.category === category)!);
+      const fallback = packTracks.find((item) => item.category === category) ?? allTracks.find(item => item.id !== track.id);
+      if (fallback) playTrack(fallback);
     }
   };
 
@@ -405,7 +423,7 @@ export function WhiteNoisePlayer({ isOpen, onClose, onPlaybackChange }: WhiteNoi
   };
 
   const activeLoop = LOOP_OPTIONS.find((option) => option.value === loopMode) ?? LOOP_OPTIONS[0];
-  const visibleBuiltinTracks = BUILTIN_TRACKS.filter((track) => track.category === browseCategory);
+  const visibleBuiltinTracks = packTracks.filter((track) => track.category === browseCategory);
   const visibleCustomTracks = customTracks.filter((track) => (track.category ?? 'music') === browseCategory);
 
   return (
@@ -450,6 +468,7 @@ export function WhiteNoisePlayer({ isOpen, onClose, onPlaybackChange }: WhiteNoi
                   );
                 })}
               </div>
+              {visibleBuiltinTracks.length === 0 && <p className="noise-pack-empty">请前往设置下载{browseCategory === 'ambient' ? '环境声音包' : '摇篮纯音乐包'}</p>}
 
               <div className="custom-music-section">
                 <div className="custom-music-heading">
