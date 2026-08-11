@@ -1,4 +1,5 @@
-import { Clock3, Database, Edit2, Info, Music2, Plus, Trash2, Users } from 'lucide-react';
+import { Clock3, Database, Edit2, Info, Music2, Plus, Settings as SettingsIcon, Trash2, Users } from 'lucide-react';
+import type { RemoteRelease } from '../utils/version';
 import type { ActivityLog, BabyInfo, TimeInferenceMode } from '../types/baby';
 import { DataTransfer } from './DataTransfer';
 import { UpdateChecker } from './UpdateChecker';
@@ -16,13 +17,16 @@ interface SettingsProps {
   onSwitchBaby: (babyId: string) => void;
   onEditBaby: (babyId: string) => void;
   onDeleteBaby: (babyId: string) => void;
+  detectedRelease: RemoteRelease | null;
+  onReleaseChange: (release: RemoteRelease | null) => void;
 }
 
-export function Settings({ timeInferenceMode, onTimeInferenceModeChange, logs, onImportLogs, onImportBabies, babies, activeBabyId, onAddBaby, onSwitchBaby, onEditBaby, onDeleteBaby }: SettingsProps) {
+export function Settings({ timeInferenceMode, onTimeInferenceModeChange, logs, onImportLogs, onImportBabies, babies, activeBabyId, onAddBaby, onSwitchBaby, onEditBaby, onDeleteBaby, detectedRelease, onReleaseChange }: SettingsProps) {
   return (
     <div className="container settings-page fade-in">
       <div className="settings-heading">
-        <h1>设置</h1>
+        <span><SettingsIcon size={22} /></span>
+        <div><h1>设置</h1><p>管理宝宝、数据与应用偏好</p></div>
       </div>
 
       <section className="settings-section" aria-labelledby="baby-management-title">
@@ -105,7 +109,7 @@ export function Settings({ timeInferenceMode, onTimeInferenceModeChange, logs, o
             <p>查看版本号并检查最新版本</p>
           </div>
         </div>
-        <UpdateChecker />
+        <UpdateChecker detectedRelease={detectedRelease} onReleaseChange={onReleaseChange} />
       </section>
     </div>
   );

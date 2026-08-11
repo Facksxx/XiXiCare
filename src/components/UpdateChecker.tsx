@@ -69,10 +69,16 @@ const readCachedDownload = (): CachedDownload | null => {
 
 const forgetCachedDownload = () => localStorage.removeItem(DOWNLOAD_STATE_KEY);
 
-export function UpdateChecker() {
+interface UpdateCheckerProps {
+  detectedRelease?: RemoteRelease | null;
+  onReleaseChange?: (release: RemoteRelease | null) => void;
+}
+
+export function UpdateChecker({ detectedRelease = null, onReleaseChange }: UpdateCheckerProps) {
   const [checkState, setCheckState] = useState<CheckState>('idle');
   const [toast, setToast] = useState<{ message: string; error: boolean } | null>(null);
-  const [newRelease, setNewRelease] = useState<RemoteRelease | null>(null);
+  const [newRelease, setNewRelease] = useState<RemoteRelease | null>(detectedRelease);
+  const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [updatePhase, setUpdatePhase] = useState<UpdatePhase>('prompt');
   const [downloadProgress, setDownloadProgress] = useState<DownloadProgress>({ percent: 0, bytes: 0, total: 0 });
   const [downloadedPath, setDownloadedPath] = useState('');
@@ -87,6 +93,10 @@ export function UpdateChecker() {
     }
   }, []);
 
+  useEffect(() => {
+    if (detectedRelease) setNewRelease(detectedRelease);
+  }, [detectedRelease]);
+
   const showToast = (message: string, error = false) => {
     setToast({ message, error });
     window.setTimeout(() => setToast(null), 2500);
@@ -94,6 +104,7 @@ export function UpdateChecker() {
 
   const resetUpdate = () => {
     setNewRelease(null);
+    onReleaseChange?.(null);
     setUpdatePhase('prompt');
     setDownloadProgress({ percent: 0, bytes: 0, total: 0 });
     setDownloadedPath('');
@@ -106,7 +117,11 @@ export function UpdateChecker() {
     }
     await clearUpdateCache();
     forgetCachedDownload();
-    resetUpdate();
+    setUpdatePhase('prompt');
+    setDownloadProgress({ percent: 0, bytes: 0, total: 0 });
+    setDownloadedPath('');
+    setInstallNotice('');
+    setShowUpdateModal(false);
   };
 
   const handleCheck = async () => {
@@ -119,6 +134,8 @@ export function UpdateChecker() {
       if (isNewer(release.version)) {
         resetUpdate();
         setNewRelease(release);
+        onReleaseChange?.(release);
+        setShowUpdateModal(true);
         const cached = readCachedDownload();
         if (cached?.version === release.version && cached.url === release.apkUrl) {
           setDownloadedPath(cached.path);
@@ -135,6 +152,8 @@ export function UpdateChecker() {
           }
         }
       } else {
+        setNewRelease(null);
+        onReleaseChange?.(null);
         showToast('已是最新版本', false);
       }
     } catch (error) {
@@ -273,7 +292,14 @@ export function UpdateChecker() {
         </button>
       </div>
 
-      {newRelease && createPortal(
+      {newRelease && updatePhase === 'prompt' && (
+        <button type="button" className="settings-update-notice" onClick={() => setShowUpdateModal(true)}>
+          <span><strong>检测到新版本 v{newRelease.version}</strong><small>{newRelease.notes || '新版本已准备好，可以立即更新'}</small></span>
+          <Download size={17} />
+        </button>
+      )}
+
+      {newRelease && showUpdateModal && createPortal(
         <div className="modal-overlay" onClick={canDismissUpdate ? () => void discardUpdate() : undefined}>
           <div className="modal-content update-modal" onClick={(event) => event.stopPropagation()}>
             <div className="modal-header update-modal-header">

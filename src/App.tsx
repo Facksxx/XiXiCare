@@ -12,6 +12,7 @@ import { Settings as SettingsPage } from './components/Settings';
 import { WhiteNoisePlayer } from './components/WhiteNoisePlayer';
 import { ConfirmModal } from './components/ConfirmModal';
 import { DateTimePicker } from './components/DateTimePicker';
+import { fetchLatestRelease, isNewer, type RemoteRelease } from './utils/version';
 import { Sun, Moon, Calendar, BookOpen, BarChart2, Edit2, Check, Sparkles, Settings, Music2, ChevronDown, Plus } from 'lucide-react';
 import type { Icon } from 'lucide-react';
 import './index.css';
@@ -64,6 +65,21 @@ export default function App() {
   const [showWhiteNoise, setShowWhiteNoise] = useState(false);
   const [showBabySwitcher, setShowBabySwitcher] = useState(false);
   const [isWhiteNoisePlaying, setIsWhiteNoisePlaying] = useState(false);
+  const [detectedRelease, setDetectedRelease] = useState<RemoteRelease | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    const checkOnLaunch = async () => {
+      try {
+        const release = await fetchLatestRelease();
+        if (!cancelled) setDetectedRelease(release.version && isNewer(release.version) ? release : null);
+      } catch {
+        // Startup checks stay silent; users can retry from Settings.
+      }
+    };
+    void checkOnLaunch();
+    return () => { cancelled = true; };
+  }, []);
 
   // Theme: 'light' | 'dark'
   const [theme, setTheme] = useLocalStorage<'light' | 'dark'>('babycare_theme', 'light');
@@ -544,6 +560,7 @@ export default function App() {
             title={showSettings ? '返回记录页面' : '设置'}
           >
             <Settings size={20} />
+            {detectedRelease && <span className="settings-update-dot" aria-label={`发现新版本 ${detectedRelease.version}`} />}
           </button>
           <button
             onClick={() => setShowWhiteNoise((current) => !current)}
@@ -567,7 +584,7 @@ export default function App() {
 
       {/* Main Content Area */}
       <main
-        className="app-main"
+        className={`app-main${showSettings ? ' settings-mode' : ''}`}
         onTouchStart={handlePageTouchStart}
         onTouchMove={handlePageTouchMove}
         onTouchEnd={handlePageTouchEnd}
@@ -587,6 +604,8 @@ export default function App() {
             onSwitchBaby={handleSwitchBaby}
             onEditBaby={handleEditBaby}
             onDeleteBaby={handleDeleteBaby}
+            detectedRelease={detectedRelease}
+            onReleaseChange={setDetectedRelease}
           /></div>
           ) : (
             <>
@@ -607,7 +626,7 @@ export default function App() {
       </main>
 
       {/* Bottom Floating Navigation Tabs */}
-      <nav className="nav-tabs">
+      {!showSettings && <nav className="nav-tabs">
         <button 
           type="button"
           onClick={() => animateToTab('dashboard')}
@@ -644,7 +663,7 @@ export default function App() {
           <NavIcon icon={BarChart2} active={activeTab === 'stats'} />
           <span>成长统计</span>
         </button>
-      </nav>
+      </nav>}
 
       <WhiteNoisePlayer
         isOpen={showWhiteNoise}
