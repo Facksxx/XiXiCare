@@ -2,12 +2,9 @@
 // 版本号通过 Vite `define` 从 package.json 注入（见 vite.config.ts）
 export const APP_VERSION: string = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '0.0.0';
 
-// GitHub 仓库发布地址
-export const RELEASE_REPO = 'Facksxx/XiXiCare';
-export const RELEASE_API_URL = `https://api.github.com/repos/${RELEASE_REPO}/releases/latest`;
-// 始终指向最新发布版本 APK 的稳定直链
-export const LATEST_APK_URL = `https://github.com/${RELEASE_REPO}/releases/latest/download/XiXiCare.apk`;
-export const RELEASES_PAGE_URL = `https://github.com/${RELEASE_REPO}/releases`;
+export const RELEASE_REPO = 'Facksxx/xi-xi-care';
+export const RELEASE_API_URL = `https://gitee.com/api/v5/repos/${RELEASE_REPO}/releases/latest`;
+export const RELEASES_PAGE_URL = `https://gitee.com/${RELEASE_REPO}/releases`;
 
 export interface RemoteRelease {
   /** 不带前缀 v 的版本号，例如 "1.0.3" */
@@ -51,36 +48,53 @@ export const compareVersions = (a: string, b: string): number => {
 /** 判断 remote 是否比当前版本更新 */
 export const isNewer = (remote: string, current: string = APP_VERSION): boolean => compareVersions(remote, current) > 0;
 
-interface GitHubReleaseResponse {
+interface GiteeReleaseResponse {
+  id: number;
   tag_name: string;
-  html_url: string;
-  published_at: string;
+  html_url?: string | null;
+  created_at?: string;
+  published_at?: string | null;
   body?: string;
-  assets?: Array<{ name: string; browser_download_url: string }>;
+}
+
+interface GiteeAttachment {
+  id: number;
+  name: string;
 }
 
 /**
- * 拉取 GitHub 最新 release 信息
+ * 拉取 Gitee 最新 release 及 APK 附件信息。
  * @throws 网络或解析异常时抛出 Error
  */
 export const fetchLatestRelease = async (): Promise<RemoteRelease> => {
+  const headers = { Accept: 'application/json' };
   const response = await fetch(RELEASE_API_URL, {
-    headers: { Accept: 'application/vnd.github+json' },
+    headers,
     cache: 'no-store'
   });
   if (!response.ok) {
     throw new Error(`获取更新信息失败（HTTP ${response.status}）`);
   }
-  const data = (await response.json()) as GitHubReleaseResponse;
+  const data = (await response.json()) as GiteeReleaseResponse;
   const tag = data.tag_name ?? '';
   const version = tag.replace(/^v/i, '');
-  const apkAsset = data.assets?.find(asset => asset.name.toLowerCase().endsWith('.apk'));
+  const attachmentsResponse = await fetch(
+    `https://gitee.com/api/v5/repos/${RELEASE_REPO}/releases/${data.id}/attach_files?per_page=100`,
+    { headers, cache: 'no-store' }
+  );
+  if (!attachmentsResponse.ok) {
+    throw new Error(`获取安装包信息失败（HTTP ${attachmentsResponse.status}）`);
+  }
+  const attachments = (await attachmentsResponse.json()) as GiteeAttachment[];
+  const apkAsset = attachments.find(asset => asset.name.toLowerCase() === 'xixicare.apk')
+    ?? attachments.find(asset => asset.name.toLowerCase().endsWith('.apk'));
+  if (!apkAsset) throw new Error('当前发行版未包含 XiXiCare.apk');
   return {
     version,
     tag,
     htmlUrl: data.html_url || RELEASES_PAGE_URL,
-    apkUrl: apkAsset?.browser_download_url || LATEST_APK_URL,
-    publishedAt: data.published_at ?? '',
+    apkUrl: `https://gitee.com/api/v5/repos/${RELEASE_REPO}/releases/${data.id}/attach_files/${apkAsset.id}/download`,
+    publishedAt: data.published_at ?? data.created_at ?? '',
     notes: (data.body ?? '').trim()
   };
 };

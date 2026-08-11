@@ -26,6 +26,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 @CapacitorPlugin(name = "AppUpdate")
 public class AppUpdatePlugin extends Plugin {
+    private static final int MAX_DOWNLOAD_ATTEMPTS = 5;
     private final ExecutorService downloadExecutor = Executors.newSingleThreadExecutor();
     private final AtomicBoolean downloadRunning = new AtomicBoolean(false);
     private final AtomicBoolean pauseRequested = new AtomicBoolean(false);
@@ -52,7 +53,25 @@ public class AppUpdatePlugin extends Plugin {
                 if (parent != null && !parent.exists() && !parent.mkdirs()) {
                     throw new IOException("无法创建更新缓存目录");
                 }
-                boolean completed = transfer(url, target);
+                boolean completed = false;
+                IOException lastError = null;
+                for (int attempt = 1; attempt <= MAX_DOWNLOAD_ATTEMPTS && !pauseRequested.get(); attempt += 1) {
+                    try {
+                        completed = transfer(url, target);
+                        lastError = null;
+                        break;
+                    } catch (IOException error) {
+                        lastError = error;
+                        if (attempt == MAX_DOWNLOAD_ATTEMPTS) break;
+                        try {
+                            Thread.sleep(Math.min(8_000L, 1_000L << (attempt - 1)));
+                        } catch (InterruptedException interrupted) {
+                            Thread.currentThread().interrupt();
+                            throw new IOException("更新下载已中断", interrupted);
+                        }
+                    }
+                }
+                if (!completed && !pauseRequested.get() && lastError != null) throw lastError;
                 JSObject result = new JSObject();
                 result.put("path", rawPath);
                 result.put("paused", !completed);
@@ -136,6 +155,11 @@ public class AppUpdatePlugin extends Plugin {
         long existingBytes = target.exists() ? target.length() : 0;
         HttpURLConnection connection = openConnection(sourceUrl, existingBytes);
         int responseCode = connection.getResponseCode();
+        if (responseCode == 416 && existingBytes > 0) {
+            connection.disconnect();
+            notifyProgress(existingBytes, existingBytes);
+            return true;
+        }
         boolean resuming = existingBytes > 0 && responseCode == HttpURLConnection.HTTP_PARTIAL;
         if (responseCode != HttpURLConnection.HTTP_OK && responseCode != HttpURLConnection.HTTP_PARTIAL) {
             connection.disconnect();
@@ -191,7 +215,9 @@ public class AppUpdatePlugin extends Plugin {
             connection.setConnectTimeout(60_000);
             connection.setReadTimeout(120_000);
             connection.setRequestProperty("Accept", "application/vnd.android.package-archive, application/octet-stream");
+            connection.setRequestProperty("Accept-Encoding", "identity");
             connection.setRequestProperty("User-Agent", "XiXiCare-Android-Updater");
+            connection.setRequestProperty("Connection", "keep-alive");
             if (offset > 0) connection.setRequestProperty("Range", "bytes=" + offset + "-");
             connection.setInstanceFollowRedirects(false);
             activeConnection = connection;

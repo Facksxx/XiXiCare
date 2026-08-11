@@ -49,6 +49,25 @@ const clearUpdateCache = async () => {
   }
 };
 
+const DOWNLOAD_STATE_KEY = 'xixicare_update_download';
+
+interface CachedDownload {
+  version: string;
+  url: string;
+  path: string;
+}
+
+const readCachedDownload = (): CachedDownload | null => {
+  try {
+    const value = localStorage.getItem(DOWNLOAD_STATE_KEY);
+    return value ? JSON.parse(value) as CachedDownload : null;
+  } catch {
+    return null;
+  }
+};
+
+const forgetCachedDownload = () => localStorage.removeItem(DOWNLOAD_STATE_KEY);
+
 export function UpdateChecker() {
   const [checkState, setCheckState] = useState<CheckState>('idle');
   const [toast, setToast] = useState<{ message: string; error: boolean } | null>(null);
@@ -60,7 +79,11 @@ export function UpdateChecker() {
   const [errorModal, setErrorModal] = useState<{ show: boolean; message: string }>({ show: false, message: '' });
 
   useEffect(() => {
-    void clearUpdateCache();
+    const cached = readCachedDownload();
+    if (cached && !isNewer(cached.version)) {
+      forgetCachedDownload();
+      void clearUpdateCache();
+    }
   }, []);
 
   const showToast = (message: string, error = false) => {
@@ -81,6 +104,7 @@ export function UpdateChecker() {
       await AppUpdate.pauseDownload();
     }
     await clearUpdateCache();
+    forgetCachedDownload();
     resetUpdate();
   };
 
@@ -94,6 +118,21 @@ export function UpdateChecker() {
       if (isNewer(release.version)) {
         resetUpdate();
         setNewRelease(release);
+        const cached = readCachedDownload();
+        if (cached?.version === release.version && cached.url === release.apkUrl) {
+          setDownloadedPath(cached.path);
+          setUpdatePhase('paused');
+          if (Capacitor.isNativePlatform()) {
+            try {
+              const stat = await Filesystem.stat({ path: cached.path });
+              setDownloadProgress({ percent: 0, bytes: stat.size, total: 0 });
+            } catch {
+              forgetCachedDownload();
+              setDownloadedPath('');
+              setUpdatePhase('prompt');
+            }
+          }
+        }
       } else {
         showToast('已是最新版本', false);
       }
@@ -161,6 +200,11 @@ export function UpdateChecker() {
         const file = await Filesystem.getUri({ path: relativePath, directory: Directory.Cache });
         activePath = file.uri;
         setDownloadedPath(activePath);
+        localStorage.setItem(DOWNLOAD_STATE_KEY, JSON.stringify({
+          version: newRelease.version,
+          url: newRelease.apkUrl,
+          path: activePath
+        } satisfies CachedDownload));
       }
 
       const listener = await AppUpdate.addListener('downloadProgress', (event) => {
@@ -179,12 +223,11 @@ export function UpdateChecker() {
       setDownloadedPath(result.path);
       setDownloadProgress((current) => ({ ...current, percent: 100 }));
       setUpdatePhase('ready');
+      forgetCachedDownload();
       await startInstallation(result.path);
     } catch (error) {
-      await clearUpdateCache();
-      setDownloadedPath('');
-      setUpdatePhase('prompt');
-      setErrorModal({ show: true, message: getErrorMessage(error, '下载更新失败，请检查网络后重试') });
+      setUpdatePhase(activePath ? 'paused' : 'prompt');
+      setErrorModal({ show: true, message: `${getErrorMessage(error, '下载暂时中断')}，已保留进度，请点击继续下载。` });
     } finally {
       await removeProgressListener?.();
     }

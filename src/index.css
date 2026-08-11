@@ -1416,6 +1416,9 @@ select {
 
 .update-modal {
   width: min(calc(100% - 32px), 340px);
+  height: auto;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .update-modal-header {
@@ -1432,7 +1435,8 @@ select {
 
 .update-modal-body {
   gap: 12px;
-  padding: 10px 18px 18px;
+  padding: 8px 18px 14px;
+  min-height: 0;
 }
 
 .update-modal-body p {
@@ -1486,7 +1490,8 @@ select {
 }
 
 .update-modal-footer {
-  padding: 14px 18px 18px;
+  padding: 12px 18px 14px;
+  flex: 0 0 auto;
 }
 
 .update-modal-footer .btn-primary:disabled {
