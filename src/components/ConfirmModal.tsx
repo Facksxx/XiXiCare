@@ -1,4 +1,5 @@
 import { AlertTriangle, Check } from 'lucide-react';
+import { createPortal } from 'react-dom';
 
 interface ConfirmModalProps {
   isOpen: boolean;
@@ -23,15 +24,15 @@ export function ConfirmModal({
 }: ConfirmModalProps) {
   if (!isOpen) return null;
 
-  return (
-    <div className="modal-overlay" onClick={onCancel}>
-      <div className="modal-content" style={{ maxWidth: '320px' }} onClick={(e) => e.stopPropagation()}>
+  return createPortal(
+    <div className="modal-overlay" onClick={onCancel} role="presentation">
+      <div className="modal-content" role="dialog" aria-modal="true" aria-labelledby="confirm-modal-title" style={{ maxWidth: '320px' }} onClick={(e) => e.stopPropagation()}>
         <div className="modal-header" style={{ border: 'none', paddingBottom: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             {type === 'danger' && <AlertTriangle size={20} style={{ color: 'var(--rose)' }} />}
             {type === 'info' && <Check size={20} style={{ color: 'var(--sage)' }} />}
             {type === 'warning' && <AlertTriangle size={20} style={{ color: 'var(--amber)' }} />}
-            <h3>{title || '提示'}</h3>
+            <h3 id="confirm-modal-title">{title || '提示'}</h3>
           </div>
           <button onClick={onCancel} className="modal-close-btn" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             ✕
@@ -55,6 +56,7 @@ export function ConfirmModal({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
