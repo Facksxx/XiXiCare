@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Capacitor } from '@capacitor/core';
 import { Directory, Filesystem } from '@capacitor/filesystem';
 import { FileTransfer } from '@capacitor/file-transfer';
@@ -272,7 +273,7 @@ export function UpdateChecker() {
         </button>
       </div>
 
-      {newRelease && (
+      {newRelease && createPortal(
         <div className="modal-overlay" onClick={canDismissUpdate ? () => void discardUpdate() : undefined}>
           <div className="modal-content update-modal" onClick={(event) => event.stopPropagation()}>
             <div className="modal-header update-modal-header">
@@ -334,7 +335,8 @@ export function UpdateChecker() {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       <ConfirmModal

@@ -93,7 +93,7 @@ export function Settings({ timeInferenceMode, onTimeInferenceModeChange, logs, o
           <span className="settings-icon" aria-hidden="true"><Info size={18} /></span>
           <div>
             <h2 id="about-title">关于</h2>
-            <p>查看版本号并检查 GitHub 发布的最新版本</p>
+            <p>查看版本号并检查最新版本</p>
           </div>
         </div>
         <UpdateChecker />

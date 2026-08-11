@@ -53,11 +53,13 @@ const BUILTIN_TRACKS: PlayerTrack[] = [
   { id: 'sea-waves', name: '舒缓海浪', src: '/audio/sea-waves.mp3', icon: Waves, category: 'ambient' },
   { id: 'soothing-shush', name: '安抚嘘声', src: '/audio/soothing-shush.m4a', icon: Volume2, category: 'ambient' },
   { id: 'forest-stream', name: '森林溪流', src: '/audio/forest-stream.mp3', icon: Droplets, category: 'ambient' },
+  { id: 'gentle-wind', name: '轻柔晚风', src: '/audio/gentle-wind.mp3', icon: Waves, category: 'ambient' },
   { id: 'twinkle-star', name: '小星星', src: '/audio/twinkle-star.ogg', icon: Sparkles, category: 'music' },
   { id: 'baby-lullaby', name: '摇篮轻梦', src: '/audio/baby-lullaby.mp3', icon: Moon, category: 'music' },
   { id: 'close-your-eyes', name: '晚安旋律', src: '/audio/close-your-eyes.mp3', icon: Music2, category: 'music' },
   { id: 'forever-love', name: '暖梦长笛', src: '/audio/forever-love.mp3', icon: Music2, category: 'music' },
-  { id: 'moon-lullaby', name: '月光摇篮', src: '/audio/moon-lullaby.mp3', icon: Moon, category: 'music' }
+  { id: 'moon-lullaby', name: '月光摇篮', src: '/audio/moon-lullaby.mp3', icon: Moon, category: 'music' },
+  { id: 'christmas-lullaby', name: '冬夜摇篮', src: '/audio/christmas-lullaby.mp3', icon: Sparkles, category: 'music' }
 ];
 
 const LOOP_OPTIONS: Array<{ value: LoopMode; label: string; icon: Icon }> = [

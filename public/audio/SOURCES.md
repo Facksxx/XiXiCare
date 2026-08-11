@@ -21,5 +21,10 @@
 - `moon-lullaby.mp3`: "Love Will Find A Way" by Michael Ramir C. (Music 1106), Mixkit Stock Music Free License.
   https://mixkit.co/free-stock-music/tag/lullabies/
 - `soothing-shush.m4a`: User-provided soothing shush recording.
+- `gentle-wind.mp3`: "Wind blowing ambience" (SFX 2658), Mixkit Free License.
+  https://mixkit.co/free-sound-effects/nature/
+- `christmas-lullaby.mp3`: "Christmas Lullaby" by Michael Ramir C. (Music 985),
+  Mixkit Stock Music Free License.
+  https://mixkit.co/free-stock-music/tag/lullabies/
 
 Mixkit license: https://mixkit.co/license/#sfxFree

@@ -679,7 +679,7 @@ export default function App() {
           onClick={() => { if (!isFirstSetup) setShowEditModal(false); }}
         >
           <div 
-            className="modal-content"
+            className="modal-content baby-edit-modal"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="modal-header">
@@ -698,9 +698,9 @@ export default function App() {
                 <div 
                   className="avatar-ring"
                   style={{ 
-                    width: '72px', 
-                    height: '72px', 
-                    fontSize: '28px',
+                    width: '60px',
+                    height: '60px',
+                    fontSize: '24px',
                     cursor: 'pointer',
                     overflow: 'hidden',
                     border: '3px solid var(--border-focus)'
@@ -746,7 +746,6 @@ export default function App() {
                 value={editName}
                 onChange={(e) => setEditName(e.target.value)}
                 placeholder="请输入宝宝名字"
-                autoFocus
               />
               <label className="form-label">出生日期</label>
               <DateTimePicker

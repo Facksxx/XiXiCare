@@ -2117,12 +2117,15 @@ select {
 
 .custom-date-trigger span {
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  overflow: visible;
   white-space: nowrap;
   font-size: 13px;
   font-weight: 550;
   font-variant-numeric: tabular-nums;
+}
+
+.time-row-inline .custom-date-trigger span {
+  font-size: 12px;
 }
 
 .custom-date-trigger .placeholder {
@@ -2144,7 +2147,7 @@ select {
 }
 
 .records-date-range .custom-date-trigger span {
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .records-date-range .custom-date-trigger svg {
@@ -2154,6 +2157,32 @@ select {
 .baby-birthday-picker {
   min-height: 48px;
   margin-bottom: 2px;
+}
+
+.baby-edit-modal {
+  max-width: 350px;
+}
+
+.baby-edit-modal .modal-header {
+  padding: 15px 18px 10px;
+}
+
+.baby-edit-modal .modal-body {
+  gap: 10px;
+  padding: 10px 18px 14px;
+}
+
+.baby-edit-modal .form-label {
+  margin-bottom: -3px;
+}
+
+.baby-edit-modal .modal-footer {
+  padding: 12px 18px 15px;
+}
+
+.baby-edit-modal .modal-footer button {
+  min-height: 44px;
+  padding-block: 10px;
 }
 
 .date-picker-layer {
@@ -3064,7 +3093,7 @@ select {
 
 .noise-track-option {
   min-width: 0;
-  min-height: 48px;
+  height: 48px;
   display: flex;
   align-items: center;
   gap: 6px;

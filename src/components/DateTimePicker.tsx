@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Calendar, ChevronDown, Clock3 } from 'lucide-react';
+import { ChevronDown, Clock3 } from 'lucide-react';
 
 interface DateTimePickerProps {
   value: string;
@@ -87,7 +87,6 @@ export function DateTimePicker({ value, onChange, label, mode = 'datetime', plac
   return (
     <>
       <button type="button" className={`custom-date-trigger ${mode === 'datetime' ? 'datetime-picker' : ''} ${className}`.trim()} onClick={() => setOpen(true)} aria-label={label}>
-        {mode === 'date' ? <Calendar size={16} /> : <Clock3 size={16} />}
         <span className={!value ? 'placeholder' : ''}>{formatValue(value, mode, placeholder)}</span>
       </button>
       {open && createPortal(
