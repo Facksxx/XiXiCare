@@ -31,6 +31,7 @@ import {
 import type { Icon } from 'lucide-react';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { getInstalledSoundPacks, resolveSoundTrackUrl, SOUND_PACK_EVENT, SOUND_PACKS, type SoundIconName } from '../utils/soundPacks';
+import { BackgroundAudio } from '../plugins/backgroundAudio';
 
 type TrackCategory = 'ambient' | 'music';
 type LoopMode = 'track' | 'list' | 'once';
@@ -113,6 +114,8 @@ export function WhiteNoisePlayer({ isOpen, onClose, onPlaybackChange }: WhiteNoi
   const addCategoryRef = useRef<TrackCategory>('music');
   const isPlayingRef = useRef(false);
   const playOnLoadRef = useRef<string | null>(null);
+  const backgroundActiveRef = useRef(false);
+  const resumePositionRef = useRef(0);
   const [trackId, setTrackId] = useLocalStorage<string>('babycare_white_noise_track', 'forest-birds');
   const [loopMode, setLoopMode] = useLocalStorage<LoopMode>('babycare_white_noise_loop', 'track');
   const [volume, setVolume] = useLocalStorage<number>('babycare_white_noise_volume', 0.45);
@@ -212,6 +215,10 @@ export function WhiteNoisePlayer({ isOpen, onClose, onPlaybackChange }: WhiteNoi
       if (resumed || !shouldPlay) return;
       resumed = true;
       try {
+        if (resumePositionRef.current > 0) {
+          audio.currentTime = resumePositionRef.current / 1000;
+          resumePositionRef.current = 0;
+        }
         await audio.play();
         if (playOnLoadRef.current === currentTrack.id) playOnLoadRef.current = null;
         setError('');
@@ -298,6 +305,48 @@ export function WhiteNoisePlayer({ isOpen, onClose, onPlaybackChange }: WhiteNoi
   }, [timerEndsAt]);
 
   const categoryQueue = allTracks.filter((track) => track.category === currentTrack.category && track.src);
+
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+    const handleVisibility = async () => {
+      const audio = audioRef.current;
+      if (document.hidden) {
+        if (!audio || audio.paused || categoryQueue.length === 0) return;
+        const currentIndex = Math.max(0, categoryQueue.findIndex(track => track.id === currentTrack.id));
+        try {
+          await BackgroundAudio.start({
+            urls: categoryQueue.map(track => track.src),
+            trackIds: categoryQueue.map(track => track.id),
+            index: currentIndex,
+            positionMs: Math.round(audio.currentTime * 1000),
+            loopMode,
+            volume
+          });
+          backgroundActiveRef.current = true;
+          audio.pause();
+        } catch { /* Keep WebView playback as a fallback. */ }
+        return;
+      }
+      if (!backgroundActiveRef.current) return;
+      backgroundActiveRef.current = false;
+      try {
+        const state = await BackgroundAudio.stop();
+        if (!state.trackId) return;
+        resumePositionRef.current = state.positionMs;
+        playOnLoadRef.current = state.playing ? state.trackId : null;
+        if (state.trackId === currentTrack.id) {
+          if (audio) {
+            audio.currentTime = state.positionMs / 1000;
+            if (state.playing) void audio.play();
+          }
+        } else {
+          setTrackId(state.trackId);
+        }
+      } catch { /* The service may already have stopped after one-time playback. */ }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, [categoryQueue, currentTrack.id, loopMode, setTrackId, volume]);
 
   const playTrack = (nextTrack: PlayerTrack) => {
     setBrowseCategory(nextTrack.category);
