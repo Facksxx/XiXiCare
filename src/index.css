@@ -1106,7 +1106,7 @@ select {
   align-items: center;
   gap: 11px;
   margin: 0 -16px 2px;
-  padding: 17px 16px 15px;
+  padding: calc(17px + var(--safe-top)) 16px 15px;
   border-bottom: 1px solid var(--border);
   background: var(--bg-card);
 }
@@ -1121,6 +1121,21 @@ select {
   color: var(--sage);
   background: var(--sage-light);
 }
+
+.settings-back-button {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  flex: 0 0 36px;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  color: var(--text-heading);
+  background: var(--bg-input);
+  cursor: pointer;
+}
+
+.settings-back-button svg { transform: rotate(90deg); }
 
 .settings-heading h1 {
   color: var(--text-heading);
@@ -1139,6 +1154,10 @@ select {
 .app-main.settings-mode {
   padding-bottom: 0;
   background: var(--bg-primary);
+}
+
+.app-shell.settings-shell {
+  padding-bottom: 0;
 }
 
 .settings-update-dot {

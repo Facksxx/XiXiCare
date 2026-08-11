@@ -1,4 +1,4 @@
-import { Clock3, Database, Edit2, Info, Music2, Plus, Settings as SettingsIcon, Trash2, Users } from 'lucide-react';
+import { ChevronDown, Clock3, Database, Edit2, Info, Music2, Plus, Settings as SettingsIcon, Trash2, Users } from 'lucide-react';
 import type { RemoteRelease } from '../utils/version';
 import type { ActivityLog, BabyInfo, TimeInferenceMode } from '../types/baby';
 import { DataTransfer } from './DataTransfer';
@@ -19,12 +19,14 @@ interface SettingsProps {
   onDeleteBaby: (babyId: string) => void;
   detectedRelease: RemoteRelease | null;
   onReleaseChange: (release: RemoteRelease | null) => void;
+  onBack: () => void;
 }
 
-export function Settings({ timeInferenceMode, onTimeInferenceModeChange, logs, onImportLogs, onImportBabies, babies, activeBabyId, onAddBaby, onSwitchBaby, onEditBaby, onDeleteBaby, detectedRelease, onReleaseChange }: SettingsProps) {
+export function Settings({ timeInferenceMode, onTimeInferenceModeChange, logs, onImportLogs, onImportBabies, babies, activeBabyId, onAddBaby, onSwitchBaby, onEditBaby, onDeleteBaby, detectedRelease, onReleaseChange, onBack }: SettingsProps) {
   return (
     <div className="container settings-page fade-in">
       <div className="settings-heading">
+        <button type="button" className="settings-back-button" onClick={onBack} aria-label="返回"><ChevronDown size={20} /></button>
         <span><SettingsIcon size={22} /></span>
         <div><h1>设置</h1><p>管理宝宝、数据与应用偏好</p></div>
       </div>

@@ -20,6 +20,7 @@ import './index.css';
 type AppTab = 'dashboard' | 'records' | 'guide' | 'stats';
 type SwipePreview = { tab: AppTab; side: -1 | 1 };
 const APP_TABS: AppTab[] = ['dashboard', 'records', 'guide', 'stats'];
+const UPDATE_CHECK_INTERVAL = 24 * 60 * 60 * 1000;
 
 function NavIcon({ icon: IconComponent, active }: { icon: Icon; active: boolean }) {
   return (
@@ -66,10 +67,12 @@ export default function App() {
   const [showBabySwitcher, setShowBabySwitcher] = useState(false);
   const [isWhiteNoisePlaying, setIsWhiteNoisePlaying] = useState(false);
   const [detectedRelease, setDetectedRelease] = useState<RemoteRelease | null>(null);
+  const lastUpdateCheckRef = useRef(0);
 
   useEffect(() => {
     let cancelled = false;
-    const checkOnLaunch = async () => {
+    const checkForUpdate = async () => {
+      lastUpdateCheckRef.current = Date.now();
       try {
         const release = await fetchLatestRelease();
         if (!cancelled) setDetectedRelease(release.version && isNewer(release.version) ? release : null);
@@ -77,8 +80,18 @@ export default function App() {
         // Startup checks stay silent; users can retry from Settings.
       }
     };
-    void checkOnLaunch();
-    return () => { cancelled = true; };
+    const checkIfDue = () => {
+      if (document.hidden) return;
+      if (Date.now() - lastUpdateCheckRef.current >= UPDATE_CHECK_INTERVAL) void checkForUpdate();
+    };
+    void checkForUpdate();
+    const interval = window.setInterval(checkIfDue, UPDATE_CHECK_INTERVAL);
+    document.addEventListener('visibilitychange', checkIfDue);
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+      document.removeEventListener('visibilitychange', checkIfDue);
+    };
   }, []);
 
   // Theme: 'light' | 'dark'
@@ -514,9 +527,9 @@ export default function App() {
   };
 
   return (
-    <div className="app-shell">
+    <div className={`app-shell${showSettings ? ' settings-shell' : ''}`}>
       {/* Header Bar */}
-      <header className="header">
+      {!showSettings && <header className="header">
         <div className="baby-info">
           <div 
             className="avatar-ring"
@@ -580,7 +593,7 @@ export default function App() {
             {theme === 'light' ? <Moon size={20} /> : <Sun size={20} style={{ color: 'var(--amber)' }} />}
           </button>
         </div>
-      </header>
+      </header>}
 
       {/* Main Content Area */}
       <main
@@ -606,6 +619,7 @@ export default function App() {
             onDeleteBaby={handleDeleteBaby}
             detectedRelease={detectedRelease}
             onReleaseChange={setDetectedRelease}
+            onBack={() => setShowSettings(false)}
           /></div>
           ) : (
             <>
