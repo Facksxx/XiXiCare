@@ -43,7 +43,7 @@ export function Records({ logs, onEditLog, onDeleteLog }: RecordsProps) {
   const [endDate, setEndDate] = useState('');
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');
   const [feedingFilter, setFeedingFilter] = useState<FeedingFilter>('all');
-  const [confirmModal, setConfirmModal] = useState<{ show: boolean; message: string; onConfirm: () => void }>({ show: false, message: '', onConfirm: () => {} });
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
 
   const sortedLogs = useMemo(() => [...logs].sort((a, b) => b.timestamp.localeCompare(a.timestamp)), [logs]);
   const filteredLogs = useMemo(() => sortedLogs.filter(log => {
@@ -57,19 +57,16 @@ export function Records({ logs, onEditLog, onDeleteLog }: RecordsProps) {
 
   const feedingIntervals = useMemo(() => {
     const result = new Map<string, number>();
-    const previousEndByType = new Map<FeedingType, number>();
+    let previousFeedingStart: number | null = null;
     [...logs]
       .filter(log => log.logType === 'feeding')
-      .sort((a, b) => a.timestamp.localeCompare(b.timestamp))
+      .sort((a, b) => a.timestamp.localeCompare(b.timestamp) || a.id.localeCompare(b.id))
       .forEach(log => {
-        const feedingType = log.metadata.feedingType ?? 'breast';
         const start = new Date(log.timestamp).getTime();
-        const previousEnd = previousEndByType.get(feedingType);
-        if (previousEnd !== undefined && start >= previousEnd) {
-          result.set(log.id, Math.round((start - previousEnd) / 60000));
+        if (previousFeedingStart !== null && start >= previousFeedingStart) {
+          result.set(log.id, Math.round((start - previousFeedingStart) / 60000));
         }
-        const end = log.metadata.endTime ? new Date(log.metadata.endTime).getTime() : start;
-        previousEndByType.set(feedingType, Number.isFinite(end) ? end : start);
+        if (Number.isFinite(start)) previousFeedingStart = start;
       });
     return result;
   }, [logs]);
@@ -130,14 +127,7 @@ export function Records({ logs, onEditLog, onDeleteLog }: RecordsProps) {
   };
 
   const handleDeleteClick = (id: string) => {
-    setConfirmModal({
-      show: true,
-      message: '确认删除这条记录？',
-      onConfirm: () => {
-        onDeleteLog(id);
-        setConfirmModal({ show: false, message: '', onConfirm: () => {} });
-      }
-    });
+    setDeleteTargetId(id);
   };
 
   const hasFilter = Boolean(startDate || endDate || typeFilter !== 'all' || feedingFilter !== 'all');
@@ -219,7 +209,7 @@ export function Records({ logs, onEditLog, onDeleteLog }: RecordsProps) {
                     {log.logType === 'feeding' && (
                       <p className="timeline-feeding-meta">
                         <span>{feedingTypeLabel(log.metadata.feedingType)}</span>
-                        {feedingIntervals.has(log.id) && <span>距上次同类 {formatInterval(feedingIntervals.get(log.id) ?? 0)}</span>}
+                        {feedingIntervals.has(log.id) && <span>距上次喂养 {formatInterval(feedingIntervals.get(log.id) ?? 0)}</span>}
                       </p>
                     )}
                     <p className="timeline-time-line"><span>{log.timestamp.split('T')[0]}</span><span>{getFormatTime(log.timestamp)}</span></p>
@@ -236,13 +226,16 @@ export function Records({ logs, onEditLog, onDeleteLog }: RecordsProps) {
       ))}
 
       <ConfirmModal
-        isOpen={confirmModal.show}
-        message={confirmModal.message}
-        type="warning"
+        isOpen={deleteTargetId !== null}
+        message="确认删除这条记录？"
+        type="danger"
         confirmText="确认"
         cancelText="取消"
-        onConfirm={confirmModal.onConfirm}
-        onCancel={() => setConfirmModal({ show: false, message: '', onConfirm: () => {} })}
+        onConfirm={() => {
+          if (deleteTargetId) onDeleteLog(deleteTargetId);
+          setDeleteTargetId(null);
+        }}
+        onCancel={() => setDeleteTargetId(null)}
       />
     </div>
   );

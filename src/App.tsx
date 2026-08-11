@@ -290,17 +290,17 @@ export default function App() {
 
   // Add a log
   const handleAddLog = (newLog: ActivityLog) => {
-    setLogs([newLog, ...logs]);
+    setLogs(current => [newLog, ...current]);
   };
 
   // Delete a log
   const handleDeleteLog = (id: string) => {
-    setLogs(logs.filter(log => log.id !== id));
+    setLogs(current => current.filter(log => log.id !== id));
   };
 
   // Update a log
   const handleUpdateLog = (updatedLog: ActivityLog) => {
-    setLogs(logs.map(log => log.id === updatedLog.id ? updatedLog : log));
+    setLogs(current => current.map(log => log.id === updatedLog.id ? updatedLog : log));
   };
 
   // Navigate to dashboard with a log to edit (from Records tab)
