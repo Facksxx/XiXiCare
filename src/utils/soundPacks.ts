@@ -37,7 +37,7 @@ export const SOUND_PACKS: SoundPackDefinition[] = [
     ]
   },
   {
-    id: 'music', name: '摇篮纯音乐包', description: '小星星、摇篮曲与轻柔器乐', sizeMb: 19.1,
+    id: 'music', name: '纯音乐包', description: '小星星、摇篮曲与轻柔器乐', sizeMb: 19.1,
     tracks: [
       { id: 'twinkle-star', name: '小星星', file: 'twinkle-star.ogg', icon: 'star' },
       { id: 'baby-lullaby', name: '摇篮轻梦', file: 'baby-lullaby.mp3', icon: 'moon' },

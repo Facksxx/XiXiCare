@@ -517,7 +517,7 @@ export function WhiteNoisePlayer({ isOpen, onClose, onPlaybackChange }: WhiteNoi
                   );
                 })}
               </div>
-              {visibleBuiltinTracks.length === 0 && <p className="noise-pack-empty">请前往设置下载{browseCategory === 'ambient' ? '环境声音包' : '摇篮纯音乐包'}</p>}
+              {visibleBuiltinTracks.length === 0 && <p className="noise-pack-empty">请前往设置下载{browseCategory === 'ambient' ? '环境声音包' : '纯音乐包'}</p>}
 
               <div className="custom-music-section">
                 <div className="custom-music-heading">
