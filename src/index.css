@@ -1547,17 +1547,30 @@ select {
 }
 
 .sound-pack-copy strong {
+  display: flex;
+  align-items: center;
+  gap: 7px;
   color: var(--text-heading);
   font-size: 13px;
 }
 
+.sound-pack-copy strong em {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  color: var(--sage);
+  font-size: 9px;
+  font-style: normal;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
 .sound-pack-copy small {
-  overflow: hidden;
   color: var(--text-muted);
   font-size: 10px;
   line-height: 1.4;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .sound-pack-copy i {
@@ -1592,7 +1605,6 @@ select {
 .sound-pack-download { min-width: 58px; padding: 0 9px; }
 .sound-pack-remove { width: 36px; color: var(--danger); border-color: var(--border); }
 .sound-pack-download:disabled { opacity: 0.55; }
-.sound-pack-ready { position: absolute; top: 5px; right: 5px; color: var(--sage); }
 .sound-pack-error { color: var(--danger); font-size: 11px; }
 
 .noise-pack-empty {

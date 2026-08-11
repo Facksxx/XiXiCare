@@ -30,10 +30,13 @@ export function SoundPackManager() {
       const loading = working === pack.id;
       return <div className="sound-pack-row" key={pack.id}>
         <span className="sound-pack-icon"><Music2 size={18} /></span>
-        <span className="sound-pack-copy"><strong>{pack.name}</strong><small>{pack.description} · {pack.sizeMb.toFixed(1)} MB</small>{loading && <i><b style={{ width: `${progress}%` }} /></i>}</span>
+        <span className="sound-pack-copy">
+          <strong>{pack.name}{ready && <em><Check size={12} />已下载</em>}</strong>
+          <small>{pack.description} · {pack.sizeMb.toFixed(1)} MB</small>
+          {loading && <i><b style={{ width: `${progress}%` }} /></i>}
+        </span>
         {ready ? <button type="button" className="sound-pack-remove" onClick={() => void remove(pack.id)} aria-label={`删除${pack.name}`}><Trash2 size={16} /></button>
           : <button type="button" className="sound-pack-download" disabled={working !== null} onClick={() => void install(pack.id)}>{loading ? `${progress}%` : <><Download size={15} />下载</>}</button>}
-        {ready && <Check className="sound-pack-ready" size={14} />}
       </div>;
     })}
     {error && <p className="sound-pack-error">{error}</p>}
