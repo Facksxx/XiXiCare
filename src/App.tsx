@@ -11,6 +11,7 @@ import { Records } from './components/Records';
 import { Settings as SettingsPage } from './components/Settings';
 import { WhiteNoisePlayer } from './components/WhiteNoisePlayer';
 import { ConfirmModal } from './components/ConfirmModal';
+import { DateTimePicker } from './components/DateTimePicker';
 import { Sun, Moon, Calendar, BookOpen, BarChart2, Edit2, Check, Sparkles, Settings, Music2, ChevronDown, Plus } from 'lucide-react';
 import type { Icon } from 'lucide-react';
 import './index.css';
@@ -748,11 +749,13 @@ export default function App() {
                 autoFocus
               />
               <label className="form-label">出生日期</label>
-              <input 
-                type="date" 
-                className="input-field" 
+              <DateTimePicker
+                mode="date"
+                label="出生日期"
+                placeholder="选择出生日期"
+                className="baby-birthday-picker"
                 value={editBirthday}
-                onChange={(e) => setEditBirthday(e.target.value)}
+                onChange={setEditBirthday}
               />
             </div>
             <div className="modal-footer">

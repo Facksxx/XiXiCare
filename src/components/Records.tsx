@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import type { ActivityLog, FeedingType, LogType } from '../types/baby';
 import { Calendar, Droplets, Edit2, Milk, Moon, Scale, Trash2 } from 'lucide-react';
 import { ConfirmModal } from './ConfirmModal';
+import { DateTimePicker } from './DateTimePicker';
 
 interface RecordsProps {
   logs: ActivityLog[];
@@ -144,9 +145,9 @@ export function Records({ logs, onEditLog, onDeleteLog }: RecordsProps) {
         <div className="records-filter-row">
           <div className="records-date-range">
             <Calendar size={14} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
-            <input type="date" className="input-field" aria-label="开始日期" value={startDate} onChange={event => setStartDate(event.target.value)} />
+            <DateTimePicker mode="date" label="开始日期" placeholder="开始日期" value={startDate} onChange={setStartDate} />
             <span>~</span>
-            <input type="date" className="input-field" aria-label="结束日期" value={endDate} onChange={event => setEndDate(event.target.value)} />
+            <DateTimePicker mode="date" label="结束日期" placeholder="结束日期" value={endDate} onChange={setEndDate} />
             {hasFilter && <button type="button" className="records-clear-filter" onClick={clearFilter}>清除</button>}
           </div>
         </div>

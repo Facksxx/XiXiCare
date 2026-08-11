@@ -6,6 +6,7 @@ import {
 import { ConfirmModal } from './ConfirmModal';
 import { Incrementor } from './Incrementor';
 import { useLocalStorage } from '../hooks/useLocalStorage';
+import { DateTimePicker } from './DateTimePicker';
 
 interface DashboardProps {
   babyId: string;
@@ -39,27 +40,6 @@ const diffMins = (startLocal: string, endLocal: string) => {
   const e = new Date(endLocal).getTime();
   return Math.round((e - s) / 60000);
 };
-
-const formatDateTime = (value: string) => {
-  if (!value) return '选择时间';
-  const [date, time = ''] = value.split('T');
-  return `${date.replaceAll('-', '/')} ${time.slice(0, 5)}`;
-};
-
-function DateTimePicker({ value, onChange, label }: { value: string; onChange: (value: string) => void; label: string }) {
-  return (
-    <label className="datetime-picker">
-      <span className="datetime-picker-value" aria-hidden="true">{formatDateTime(value)}</span>
-      <input
-        type="datetime-local"
-        className="datetime-picker-native"
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        aria-label={label}
-      />
-    </label>
-  );
-}
 
 const getLogTypeLabel = (logType: LogType) => {
   const labels: Record<LogType, string> = {
