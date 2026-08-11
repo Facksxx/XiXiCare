@@ -94,6 +94,24 @@ export default function App() {
     };
   }, []);
 
+  useEffect(() => {
+    const handleHistoryBack = () => setShowSettings(false);
+    window.addEventListener('popstate', handleHistoryBack);
+    return () => window.removeEventListener('popstate', handleHistoryBack);
+  }, []);
+
+  const openSettings = () => {
+    if (showSettings) return;
+    window.history.pushState({ ...window.history.state, xixicareSettings: true }, '');
+    setShowWhiteNoise(false);
+    setShowSettings(true);
+  };
+
+  const closeSettings = () => {
+    if (window.history.state?.xixicareSettings) window.history.back();
+    else setShowSettings(false);
+  };
+
   // Theme: 'light' | 'dark'
   const [theme, setTheme] = useLocalStorage<'light' | 'dark'>('babycare_theme', 'light');
   const [timeInferenceMode, setTimeInferenceMode] = useLocalStorage<TimeInferenceMode>('babycare_time_inference_mode', 'end');
@@ -567,7 +585,7 @@ export default function App() {
 
         <div className="header-actions">
           <button
-            onClick={() => { setShowSettings((current) => !current); setShowWhiteNoise(false); }}
+            onClick={openSettings}
             className={`header-icon-btn ${showSettings ? 'active' : ''}`}
             aria-label={showSettings ? '返回记录页面' : '打开设置'}
             title={showSettings ? '返回记录页面' : '设置'}
@@ -619,7 +637,7 @@ export default function App() {
             onDeleteBaby={handleDeleteBaby}
             detectedRelease={detectedRelease}
             onReleaseChange={setDetectedRelease}
-            onBack={() => setShowSettings(false)}
+            onBack={closeSettings}
           /></div>
           ) : (
             <>

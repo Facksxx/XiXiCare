@@ -1378,8 +1378,8 @@ select {
 
 .settings-data-actions > button {
   min-width: 0;
-  min-height: 52px;
-  padding: 8px 9px;
+  min-height: 42px;
+  padding: 7px 10px;
   display: flex;
   align-items: center;
   gap: 7px;
@@ -1420,7 +1420,8 @@ select {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  padding: 10px 12px;
+  min-height: 42px;
+  padding: 6px 10px;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   background: var(--bg-input);
@@ -2448,6 +2449,28 @@ select {
   text-align: center;
 }
 
+.date-picker-period {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.date-picker-period button {
+  width: auto;
+  height: 32px;
+  padding: 0 8px;
+  border-radius: var(--radius-xs);
+  color: var(--text-heading);
+  font-size: 15px;
+  font-weight: 650;
+}
+
+.date-picker-period button.active {
+  color: var(--sage);
+  background: var(--sage-light);
+}
+
 .date-picker-header button,
 .date-time-stepper button {
   width: 36px;
@@ -2507,8 +2530,43 @@ select {
   opacity: 1;
 }
 
+.date-picker-years {
+  height: 226px;
+  overflow-y: auto;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  padding: 4px;
+}
+
+.date-picker-months {
+  min-height: 226px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-content: center;
+  gap: 8px;
+  padding: 8px 4px;
+}
+
+.date-picker-years button,
+.date-picker-months button {
+  min-height: 40px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xs);
+  color: var(--text);
+  background: var(--bg-input);
+  font-size: 13px;
+}
+
+.date-picker-years button.selected,
+.date-picker-months button.selected {
+  border-color: var(--sage);
+  color: #fff;
+  background: var(--sage);
+}
+
 .date-picker-time {
-  height: 60px;
+  height: 116px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2526,17 +2584,39 @@ select {
   font-size: 20px;
 }
 
-.date-time-stepper {
-  display: grid;
-  grid-template-columns: 32px 42px 32px;
-  align-items: center;
+.date-time-wheel {
+  width: 58px;
+  height: 108px;
+  overflow-y: auto;
+  scroll-snap-type: y mandatory;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  mask-image: linear-gradient(to bottom, transparent, #000 28%, #000 72%, transparent);
 }
 
-.date-time-stepper strong {
+.date-time-wheel::-webkit-scrollbar { display: none; }
+
+.date-time-wheel > span,
+.date-time-wheel > button {
+  width: 100%;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  scroll-snap-align: center;
+}
+
+.date-time-wheel > button {
+  border: 0;
+  color: var(--text-muted);
+  background: transparent;
+  font-size: 17px;
+  font-variant-numeric: tabular-nums;
+}
+
+.date-time-wheel > button.selected {
   color: var(--text-heading);
   font-size: 22px;
-  text-align: center;
-  font-variant-numeric: tabular-nums;
+  font-weight: 700;
 }
 
 .date-picker-actions {

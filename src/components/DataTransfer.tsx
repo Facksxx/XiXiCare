@@ -364,8 +364,8 @@ export function DataTransfer({ logs, onImportLogs, babies, activeBabyId, onImpor
   return (
     <>
       <div className="settings-data-actions">
-        <button type="button" onClick={handleExport}><Download size={17} /><span><strong>导出全部数据</strong><small>宝宝、记录、疫苗、过敏排查与设置</small></span></button>
-        <button type="button" onClick={() => fileInputRef.current?.click()}><Upload size={17} /><span><strong>导入全部数据</strong><small>恢复全部宝宝与对应记录</small></span></button>
+        <button type="button" onClick={handleExport}><Download size={17} /><strong>导出全部数据</strong></button>
+        <button type="button" onClick={() => fileInputRef.current?.click()}><Upload size={17} /><strong>导入全部数据</strong></button>
         <input ref={fileInputRef} type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden onChange={handleFileChange} />
       </div>
       <ConfirmModal

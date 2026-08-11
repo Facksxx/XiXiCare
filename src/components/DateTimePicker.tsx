@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { ChevronDown, Clock3 } from 'lucide-react';
 
@@ -27,6 +27,27 @@ const formatValue = (value: string, mode: 'date' | 'datetime', placeholder: stri
   return mode === 'date' ? date.replaceAll('-', '/') : `${date.replaceAll('-', '/')} ${time.slice(0, 5)}`;
 };
 
+function TimeWheel({ value, count, label, onChange }: { value: number; count: number; label: string; onChange: (value: number) => void }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const timer = useRef<number | null>(null);
+  useEffect(() => {
+    ref.current?.scrollTo({ top: value * 36, behavior: 'auto' });
+  }, [value]);
+  const handleScroll = () => {
+    if (timer.current !== null) window.clearTimeout(timer.current);
+    timer.current = window.setTimeout(() => {
+      const next = Math.max(0, Math.min(count - 1, Math.round((ref.current?.scrollTop ?? 0) / 36)));
+      onChange(next);
+      ref.current?.scrollTo({ top: next * 36, behavior: 'smooth' });
+    }, 70);
+  };
+  return <div className="date-time-wheel" ref={ref} onScroll={handleScroll} role="listbox" aria-label={label}>
+    <span aria-hidden="true" />
+    {Array.from({ length: count }, (_, item) => <button type="button" role="option" aria-selected={item === value} className={item === value ? 'selected' : ''} key={item} onClick={() => onChange(item)}>{pad(item)}</button>)}
+    <span aria-hidden="true" />
+  </div>;
+}
+
 export function DateTimePicker({ value, onChange, label, mode = 'datetime', placeholder = '请选择', className = '' }: DateTimePickerProps) {
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState(() => parseValue(value));
@@ -34,13 +55,21 @@ export function DateTimePicker({ value, onChange, label, mode = 'datetime', plac
     const date = parseValue(value);
     return new Date(date.getFullYear(), date.getMonth(), 1);
   });
+  const [calendarMode, setCalendarMode] = useState<'days' | 'years' | 'months'>('days');
+  const yearListRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!open) return;
     const date = parseValue(value);
     setDraft(date);
     setShownMonth(new Date(date.getFullYear(), date.getMonth(), 1));
+    setCalendarMode('days');
   }, [open, value]);
+
+  useEffect(() => {
+    if (calendarMode !== 'years') return;
+    window.requestAnimationFrame(() => yearListRef.current?.querySelector('.selected')?.scrollIntoView({ block: 'center' }));
+  }, [calendarMode]);
 
   useEffect(() => {
     if (!open) return;
@@ -64,14 +93,16 @@ export function DateTimePicker({ value, onChange, label, mode = 'datetime', plac
     setShownMonth(new Date(day.getFullYear(), day.getMonth(), 1));
   };
 
-  const adjustTime = (unit: 'hour' | 'minute', amount: number) => {
+  const setTime = (unit: 'hour' | 'minute', value: number) => {
     setDraft(current => {
       const next = new Date(current);
-      if (unit === 'hour') next.setHours((next.getHours() + amount + 24) % 24);
-      else next.setMinutes((next.getMinutes() + amount + 60) % 60);
+      if (unit === 'hour') next.setHours(value);
+      else next.setMinutes(value);
       return next;
     });
   };
+
+  const years = useMemo(() => Array.from({ length: new Date().getFullYear() - 1879 }, (_, index) => 1900 + index), []);
 
   const selectCurrent = () => {
     const now = new Date();
@@ -94,10 +125,17 @@ export function DateTimePicker({ value, onChange, label, mode = 'datetime', plac
           <section className="date-picker-panel" role="dialog" aria-modal="true" aria-label={label} onClick={event => event.stopPropagation()}>
             <header className="date-picker-header">
               <button type="button" onClick={() => setShownMonth(current => new Date(current.getFullYear(), current.getMonth() - 1, 1))} aria-label="上个月"><ChevronDown className="picker-arrow-left" size={20} /></button>
-              <strong>{shownMonth.getFullYear()}年 {shownMonth.getMonth() + 1}月</strong>
+              <div className="date-picker-period">
+                <button type="button" className={calendarMode === 'years' ? 'active' : ''} onClick={() => setCalendarMode(current => current === 'years' ? 'days' : 'years')}>{shownMonth.getFullYear()}年</button>
+                <button type="button" className={calendarMode === 'months' ? 'active' : ''} onClick={() => setCalendarMode(current => current === 'months' ? 'days' : 'months')}>{shownMonth.getMonth() + 1}月</button>
+              </div>
               <button type="button" onClick={() => setShownMonth(current => new Date(current.getFullYear(), current.getMonth() + 1, 1))} aria-label="下个月"><ChevronDown className="picker-arrow-right" size={20} /></button>
             </header>
-            <div className="date-picker-weekdays">{['日', '一', '二', '三', '四', '五', '六'].map(day => <span key={day}>{day}</span>)}</div>
+            {calendarMode === 'years' ? <div className="date-picker-years" ref={yearListRef}>
+              {years.map(year => <button type="button" className={year === shownMonth.getFullYear() ? 'selected' : ''} key={year} onClick={() => { setShownMonth(current => new Date(year, current.getMonth(), 1)); setCalendarMode('days'); }}>{year}</button>)}
+            </div> : calendarMode === 'months' ? <div className="date-picker-months">
+              {Array.from({ length: 12 }, (_, month) => <button type="button" className={month === shownMonth.getMonth() ? 'selected' : ''} key={month} onClick={() => { setShownMonth(current => new Date(current.getFullYear(), month, 1)); setCalendarMode('days'); }}>{month + 1}月</button>)}
+            </div> : <><div className="date-picker-weekdays">{['日', '一', '二', '三', '四', '五', '六'].map(day => <span key={day}>{day}</span>)}</div>
             <div className="date-picker-days">
               {days.map(day => {
                 const selected = toDateValue(day) === toDateValue(draft);
@@ -105,21 +143,13 @@ export function DateTimePicker({ value, onChange, label, mode = 'datetime', plac
                 const today = toDateValue(day) === toDateValue(new Date());
                 return <button type="button" key={toDateValue(day)} className={`${selected ? 'selected' : ''} ${outside ? 'outside' : ''} ${today ? 'today' : ''}`.trim()} onClick={() => chooseDay(day)}>{day.getDate()}</button>;
               })}
-            </div>
+            </div></>}
             {mode === 'datetime' && (
               <div className="date-picker-time">
                 <Clock3 size={17} />
-                <div className="date-time-stepper">
-                  <button type="button" onClick={() => adjustTime('hour', 1)} aria-label="小时加一"><ChevronDown className="picker-arrow-up" size={18} /></button>
-                  <strong>{pad(draft.getHours())}</strong>
-                  <button type="button" onClick={() => adjustTime('hour', -1)} aria-label="小时减一"><ChevronDown size={18} /></button>
-                </div>
+                <TimeWheel value={draft.getHours()} count={24} label="小时" onChange={next => setTime('hour', next)} />
                 <b>:</b>
-                <div className="date-time-stepper">
-                  <button type="button" onClick={() => adjustTime('minute', 1)} aria-label="分钟加一"><ChevronDown className="picker-arrow-up" size={18} /></button>
-                  <strong>{pad(draft.getMinutes())}</strong>
-                  <button type="button" onClick={() => adjustTime('minute', -1)} aria-label="分钟减一"><ChevronDown size={18} /></button>
-                </div>
+                <TimeWheel value={draft.getMinutes()} count={60} label="分钟" onChange={next => setTime('minute', next)} />
               </div>
             )}
             <footer className="date-picker-actions">
