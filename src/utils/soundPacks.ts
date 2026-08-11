@@ -1,6 +1,6 @@
 import { Capacitor } from '@capacitor/core';
 import { Directory, Filesystem } from '@capacitor/filesystem';
-import { FileTransfer } from '@capacitor/file-transfer';
+import { SoundDownload } from '../plugins/soundDownload';
 
 export type SoundCategory = 'ambient' | 'music';
 export type SoundIconName = 'bird' | 'rain' | 'waves' | 'shush' | 'stream' | 'wind' | 'star' | 'moon' | 'music' | 'heart' | 'lamp' | 'snow';
@@ -64,24 +64,57 @@ export const soundTrackPath = (packId: SoundCategory, file: string) => `sound-pa
 export const resolveSoundTrackUrl = async (packId: SoundCategory, file: string) => {
   const path = soundTrackPath(packId, file);
   const result = await Filesystem.getUri({ path, directory: Directory.Data });
-  return Capacitor.isNativePlatform() ? Capacitor.convertFileSrc(result.uri) : result.uri;
+  return { src: Capacitor.isNativePlatform() ? Capacitor.convertFileSrc(result.uri) : result.uri, nativeSrc: result.uri };
 };
 
-export const downloadSoundPack = async (pack: SoundPackDefinition, onProgress: (done: number, total: number) => void) => {
-  await Filesystem.mkdir({ path: `sound-packs/${pack.id}`, directory: Directory.Data, recursive: true });
-  for (let index = 0; index < pack.tracks.length; index += 1) {
-    const track = pack.tracks[index];
-    const path = soundTrackPath(pack.id, track.file);
-    try { await Filesystem.deleteFile({ path, directory: Directory.Data }); } catch { /* Start this file cleanly. */ }
-    const target = await Filesystem.getUri({ path, directory: Directory.Data });
-    await FileTransfer.downloadFile({
-      url: `${RAW_ROOT}/${pack.id}/${track.file}`,
-      path: target.uri,
-      progress: false
-    });
-    onProgress(index + 1, pack.tracks.length);
+export interface SoundPackDownloadTask {
+  id: string;
+  cancelled: boolean;
+  activeFileId?: string;
+  abortController?: AbortController;
+}
+
+export const createSoundPackDownloadTask = (packId: SoundCategory): SoundPackDownloadTask => ({
+  id: `${packId}-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+  cancelled: false
+});
+
+export const cancelSoundPackDownload = async (task: SoundPackDownloadTask) => {
+  task.cancelled = true;
+  task.abortController?.abort();
+  if (Capacitor.isNativePlatform() && task.activeFileId) {
+    await SoundDownload.cancel({ id: task.activeFileId });
   }
-  setInstalled(Array.from(new Set([...getInstalledSoundPacks(), pack.id])));
+};
+
+export const downloadSoundPack = async (pack: SoundPackDefinition, task: SoundPackDownloadTask, onProgress: (done: number, total: number) => void) => {
+  await Filesystem.mkdir({ path: `sound-packs/${pack.id}`, directory: Directory.Data, recursive: true });
+  try {
+    for (let index = 0; index < pack.tracks.length; index += 1) {
+      if (task.cancelled) throw new DOMException('cancelled', 'AbortError');
+      const track = pack.tracks[index];
+      const path = soundTrackPath(pack.id, track.file);
+      try { await Filesystem.deleteFile({ path, directory: Directory.Data }); } catch { /* Start this file cleanly. */ }
+      const target = await Filesystem.getUri({ path, directory: Directory.Data });
+      const url = `${RAW_ROOT}/${pack.id}/${track.file}`;
+      task.activeFileId = `${task.id}-${index}`;
+      if (Capacitor.isNativePlatform()) {
+        await SoundDownload.download({ id: task.activeFileId, url, path: target.uri });
+      } else {
+        task.abortController = new AbortController();
+        const response = await fetch(url, { signal: task.abortController.signal });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        await Filesystem.writeFile({ path, directory: Directory.Data, data: await response.blob(), recursive: true });
+      }
+      task.activeFileId = undefined;
+      task.abortController = undefined;
+      onProgress(index + 1, pack.tracks.length);
+    }
+    setInstalled(Array.from(new Set([...getInstalledSoundPacks(), pack.id])));
+  } catch (error) {
+    try { await Filesystem.rmdir({ path: `sound-packs/${pack.id}`, directory: Directory.Data, recursive: true }); } catch { /* Partial files are already gone. */ }
+    throw error;
+  }
 };
 
 export const deleteSoundPack = async (packId: SoundCategory) => {

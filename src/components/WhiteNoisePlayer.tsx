@@ -40,6 +40,7 @@ interface PlayerTrack {
   id: string;
   name: string;
   src: string;
+  nativeSrc?: string;
   icon: Icon;
   category: TrackCategory;
   custom?: boolean;
@@ -121,6 +122,7 @@ export function WhiteNoisePlayer({ isOpen, onClose, onPlaybackChange }: WhiteNoi
   const [volume, setVolume] = useLocalStorage<number>('babycare_white_noise_volume', 0.45);
   const [customTracks, setCustomTracks] = useLocalStorage<CustomTrackMeta[]>('babycare_custom_audio', []);
   const [customSources, setCustomSources] = useState<Record<string, string>>({});
+  const [customNativeSources, setCustomNativeSources] = useState<Record<string, string>>({});
   const [packTracks, setPackTracks] = useState<PlayerTrack[]>([]);
   const [browseCategory, setBrowseCategory] = useState<TrackCategory>('ambient');
   const [isPlaying, setIsPlaying] = useState(false);
@@ -138,10 +140,12 @@ export function WhiteNoisePlayer({ isOpen, onClose, onPlaybackChange }: WhiteNoi
     const objectUrls: string[] = [];
 
     const resolveSources = async () => {
+      const nativeEntries: Array<readonly [string, string]> = [];
       const entries = await Promise.all(customTracks.map(async (track) => {
         try {
           if (Capacitor.isNativePlatform()) {
             const result = await Filesystem.getUri({ path: track.path, directory: Directory.Data });
+            nativeEntries.push([track.id, result.uri] as const);
             return [track.id, Capacitor.convertFileSrc(result.uri)] as const;
           }
           const result = await Filesystem.readFile({ path: track.path, directory: Directory.Data });
@@ -153,7 +157,10 @@ export function WhiteNoisePlayer({ isOpen, onClose, onPlaybackChange }: WhiteNoi
           return [track.id, ''] as const;
         }
       }));
-      if (!cancelled) setCustomSources(Object.fromEntries(entries));
+      if (!cancelled) {
+        setCustomSources(Object.fromEntries(entries));
+        setCustomNativeSources(Object.fromEntries(nativeEntries));
+      }
     };
 
     void resolveSources();
@@ -168,10 +175,13 @@ export function WhiteNoisePlayer({ isOpen, onClose, onPlaybackChange }: WhiteNoi
     const load = async () => {
       const installed = getInstalledSoundPacks();
       const tracks = (await Promise.all(SOUND_PACKS.filter(pack => installed.includes(pack.id)).flatMap(pack =>
-        pack.tracks.map(async track => ({
-          id: track.id, name: track.name, src: await resolveSoundTrackUrl(pack.id, track.file),
-          icon: TRACK_ICONS[track.icon], category: pack.id
-        } satisfies PlayerTrack))
+        pack.tracks.map(async track => {
+          const source = await resolveSoundTrackUrl(pack.id, track.file);
+          return {
+            id: track.id, name: track.name, src: source.src, nativeSrc: source.nativeSrc,
+            icon: TRACK_ICONS[track.icon], category: pack.id
+          } satisfies PlayerTrack;
+        })
       ))).filter(track => track.src);
       if (!cancelled) setPackTracks(tracks);
     };
@@ -186,11 +196,12 @@ export function WhiteNoisePlayer({ isOpen, onClose, onPlaybackChange }: WhiteNoi
     ...customTracks.map((track) => ({
       ...track,
       src: customSources[track.id] ?? '',
+      nativeSrc: customNativeSources[track.id],
       icon: track.category === 'ambient' ? Volume2 : Music2,
       category: track.category ?? 'music',
       custom: true
     }))
-  ], [customSources, customTracks, packTracks]);
+  ], [customNativeSources, customSources, customTracks, packTracks]);
 
   const currentTrack = allTracks.find((track) => track.id === trackId) ?? allTracks[0] ?? EMPTY_TRACK;
   const CurrentIcon = currentTrack.icon;
@@ -304,7 +315,10 @@ export function WhiteNoisePlayer({ isOpen, onClose, onPlaybackChange }: WhiteNoi
     return () => window.clearInterval(intervalId);
   }, [timerEndsAt]);
 
-  const categoryQueue = allTracks.filter((track) => track.category === currentTrack.category && track.src);
+  const categoryQueue = useMemo(
+    () => allTracks.filter((track) => track.category === currentTrack.category && track.src),
+    [allTracks, currentTrack.category]
+  );
 
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return;
@@ -315,7 +329,7 @@ export function WhiteNoisePlayer({ isOpen, onClose, onPlaybackChange }: WhiteNoi
         const currentIndex = Math.max(0, categoryQueue.findIndex(track => track.id === currentTrack.id));
         try {
           await BackgroundAudio.start({
-            urls: categoryQueue.map(track => track.src),
+            urls: categoryQueue.map(track => track.nativeSrc ?? track.src),
             trackIds: categoryQueue.map(track => track.id),
             index: currentIndex,
             positionMs: Math.round(audio.currentTime * 1000),

@@ -33,6 +33,7 @@ public class BackgroundAudioService extends Service implements MediaPlayer.OnCom
     private int index;
     private String loopMode = "list";
     private float volume = 0.45f;
+    private int playbackGeneration;
 
     @Override public void onCreate() { super.onCreate(); instance = this; }
 
@@ -62,20 +63,25 @@ public class BackgroundAudioService extends Service implements MediaPlayer.OnCom
 
     private void playCurrent(int positionMs) {
         stopPlayback();
+        final int generation = ++playbackGeneration;
         try {
             player = new MediaPlayer();
             player.setAudioAttributes(new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA).setContentType(AudioAttributes.CONTENT_TYPE_MUSIC).build());
             player.setDataSource(urls.get(index));
             player.setLooping("track".equals(loopMode));
             player.setVolume(volume, volume);
-            player.setOnCompletionListener(this);
-            player.setOnErrorListener(this);
-            player.prepare();
-            if (positionMs > 0) player.seekTo(positionMs);
-            player.start();
             activeTrackId = ids.get(index);
             activePositionMs = positionMs;
-            activePlaying = true;
+            activePlaying = false;
+            player.setOnPreparedListener(mediaPlayer -> {
+                if (generation != playbackGeneration || mediaPlayer != player) return;
+                if (positionMs > 0) mediaPlayer.seekTo(positionMs);
+                mediaPlayer.start();
+                activePlaying = true;
+            });
+            player.setOnCompletionListener(this);
+            player.setOnErrorListener(this);
+            player.prepareAsync();
         } catch (Exception error) {
             activePlaying = false;
             stopSelf();
@@ -116,6 +122,7 @@ public class BackgroundAudioService extends Service implements MediaPlayer.OnCom
     }
 
     private void stopPlayback() {
+        playbackGeneration += 1;
         if (player == null) return;
         try { player.stop(); } catch (IllegalStateException ignored) { }
         player.release();

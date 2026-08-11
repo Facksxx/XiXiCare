@@ -1602,7 +1602,8 @@ select {
   cursor: pointer;
 }
 
-.sound-pack-download { min-width: 58px; padding: 0 9px; }
+.sound-pack-download { width: 36px; padding: 0; }
+.sound-pack-download.is-cancelling { color: var(--danger); border-color: var(--danger); }
 .sound-pack-remove { width: 36px; color: var(--danger); border-color: var(--border); }
 .sound-pack-download:disabled { opacity: 0.55; }
 .sound-pack-error { color: var(--danger); font-size: 11px; }
