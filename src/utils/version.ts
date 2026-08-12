@@ -4,6 +4,7 @@ export const APP_VERSION: string = typeof __APP_VERSION__ !== 'undefined' ? __AP
 
 export const RELEASE_REPO = 'Facksxx/xi-xi-care';
 export const RELEASE_API_URL = `https://gitee.com/api/v5/repos/${RELEASE_REPO}/releases/latest`;
+export const RELEASES_API_URL = `https://gitee.com/api/v5/repos/${RELEASE_REPO}/releases?per_page=100`;
 export const RELEASES_PAGE_URL = `https://gitee.com/${RELEASE_REPO}/releases`;
 
 export interface RemoteRelease {
@@ -19,6 +20,8 @@ export interface RemoteRelease {
   publishedAt: string;
   /** 发布说明（可能为空） */
   notes: string;
+  /** 从当前版本到最新版之间的逐版本更新说明 */
+  history: Array<{ version: string; publishedAt: string; notes: string }>;
 }
 
 /** 解析形如 "1.2.3" 或 "v1.2.3" 的版本号为数字数组 */
@@ -89,12 +92,31 @@ export const fetchLatestRelease = async (): Promise<RemoteRelease> => {
   const apkAsset = attachments.find(asset => asset.name.toLowerCase() === 'xixicare.apk')
     ?? attachments.find(asset => asset.name.toLowerCase().endsWith('.apk'));
   if (!apkAsset) throw new Error('当前发行版未包含 XiXiCare.apk');
+  let history: RemoteRelease['history'] = [];
+  try {
+    const releasesResponse = await fetch(RELEASES_API_URL, { headers, cache: 'no-store' });
+    if (releasesResponse.ok) {
+      const releases = (await releasesResponse.json()) as GiteeReleaseResponse[];
+      history = releases
+        .map(release => ({
+          version: (release.tag_name ?? '').replace(/^v/i, ''),
+          publishedAt: release.published_at ?? release.created_at ?? '',
+          notes: (release.body ?? '').trim()
+        }))
+        .filter(release => release.version && compareVersions(release.version, APP_VERSION) > 0 && compareVersions(release.version, version) <= 0)
+        .sort((a, b) => compareVersions(a.version, b.version));
+    }
+  } catch {
+    // Latest release information is still usable when release history is unavailable.
+  }
+  if (history.length === 0) history = [{ version, publishedAt: data.published_at ?? data.created_at ?? '', notes: (data.body ?? '').trim() }];
   return {
     version,
     tag,
     htmlUrl: data.html_url || RELEASES_PAGE_URL,
     apkUrl: `https://gitee.com/api/v5/repos/${RELEASE_REPO}/releases/${data.id}/attach_files/${apkAsset.id}/download`,
     publishedAt: data.published_at ?? data.created_at ?? '',
-    notes: (data.body ?? '').trim()
+    notes: (data.body ?? '').trim(),
+    history
   };
 };

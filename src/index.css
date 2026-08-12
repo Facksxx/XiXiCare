@@ -1377,21 +1377,25 @@ select {
 }
 
 .settings-data-actions > button {
+  position: relative;
   min-width: 0;
   min-height: 42px;
   padding: 7px 10px;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 7px;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   background: var(--bg-input);
   color: var(--sage);
-  text-align: left;
+  text-align: center;
   cursor: pointer;
 }
 
 .settings-data-actions > button > svg {
+  position: absolute;
+  left: 10px;
   flex: 0 0 17px;
 }
 
@@ -1605,6 +1609,32 @@ select {
   font-size: 12px;
   line-height: 1.55;
   white-space: pre-wrap;
+}
+
+.update-release-history {
+  display: grid;
+  gap: 9px;
+}
+
+.update-release-history section + section {
+  padding-top: 9px;
+  border-top: 1px solid var(--border);
+}
+
+.update-release-history h4 {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 3px;
+  color: var(--text-heading);
+  font-size: 12px;
+}
+
+.update-release-history h4 small {
+  color: var(--text-muted);
+  font-size: 9px;
+  font-weight: 500;
 }
 
 .sound-pack-manager {

@@ -317,7 +317,17 @@ export function UpdateChecker({ detectedRelease = null, onReleaseChange }: Updat
               {updatePhase === 'prompt' && (
                 <>
                   <p>最新版本 v{newRelease.version} 已发布{releaseDate ? `（${releaseDate}）` : ''}，当前版本 v{APP_VERSION}。</p>
-                  <div className="update-release-notes"><strong>更新内容</strong><p>{newRelease.notes || '体验优化与问题修复'}</p></div>
+                  <div className="update-release-notes">
+                    <strong>更新内容</strong>
+                    <div className="update-release-history">
+                      {newRelease.history.map(release => (
+                        <section key={release.version}>
+                          <h4>v{release.version}{release.publishedAt ? <small>{formatDate(release.publishedAt)}</small> : null}</h4>
+                          <p>{release.notes || '体验优化与问题修复'}</p>
+                        </section>
+                      ))}
+                    </div>
+                  </div>
                 </>
               )}
               {(updatePhase === 'downloading' || updatePhase === 'paused') && (

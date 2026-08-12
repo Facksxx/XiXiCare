@@ -103,7 +103,7 @@ function EChart({ option }: { option: EChartsOption }) {
 
 const axisBase = (labels: string[]) => ({
   animationDuration: 350,
-  grid: { left: 14, right: 14, top: 38, bottom: 8, containLabel: true },
+  grid: { left: 14, right: 14, top: 52, bottom: 8, containLabel: true },
   tooltip: {
     trigger: 'axis' as const,
     confine: true,
@@ -139,6 +139,30 @@ const valueLabel = (formatter: (value: number) => string) => ({
   fontWeight: 700,
   formatter: (params: CallbackDataParams) => formatter(Number(params.value))
 });
+
+const niceStep = (roughStep: number) => {
+  if (!Number.isFinite(roughStep) || roughStep <= 0) return 1;
+  const magnitude = 10 ** Math.floor(Math.log10(roughStep));
+  const fraction = roughStep / magnitude;
+  const factor = [1, 2, 2.5, 3, 5, 10].find(candidate => candidate >= fraction) ?? 10;
+  return factor * magnitude;
+};
+
+const zeroBasedAxis = (rawMax: number, minimumSpan: number) => {
+  const targetMax = Math.max(rawMax * 1.2, minimumSpan);
+  const interval = niceStep(targetMax / 3);
+  return { min: 0, max: Math.ceil(targetMax / interval) * interval, interval };
+};
+
+const rangedAxis = (rawMin: number, rawMax: number) => {
+  const dataSpan = Math.max(rawMax - rawMin, 0.5);
+  const paddedMin = Math.max(0, rawMin - dataSpan * 0.25);
+  const paddedMax = rawMax + dataSpan * 0.3;
+  const interval = niceStep((paddedMax - paddedMin) / 3);
+  const min = Math.max(0, Math.floor(paddedMin / interval) * interval);
+  const max = Math.ceil(paddedMax / interval) * interval;
+  return { min, max: max <= rawMax ? max + interval : max, interval };
+};
 
 function EmptyChart({ text }: { text: string }) {
   return <div className="stats-empty">{text}</div>;
@@ -193,7 +217,8 @@ function BarChart({
   }
 
   const base = axisBase(dataBuckets.map(bucket => bucket.label));
-  return <EChart option={{ ...base, yAxis: { ...(base.yAxis as object), min: 0, max: Math.max(...dataBuckets.map(bucket => Number(bucket[valueKey])), minMax) * 1.22, axisLabel: { color: cssColor('--text-muted', '#8b857f'), formatter: `{value}${unit}` } }, series: [{ type: 'bar', data: dataBuckets.map(bucket => Number(bucket[valueKey])), barMaxWidth: 28, itemStyle: { color, borderRadius: [7, 7, 2, 2] }, label: valueLabel(value => String(Math.round(value))) }] }} />;
+  const axis = zeroBasedAxis(Math.max(...dataBuckets.map(bucket => Number(bucket[valueKey]))), minMax);
+  return <EChart option={{ ...base, yAxis: { ...(base.yAxis as object), ...axis, axisLabel: { color: cssColor('--text-muted', '#8b857f'), formatter: (value: number) => `${Math.round(value)}${unit}` } }, series: [{ name: valueKey === 'milk' ? '瓶喂奶量' : '次数', type: 'bar', data: dataBuckets.map(bucket => Number(bucket[valueKey])), barMaxWidth: 28, itemStyle: { color, borderRadius: [7, 7, 2, 2] }, label: valueLabel(value => String(Math.round(value))), tooltip: { valueFormatter: (value) => `${Math.round(Number(value))}${unit}` } }] }} />;
 }
 
 function SleepChart({ buckets }: { buckets: BucketStat[] }) {
@@ -215,11 +240,11 @@ function LineChart({ buckets, valueKey, color, unit, minimumSpan = 0 }: { bucket
   const values = buckets.map(bucket => Number(bucket[valueKey]));
   const rawMin = Math.min(...values);
   const rawMax = Math.max(...values);
-  const padding = Math.max((rawMax - rawMin) * 0.25, valueKey === 'weight' ? 0.5 : 1);
-  const min = valueKey === 'weight' ? Math.max(0, rawMin - padding) : 0;
-  const max = Math.max(rawMax + padding, minimumSpan);
+  const axis = valueKey === 'weight' ? rangedAxis(rawMin, rawMax) : zeroBasedAxis(rawMax, minimumSpan);
   const base = axisBase(buckets.map(bucket => bucket.label));
-  return <EChart option={{ ...base, yAxis: { ...(base.yAxis as object), min, max, axisLabel: { color: cssColor('--text-muted', '#8b857f'), formatter: `{value}${unit}` } }, series: [{ type: 'line', data: values, smooth: 0.22, symbol: 'circle', symbolSize: 9, lineStyle: { width: 3, color }, itemStyle: { color: cssColor('--bg-card', '#fff'), borderColor: color, borderWidth: 3 }, label: valueLabel(value => `${value.toFixed(1)}${valueKey === 'weight' ? 'kg' : ''}`), emphasis: { focus: 'series' } }] }} />;
+  const decimals = valueKey === 'weight' ? 1 : 0;
+  const seriesName = valueKey === 'weight' ? '体重' : valueKey === 'sleepHrs' ? '睡眠时长' : '喂养间隔';
+  return <EChart option={{ ...base, yAxis: { ...(base.yAxis as object), ...axis, axisLabel: { color: cssColor('--text-muted', '#8b857f'), formatter: (value: number) => `${value.toFixed(decimals)}${unit}` } }, series: [{ name: seriesName, type: 'line', data: values, smooth: 0.22, symbol: 'circle', symbolSize: 9, lineStyle: { width: 3, color }, itemStyle: { color: cssColor('--bg-card', '#fff'), borderColor: color, borderWidth: 3 }, label: valueLabel(value => `${value.toFixed(1)}${valueKey === 'weight' ? 'kg' : ''}`), tooltip: { valueFormatter: (value) => `${Number(value).toFixed(1)}${unit}` }, emphasis: { focus: 'series' } }] }} />;
 }
 
 function DiaperChart({ buckets }: { buckets: BucketStat[] }) {
@@ -230,9 +255,10 @@ function DiaperChart({ buckets }: { buckets: BucketStat[] }) {
 
   const base = axisBase(dataBuckets.map(bucket => bucket.label));
   const totalMax = Math.max(...dataBuckets.map(bucket => bucket.pee + bucket.poop), 5);
-  return <EChart option={{ ...base, yAxis: { ...(base.yAxis as object), min: 0, max: totalMax * 1.22, axisLabel: { color: cssColor('--text-muted', '#8b857f'), formatter: '{value}次' } }, series: [
-    { name: '嘘嘘', type: 'bar', stack: 'total', data: dataBuckets.map(bucket => bucket.pee), barMaxWidth: 28, itemStyle: { color: cssColor('--sage', '#7fa894'), borderRadius: [0, 0, 3, 3] } },
-    { name: '便便', type: 'bar', stack: 'total', data: dataBuckets.map(bucket => bucket.poop), barMaxWidth: 28, itemStyle: { color: cssColor('--amber', '#dca072'), borderRadius: [7, 7, 0, 0] }, label: { ...valueLabel((_value) => ''), formatter: (params: CallbackDataParams) => String(Number(dataBuckets[params.dataIndex].pee + dataBuckets[params.dataIndex].poop).toFixed(1)).replace('.0', '') } }
+  const axis = zeroBasedAxis(totalMax, 5);
+  return <EChart option={{ ...base, yAxis: { ...(base.yAxis as object), ...axis, axisLabel: { color: cssColor('--text-muted', '#8b857f'), formatter: (value: number) => `${Math.round(value)}次` } }, series: [
+    { name: '嘘嘘', type: 'bar', stack: 'total', data: dataBuckets.map(bucket => bucket.pee), barMaxWidth: 28, itemStyle: { color: cssColor('--sage', '#7fa894'), borderRadius: [0, 0, 3, 3] }, tooltip: { valueFormatter: (value) => `${Math.round(Number(value))}次` } },
+    { name: '便便', type: 'bar', stack: 'total', data: dataBuckets.map(bucket => bucket.poop), barMaxWidth: 28, itemStyle: { color: cssColor('--amber', '#dca072'), borderRadius: [7, 7, 0, 0] }, label: { ...valueLabel((_value) => ''), formatter: (params: CallbackDataParams) => String(Number(dataBuckets[params.dataIndex].pee + dataBuckets[params.dataIndex].poop).toFixed(1)).replace('.0', '') }, tooltip: { valueFormatter: (value) => `${Math.round(Number(value))}次` } }
   ] }} />;
 }
 
