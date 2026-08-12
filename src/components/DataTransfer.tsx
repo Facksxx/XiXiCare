@@ -1,4 +1,5 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { AlertTriangle, Check, Download, Upload } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
 import { Directory, Filesystem } from '@capacitor/filesystem';
@@ -198,6 +199,18 @@ export function DataTransfer({ logs, babies, activeBabyId }: DataTransferProps) 
   const [dialog, setDialog] = useState<{ show: boolean; message: string; confirm?: () => void }>({ show: false, message: '' });
   const [importChoice, setImportChoice] = useState<{ summary: string; apply: (mode: ImportMode) => void } | null>(null);
   const [toast, setToast] = useState<{ message: string; error: boolean } | null>(null);
+
+  useEffect(() => {
+    if (!importChoice) return;
+    const scrollY = window.scrollY;
+    document.documentElement.classList.add('modal-open');
+    document.body.classList.add('modal-open');
+    return () => {
+      document.documentElement.classList.remove('modal-open');
+      document.body.classList.remove('modal-open');
+      window.scrollTo(0, scrollY);
+    };
+  }, [importChoice]);
 
   const showToast = (message: string, error = false) => {
     setToast({ message, error });
@@ -415,7 +428,7 @@ export function DataTransfer({ logs, babies, activeBabyId }: DataTransferProps) 
         onConfirm={dialog.confirm ?? (() => setDialog({ show: false, message: '' }))}
         onCancel={() => setDialog({ show: false, message: '' })}
       />
-      {importChoice && (
+      {importChoice && createPortal(
         <div className="modal-overlay" onClick={() => setImportChoice(null)}>
           <section className="import-choice-modal" role="dialog" aria-modal="true" aria-labelledby="import-choice-title" onClick={event => event.stopPropagation()}>
             <h3 id="import-choice-title">选择导入方式</h3>
@@ -427,7 +440,8 @@ export function DataTransfer({ logs, babies, activeBabyId }: DataTransferProps) 
             </div>
             <button type="button" className="btn-secondary" onClick={() => setImportChoice(null)}>取消</button>
           </section>
-        </div>
+        </div>,
+        document.body
       )}
       {toast && <div className={`toast ${toast.error ? 'toast-error' : 'toast-success'}`}>{toast.error ? <AlertTriangle size={16} /> : <Check size={16} />}<span>{toast.message}</span></div>}
     </>

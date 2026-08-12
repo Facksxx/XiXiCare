@@ -1,7 +1,15 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
+import * as echarts from 'echarts/core';
+import type { EChartsOption } from 'echarts';
+import type { CallbackDataParams } from 'echarts/types/dist/shared';
+import { BarChart as EChartsBar, LineChart as EChartsLine } from 'echarts/charts';
+import { GridComponent, TooltipComponent } from 'echarts/components';
+import { CanvasRenderer } from 'echarts/renderers';
 import type { ActivityLog } from '../types/baby';
 import { Activity, Calendar, Clock3, Sparkles, TrendingUp } from 'lucide-react';
+
+echarts.use([EChartsBar, EChartsLine, GridComponent, TooltipComponent, CanvasRenderer]);
 
 interface StatsProps {
   logs: ActivityLog[];
@@ -70,45 +78,67 @@ const formatRangeLabel = (start: string, end: string) => (
   start === end ? shortDate(start) : `${shortDate(start)}-${shortDate(end)}`
 );
 
-const makePath = (points: Array<{ x: number; y: number }>) => {
-  if (points.length === 0) return '';
-  return `M ${points[0].x} ${points[0].y} ${points.slice(1).map(point => `L ${point.x} ${point.y}`).join(' ')}`;
-};
+const cssColor = (name: string, fallback: string) => getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
 
-const chartMetrics = (count: number) => {
-  const paddingLeft = 52;
-  const paddingRight = 28;
-  const paddingTop = 58;
-  const paddingBottom = 44;
-  const width = 360;
-  const plotWidth = width - paddingLeft - paddingRight;
-  const slotWidth = plotWidth / Math.max(count, 1);
-  const height = 238;
-  const plotHeight = height - paddingTop - paddingBottom;
+function EChart({ option }: { option: EChartsOption }) {
+  const containerRef = useRef<HTMLDivElement>(null);
 
-  return { paddingLeft, paddingRight, paddingTop, paddingBottom, slotWidth, plotWidth, width, height, plotHeight };
-};
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const chart = echarts.init(containerRef.current, undefined, { renderer: 'canvas' });
+    chart.setOption(option, { notMerge: true });
+    const observer = new ResizeObserver(() => chart.resize());
+    observer.observe(containerRef.current);
+    const themeObserver = new MutationObserver(() => chart.setOption(option, { notMerge: true }));
+    themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    return () => {
+      observer.disconnect();
+      themeObserver.disconnect();
+      chart.dispose();
+    };
+  }, [option]);
 
-const valueLabelY = (pointY: number, index: number) => Math.max(pointY - 13 - (index % 2) * 12, 22);
-const slotCenter = (metrics: ReturnType<typeof chartMetrics>, index: number) => metrics.paddingLeft + (index + 0.5) * metrics.slotWidth;
+  return <div ref={containerRef} className="stats-echart" />;
+}
 
-const shouldShowXLabel = (buckets: BucketStat[], index: number) => {
-  const count = buckets.length;
-  if (count <= 1 || index === 0 || index === count - 1) return true;
-  const longestLabel = Math.max(...buckets.map(bucket => bucket.label.length));
-  const estimatedLabelWidth = longestLabel * 7 + 12;
-  const maxLabels = Math.max(2, Math.min(6, Math.floor(246 / estimatedLabelWidth)));
-  if (count <= maxLabels) return true;
-  const step = Math.ceil((count - 1) / (maxLabels - 1));
-  if (count - 1 - index < step) return false;
-  return index % step === 0;
-};
+const axisBase = (labels: string[]) => ({
+  animationDuration: 350,
+  grid: { left: 14, right: 14, top: 38, bottom: 8, containLabel: true },
+  tooltip: {
+    trigger: 'axis' as const,
+    confine: true,
+    backgroundColor: cssColor('--bg-card', '#fff'),
+    borderColor: cssColor('--border', '#e9e5df'),
+    textStyle: { color: cssColor('--text-heading', '#292623'), fontSize: 12 }
+  },
+  xAxis: {
+    type: 'category' as const,
+    data: labels,
+    boundaryGap: true,
+    axisLine: { lineStyle: { color: cssColor('--border', '#e9e5df') } },
+    axisTick: { show: false },
+    axisLabel: { color: cssColor('--text-muted', '#8b857f'), fontSize: 11, interval: 'auto' as const, hideOverlap: true, margin: 12 }
+  },
+  yAxis: {
+    type: 'value' as const,
+    scale: true,
+    splitNumber: 3,
+    axisLine: { show: false },
+    axisTick: { show: false },
+    axisLabel: { color: cssColor('--text-muted', '#8b857f'), fontSize: 10, margin: 8 },
+    splitLine: { lineStyle: { color: cssColor('--border', '#e9e5df'), type: 'dashed' as const } }
+  }
+});
 
-const shouldShowValueLabel = (count: number, index: number) => {
-  if (count <= 4 || index === 0 || index === count - 1) return true;
-  const step = Math.ceil((count - 1) / 3);
-  return index % step === 0;
-};
+const valueLabel = (formatter: (value: number) => string) => ({
+  show: true,
+  position: 'top' as const,
+  distance: 7,
+  color: cssColor('--text-heading', '#292623'),
+  fontSize: 11,
+  fontWeight: 700,
+  formatter: (params: CallbackDataParams) => formatter(Number(params.value))
+});
 
 function EmptyChart({ text }: { text: string }) {
   return <div className="stats-empty">{text}</div>;
@@ -162,46 +192,8 @@ function BarChart({
     return <EmptyChart text="当前范围暂无瓶喂数据" />;
   }
 
-  const metrics = chartMetrics(dataBuckets.length);
-  const maxValue = Math.max(...dataBuckets.map(bucket => Number(bucket[valueKey])), minMax);
-  const barWidth = Math.min(24, metrics.slotWidth * 0.54);
-
-  return (
-    <svg className="stats-chart-svg" width="100%" height={metrics.height} viewBox={`0 0 ${metrics.width} ${metrics.height}`}>
-      {[0, 0.5, 1].map(ratio => {
-        const y = metrics.paddingTop + ratio * metrics.plotHeight;
-        const val = Math.round(maxValue * (1 - ratio));
-        return (
-          <g key={ratio}>
-            <line x1={metrics.paddingLeft} y1={y} x2={metrics.width - metrics.paddingRight} y2={y} className="stats-grid-line" />
-            <text x={metrics.paddingLeft - 8} y={y + 5} textAnchor="end" className="stats-axis-label">{val}{unit}</text>
-          </g>
-        );
-      })}
-      {dataBuckets.map((bucket, index) => {
-        const rawValue = Number(bucket[valueKey]);
-        const height = (rawValue / maxValue) * metrics.plotHeight;
-        const x = metrics.paddingLeft + index * metrics.slotWidth + metrics.slotWidth / 2 - barWidth / 2;
-        const y = metrics.height - metrics.paddingBottom - height;
-        return (
-          <g key={bucket.key}>
-            <rect x={x} y={y} width={barWidth} height={height} rx="7" className="stats-soft-bar" style={{ fill: color }} />
-            {shouldShowXLabel(dataBuckets, index) && (
-              <text x={x + barWidth / 2} y={metrics.height - 13} textAnchor="middle" className="stats-x-label">{bucket.label}</text>
-            )}
-          </g>
-        );
-      })}
-      {dataBuckets.map((bucket, index) => {
-        if (!shouldShowValueLabel(dataBuckets.length, index)) return null;
-        const rawValue = Number(bucket[valueKey]);
-        const height = (rawValue / maxValue) * metrics.plotHeight;
-        const x = metrics.paddingLeft + index * metrics.slotWidth + metrics.slotWidth / 2;
-        const y = metrics.height - metrics.paddingBottom - height;
-        return <text key={`value-${bucket.key}`} x={x} y={valueLabelY(y, index)} textAnchor="middle" className="stats-value-label">{Math.round(rawValue)}</text>;
-      })}
-    </svg>
-  );
+  const base = axisBase(dataBuckets.map(bucket => bucket.label));
+  return <EChart option={{ ...base, yAxis: { ...(base.yAxis as object), min: 0, max: Math.max(...dataBuckets.map(bucket => Number(bucket[valueKey])), minMax) * 1.22, axisLabel: { color: cssColor('--text-muted', '#8b857f'), formatter: `{value}${unit}` } }, series: [{ type: 'bar', data: dataBuckets.map(bucket => Number(bucket[valueKey])), barMaxWidth: 28, itemStyle: { color, borderRadius: [7, 7, 2, 2] }, label: valueLabel(value => String(Math.round(value))) }] }} />;
 }
 
 function SleepChart({ buckets }: { buckets: BucketStat[] }) {
@@ -210,63 +202,24 @@ function SleepChart({ buckets }: { buckets: BucketStat[] }) {
     return <EmptyChart text="当前范围暂无睡眠数据" />;
   }
 
-  const metrics = chartMetrics(dataBuckets.length);
-  const maxValue = Math.max(...dataBuckets.map(bucket => bucket.sleepHrs), 8);
-  const points = dataBuckets.map((bucket, index) => {
-    const x = slotCenter(metrics, index);
-    const y = metrics.height - metrics.paddingBottom - (bucket.sleepHrs / maxValue) * metrics.plotHeight;
-    return { x, y, bucket };
-  });
-  return (
-    <svg className="stats-chart-svg" width="100%" height={metrics.height} viewBox={`0 0 ${metrics.width} ${metrics.height}`}>
-      {[0, 0.5, 1].map(ratio => {
-        const y = metrics.paddingTop + ratio * metrics.plotHeight;
-        const val = (maxValue * (1 - ratio)).toFixed(1);
-        return (
-          <g key={ratio}>
-            <line x1={metrics.paddingLeft} y1={y} x2={metrics.width - metrics.paddingRight} y2={y} className="stats-grid-line" />
-            <text x={metrics.paddingLeft - 8} y={y + 5} textAnchor="end" className="stats-axis-label">{val}h</text>
-          </g>
-        );
-      })}
-      <path d={makePath(points)} className="stats-line-path" />
-      {points.map((point, index) => (
-        <g key={point.bucket.key}>
-          <circle cx={point.x} cy={point.y} r="5" className="stats-line-dot" />
-          {shouldShowXLabel(dataBuckets, index) && (
-            <text x={point.x} y={metrics.height - 13} textAnchor="middle" className="stats-x-label">{point.bucket.label}</text>
-          )}
-        </g>
-      ))}
-      {points.map((point, index) => shouldShowValueLabel(dataBuckets.length, index) ? (
-        <text key={`value-${point.bucket.key}`} x={point.x} y={valueLabelY(point.y, index)} textAnchor="middle" className="stats-value-label">{point.bucket.sleepHrs.toFixed(1)}</text>
-      ) : null)}
-    </svg>
-  );
+  return <LineChart buckets={dataBuckets} valueKey="sleepHrs" color={cssColor('--lavender', '#a59ab8')} unit="h" minimumSpan={8} />;
 }
 
 function FeedingIntervalChart({ buckets }: { buckets: BucketStat[] }) {
   const dataBuckets = buckets.filter(bucket => bucket.feedingIntervalHrs > 0);
   if (dataBuckets.length === 0) return <EmptyChart text="当前范围暂无连续喂养间隔数据" />;
-  const metrics = chartMetrics(dataBuckets.length);
-  const maxValue = Math.max(...dataBuckets.map(bucket => bucket.feedingIntervalHrs), 4);
-  const points = dataBuckets.map((bucket, index) => ({
-    x: slotCenter(metrics, index),
-    y: metrics.height - metrics.paddingBottom - (bucket.feedingIntervalHrs / maxValue) * metrics.plotHeight,
-    bucket
-  }));
-  return <svg className="stats-chart-svg" width="100%" height={metrics.height} viewBox={`0 0 ${metrics.width} ${metrics.height}`}>
-    {[0, 0.5, 1].map(ratio => {
-      const y = metrics.paddingTop + ratio * metrics.plotHeight;
-      return <g key={ratio}><line x1={metrics.paddingLeft} y1={y} x2={metrics.width - metrics.paddingRight} y2={y} className="stats-grid-line" /><text x={metrics.paddingLeft - 8} y={y + 5} textAnchor="end" className="stats-axis-label">{(maxValue * (1 - ratio)).toFixed(1)}h</text></g>;
-    })}
-    <path d={makePath(points)} className="stats-feeding-path" />
-    {points.map((point, index) => <g key={point.bucket.key}>
-      <circle cx={point.x} cy={point.y} r="5" className="stats-feeding-dot" />
-      {shouldShowXLabel(dataBuckets, index) && <text x={point.x} y={metrics.height - 13} textAnchor="middle" className="stats-x-label">{point.bucket.label}</text>}
-      {shouldShowValueLabel(dataBuckets.length, index) && <text x={point.x} y={valueLabelY(point.y, index)} textAnchor="middle" className="stats-value-label">{point.bucket.feedingIntervalHrs.toFixed(1)}</text>}
-    </g>)}
-  </svg>;
+  return <LineChart buckets={dataBuckets} valueKey="feedingIntervalHrs" color={cssColor('--sage', '#7fa894')} unit="h" minimumSpan={4} />;
+}
+
+function LineChart({ buckets, valueKey, color, unit, minimumSpan = 0 }: { buckets: BucketStat[]; valueKey: 'sleepHrs' | 'feedingIntervalHrs' | 'weight'; color: string; unit: string; minimumSpan?: number }) {
+  const values = buckets.map(bucket => Number(bucket[valueKey]));
+  const rawMin = Math.min(...values);
+  const rawMax = Math.max(...values);
+  const padding = Math.max((rawMax - rawMin) * 0.25, valueKey === 'weight' ? 0.5 : 1);
+  const min = valueKey === 'weight' ? Math.max(0, rawMin - padding) : 0;
+  const max = Math.max(rawMax + padding, minimumSpan);
+  const base = axisBase(buckets.map(bucket => bucket.label));
+  return <EChart option={{ ...base, yAxis: { ...(base.yAxis as object), min, max, axisLabel: { color: cssColor('--text-muted', '#8b857f'), formatter: `{value}${unit}` } }, series: [{ type: 'line', data: values, smooth: 0.22, symbol: 'circle', symbolSize: 9, lineStyle: { width: 3, color }, itemStyle: { color: cssColor('--bg-card', '#fff'), borderColor: color, borderWidth: 3 }, label: valueLabel(value => `${value.toFixed(1)}${valueKey === 'weight' ? 'kg' : ''}`), emphasis: { focus: 'series' } }] }} />;
 }
 
 function DiaperChart({ buckets }: { buckets: BucketStat[] }) {
@@ -275,48 +228,12 @@ function DiaperChart({ buckets }: { buckets: BucketStat[] }) {
     return <EmptyChart text="当前范围暂无排泄数据" />;
   }
 
-  const metrics = chartMetrics(dataBuckets.length);
-  const maxValue = Math.max(...dataBuckets.map(bucket => bucket.pee + bucket.poop), 5);
-  const barWidth = Math.min(23, metrics.slotWidth * 0.54);
-
-  return (
-    <svg className="stats-chart-svg" width="100%" height={metrics.height} viewBox={`0 0 ${metrics.width} ${metrics.height}`}>
-      {[0, 0.5, 1].map(ratio => {
-        const y = metrics.paddingTop + ratio * metrics.plotHeight;
-        const val = Math.round(maxValue * (1 - ratio));
-        return (
-          <g key={ratio}>
-            <line x1={metrics.paddingLeft} y1={y} x2={metrics.width - metrics.paddingRight} y2={y} className="stats-grid-line" />
-            <text x={metrics.paddingLeft - 8} y={y + 5} textAnchor="end" className="stats-axis-label">{val}次</text>
-          </g>
-        );
-      })}
-      {dataBuckets.map((bucket, index) => {
-        const peeHeight = (bucket.pee / maxValue) * metrics.plotHeight;
-        const poopHeight = (bucket.poop / maxValue) * metrics.plotHeight;
-        const x = metrics.paddingLeft + index * metrics.slotWidth + metrics.slotWidth / 2 - barWidth / 2;
-        const peeY = metrics.height - metrics.paddingBottom - peeHeight;
-        const poopY = peeY - poopHeight;
-        return (
-          <g key={bucket.key}>
-            {poopHeight > 0 && <rect x={x} y={poopY} width={barWidth} height={poopHeight} rx="6" className="stats-diaper-poop" />}
-            {peeHeight > 0 && <rect x={x} y={peeY} width={barWidth} height={peeHeight} rx="6" className="stats-diaper-pee" />}
-            {shouldShowXLabel(dataBuckets, index) && (
-              <text x={x + barWidth / 2} y={metrics.height - 13} textAnchor="middle" className="stats-x-label">{bucket.label}</text>
-            )}
-          </g>
-        );
-      })}
-      {dataBuckets.map((bucket, index) => {
-        if (!shouldShowValueLabel(dataBuckets.length, index)) return null;
-        const peeHeight = (bucket.pee / maxValue) * metrics.plotHeight;
-        const poopHeight = (bucket.poop / maxValue) * metrics.plotHeight;
-        const topY = metrics.height - metrics.paddingBottom - peeHeight - poopHeight;
-        const x = metrics.paddingLeft + index * metrics.slotWidth + metrics.slotWidth / 2;
-        return <text key={`value-${bucket.key}`} x={x} y={valueLabelY(topY, index)} textAnchor="middle" className="stats-value-label">{(bucket.pee + bucket.poop).toFixed(1).replace('.0', '')}</text>;
-      })}
-    </svg>
-  );
+  const base = axisBase(dataBuckets.map(bucket => bucket.label));
+  const totalMax = Math.max(...dataBuckets.map(bucket => bucket.pee + bucket.poop), 5);
+  return <EChart option={{ ...base, yAxis: { ...(base.yAxis as object), min: 0, max: totalMax * 1.22, axisLabel: { color: cssColor('--text-muted', '#8b857f'), formatter: '{value}次' } }, series: [
+    { name: '嘘嘘', type: 'bar', stack: 'total', data: dataBuckets.map(bucket => bucket.pee), barMaxWidth: 28, itemStyle: { color: cssColor('--sage', '#7fa894'), borderRadius: [0, 0, 3, 3] } },
+    { name: '便便', type: 'bar', stack: 'total', data: dataBuckets.map(bucket => bucket.poop), barMaxWidth: 28, itemStyle: { color: cssColor('--amber', '#dca072'), borderRadius: [7, 7, 0, 0] }, label: { ...valueLabel((_value) => ''), formatter: (params: CallbackDataParams) => String(Number(dataBuckets[params.dataIndex].pee + dataBuckets[params.dataIndex].poop).toFixed(1)).replace('.0', '') } }
+  ] }} />;
 }
 
 function GrowthChart({ buckets }: { buckets: BucketStat[] }) {
@@ -325,44 +242,7 @@ function GrowthChart({ buckets }: { buckets: BucketStat[] }) {
     return <div className="stats-empty">暂无体重数据，可以在记录大盘中补一条体重。</div>;
   }
 
-  const metrics = chartMetrics(growthBuckets.length);
-  const weights = growthBuckets.map(bucket => bucket.weight);
-  const maxValue = Math.max(...weights, 10);
-  const minValue = Math.min(...weights, 3);
-  const diff = maxValue - minValue || 1;
-  const pointAt = (value: number, index: number) => {
-    const x = slotCenter(metrics, index);
-    const y = metrics.height - metrics.paddingBottom - ((value - minValue) / diff) * metrics.plotHeight;
-    return { x, y };
-  };
-  const points = growthBuckets.map((bucket, index) => ({ ...pointAt(bucket.weight, index), bucket }));
-
-  return (
-    <svg className="stats-chart-svg" width="100%" height={metrics.height} viewBox={`0 0 ${metrics.width} ${metrics.height}`}>
-      {[0, 0.5, 1].map(ratio => {
-        const y = metrics.paddingTop + ratio * metrics.plotHeight;
-        const val = (maxValue - ratio * diff).toFixed(1);
-        return (
-          <g key={ratio}>
-            <line x1={metrics.paddingLeft} y1={y} x2={metrics.width - metrics.paddingRight} y2={y} className="stats-grid-line" />
-            <text x={metrics.paddingLeft - 8} y={y + 5} textAnchor="end" className="stats-axis-label">{val}kg</text>
-          </g>
-        );
-      })}
-      <path d={makePath(points)} className="stats-growth-path" />
-      {points.map((point, index) => (
-        <g key={point.bucket.key}>
-          <circle cx={point.x} cy={point.y} r="5" className="stats-growth-dot" />
-          {shouldShowXLabel(growthBuckets, index) && (
-            <text x={point.x} y={metrics.height - 13} textAnchor="middle" className="stats-x-label">{point.bucket.label}</text>
-          )}
-        </g>
-      ))}
-      {points.map((point, index) => shouldShowValueLabel(growthBuckets.length, index) ? (
-        <text key={`value-${point.bucket.key}`} x={point.x} y={valueLabelY(point.y, index)} textAnchor="middle" className="stats-value-label">{point.bucket.weight.toFixed(1)}kg</text>
-      ) : null)}
-    </svg>
-  );
+  return <LineChart buckets={growthBuckets} valueKey="weight" color={cssColor('--rose', '#d88f8f')} unit="kg" />;
 }
 
 export function Stats({ logs, birthday }: StatsProps) {
