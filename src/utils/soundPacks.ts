@@ -23,10 +23,12 @@ export interface SoundPackDefinition {
 const RAW_ROOT = 'https://gitee.com/Facksxx/xi-xi-care/raw/main/sound-packs';
 export const SOUND_PACK_EVENT = 'xixicare-sound-packs-changed';
 const INSTALLED_KEY = 'babycare_installed_sound_packs';
+const PACK_VERSIONS_KEY = 'babycare_sound_pack_versions';
+const PACK_VERSIONS: Record<SoundCategory, number> = { ambient: 2, music: 1 };
 
 export const SOUND_PACKS: SoundPackDefinition[] = [
   {
-    id: 'ambient', name: '环境声音包', description: '鸟鸣、雨声、海浪、嘘声、溪流与晚风', sizeMb: 15.1,
+    id: 'ambient', name: '环境声音包', description: '鸟鸣、雨声、海浪、嘘声、溪流与晚风', sizeMb: 12.0,
     tracks: [
       { id: 'forest-birds', name: '清晨鸟鸣', file: 'forest-birds.mp3', icon: 'bird' },
       { id: 'gentle-rain', name: '轻柔雨声', file: 'gentle-rain.mp3', icon: 'rain' },
@@ -50,13 +52,23 @@ export const SOUND_PACKS: SoundPackDefinition[] = [
 ];
 
 export const getInstalledSoundPacks = (): SoundCategory[] => {
-  try { return JSON.parse(localStorage.getItem(INSTALLED_KEY) ?? '[]') as SoundCategory[]; }
+  try {
+    const installed = JSON.parse(localStorage.getItem(INSTALLED_KEY) ?? '[]') as SoundCategory[];
+    const versions = JSON.parse(localStorage.getItem(PACK_VERSIONS_KEY) ?? '{}') as Partial<Record<SoundCategory, number>>;
+    return installed.filter(id => id === 'music' || versions[id] === PACK_VERSIONS[id]);
+  }
   catch { return []; }
 };
 
 const setInstalled = (ids: SoundCategory[]) => {
   localStorage.setItem(INSTALLED_KEY, JSON.stringify(ids));
   window.dispatchEvent(new Event(SOUND_PACK_EVENT));
+};
+
+const setPackVersion = (id: SoundCategory) => {
+  let versions: Partial<Record<SoundCategory, number>> = {};
+  try { versions = JSON.parse(localStorage.getItem(PACK_VERSIONS_KEY) ?? '{}'); } catch { /* Recreate invalid metadata. */ }
+  localStorage.setItem(PACK_VERSIONS_KEY, JSON.stringify({ ...versions, [id]: PACK_VERSIONS[id] }));
 };
 
 export const soundTrackPath = (packId: SoundCategory, file: string) => `sound-packs/${packId}/${file}`;
@@ -110,6 +122,7 @@ export const downloadSoundPack = async (pack: SoundPackDefinition, task: SoundPa
       task.abortController = undefined;
       onProgress(index + 1, pack.tracks.length);
     }
+    setPackVersion(pack.id);
     setInstalled(Array.from(new Set([...getInstalledSoundPacks(), pack.id])));
   } catch (error) {
     try { await Filesystem.rmdir({ path: `sound-packs/${pack.id}`, directory: Directory.Data, recursive: true }); } catch { /* Partial files are already gone. */ }

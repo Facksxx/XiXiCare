@@ -3160,7 +3160,8 @@ select {
 }
 
 .stats-line-path,
-.stats-growth-path {
+.stats-growth-path,
+.stats-feeding-path {
   fill: none;
   stroke: var(--lavender);
   stroke-width: 3;
@@ -3169,7 +3170,8 @@ select {
 }
 
 .stats-line-dot,
-.stats-growth-dot {
+.stats-growth-dot,
+.stats-feeding-dot {
   fill: var(--bg-card);
   stroke: var(--lavender);
   stroke-width: 3;
@@ -3182,6 +3184,37 @@ select {
 .stats-growth-dot {
   stroke: var(--rose);
 }
+
+.stats-feeding-path { stroke: var(--sage); }
+.stats-feeding-dot { stroke: var(--sage); }
+
+.import-choice-modal {
+  width: min(calc(100% - 32px), 360px);
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-card);
+  box-shadow: var(--shadow-lg);
+}
+
+.import-choice-modal h3 { color: var(--text-heading); font-size: 17px; }
+.import-choice-modal > p { margin: 7px 0 13px; color: var(--text-muted); font-size: 11px; line-height: 1.5; }
+.import-choice-actions { display: grid; gap: 7px; }
+.import-choice-actions button {
+  min-height: 52px;
+  padding: 8px 11px;
+  display: grid;
+  gap: 2px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-heading);
+  background: var(--bg-input);
+  text-align: left;
+}
+.import-choice-actions button:active { border-color: var(--sage); background: var(--sage-light); }
+.import-choice-actions strong { font-size: 13px; }
+.import-choice-actions small { color: var(--text-muted); font-size: 10px; }
+.import-choice-modal > .btn-secondary { width: 100%; margin-top: 10px; }
 
 .stats-diaper-pee {
   fill: var(--sage);

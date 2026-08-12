@@ -13,6 +13,8 @@ import { WhiteNoisePlayer } from './components/WhiteNoisePlayer';
 import { ConfirmModal } from './components/ConfirmModal';
 import { DateTimePicker } from './components/DateTimePicker';
 import { fetchLatestRelease, isNewer, type RemoteRelease } from './utils/version';
+import { BackNavigation } from './plugins/backNavigation';
+import { Capacitor } from '@capacitor/core';
 import { Sun, Moon, Calendar, BookOpen, BarChart2, Edit2, Check, Sparkles, Settings, Music2, ChevronDown, Plus } from 'lucide-react';
 import type { Icon } from 'lucide-react';
 import './index.css';
@@ -151,7 +153,16 @@ export default function App() {
   const swipePreviewRef = useRef<SwipePreview | null>(null);
   const swipeTimerRef = useRef<number | null>(null);
   const swipeStartRef = useRef<{ x: number; y: number; time: number; blocked: boolean; horizontal: boolean } | null>(null);
+  const settingsSwipeRef = useRef<{ x: number; y: number } | null>(null);
   const legacyBabyInfo = JSON.stringify(baby);
+
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+    void BackNavigation.setIntercepting({ enabled: showSettings });
+    let remove: (() => Promise<void>) | undefined;
+    void BackNavigation.addListener('backPressed', closeSettings).then(handle => { remove = () => handle.remove(); });
+    return () => { void remove?.(); };
+  }, [showSettings]);
 
   const clearSwipeStyles = () => {
     [currentPageRef.current, previewPageRef.current].forEach(element => element?.removeAttribute('style'));
@@ -214,7 +225,12 @@ export default function App() {
   };
 
   const handlePageTouchStart = (event: ReactTouchEvent<HTMLElement>) => {
-    if (showSettings || event.touches.length !== 1) return;
+    if (showSettings && event.touches.length === 1) {
+      const touch = event.touches[0];
+      settingsSwipeRef.current = touch.clientX <= 34 ? { x: touch.clientX, y: touch.clientY } : null;
+      return;
+    }
+    if (event.touches.length !== 1) return;
     if (swipeTimerRef.current !== null) return;
     const touch = event.touches[0];
     swipeStartRef.current = {
@@ -266,6 +282,14 @@ export default function App() {
   };
 
   const handlePageTouchEnd = (event: ReactTouchEvent<HTMLElement>) => {
+    if (showSettings) {
+      const start = settingsSwipeRef.current;
+      settingsSwipeRef.current = null;
+      if (!start || event.changedTouches.length === 0) return;
+      const touch = event.changedTouches[0];
+      if (touch.clientX - start.x >= 70 && Math.abs(touch.clientY - start.y) < 70) closeSettings();
+      return;
+    }
     const start = swipeStartRef.current;
     swipeStartRef.current = null;
     if (!start || start.blocked || !start.horizontal || event.changedTouches.length === 0) return;
@@ -360,30 +384,6 @@ export default function App() {
   // Dashboard finishes editing, clears external edit
   const handleEditingDone = () => {
     setExternalEditingLog(null);
-  };
-
-  // Import logs (merge, by ID: update existing, add new)
-  const handleImportLogs = (imported: ActivityLog[]) => {
-    const existingMap = new Map(logs.map(l => [l.id, l]));
-    imported.forEach(l => {
-      if (existingMap.has(l.id)) {
-        existingMap.set(l.id, l);
-      } else {
-        existingMap.set(l.id, l);
-      }
-    });
-    const merged = Array.from(existingMap.values()).sort((a, b) => b.timestamp.localeCompare(a.timestamp));
-    setLogs(merged);
-  };
-
-  const handleImportBabies = (imported: BabyInfo[]) => {
-    if (imported.length === 0) return;
-    setBabies((current) => {
-      const merged = new Map(current.map((item) => [item.id, item]));
-      imported.forEach((item) => merged.set(item.id, { ...merged.get(item.id), ...item }));
-      return Array.from(merged.values());
-    });
-    if (!activeBabyId) setActiveBabyId(imported[0].id);
   };
 
   const handleEditBaby = (babyId = baby.id) => {
@@ -627,8 +627,6 @@ export default function App() {
             timeInferenceMode={timeInferenceMode}
             onTimeInferenceModeChange={setTimeInferenceMode}
             logs={logs}
-            onImportLogs={handleImportLogs}
-            onImportBabies={handleImportBabies}
             babies={babies}
             activeBabyId={baby.id}
             onAddBaby={handleAddBaby}

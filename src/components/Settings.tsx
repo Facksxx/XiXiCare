@@ -9,8 +9,6 @@ interface SettingsProps {
   timeInferenceMode: TimeInferenceMode;
   onTimeInferenceModeChange: (mode: TimeInferenceMode) => void;
   logs: ActivityLog[];
-  onImportLogs: (logs: ActivityLog[]) => void;
-  onImportBabies: (babies: BabyInfo[]) => void;
   babies: BabyInfo[];
   activeBabyId: string;
   onAddBaby: () => void;
@@ -22,7 +20,7 @@ interface SettingsProps {
   onBack: () => void;
 }
 
-export function Settings({ timeInferenceMode, onTimeInferenceModeChange, logs, onImportLogs, onImportBabies, babies, activeBabyId, onAddBaby, onSwitchBaby, onEditBaby, onDeleteBaby, detectedRelease, onReleaseChange, onBack }: SettingsProps) {
+export function Settings({ timeInferenceMode, onTimeInferenceModeChange, logs, babies, activeBabyId, onAddBaby, onSwitchBaby, onEditBaby, onDeleteBaby, detectedRelease, onReleaseChange, onBack }: SettingsProps) {
   return (
     <div className="container settings-page fade-in">
       <div className="settings-heading">
@@ -74,7 +72,7 @@ export function Settings({ timeInferenceMode, onTimeInferenceModeChange, logs, o
       </section>
 
       <section className="settings-section" aria-labelledby="data-management-title">
-        <div id="data-management-title"><DataTransfer logs={logs} onImportLogs={onImportLogs} onImportBabies={onImportBabies} babies={babies} activeBabyId={activeBabyId} /></div>
+        <div id="data-management-title"><DataTransfer logs={logs} babies={babies} activeBabyId={activeBabyId} /></div>
       </section>
 
       <section className="settings-section" aria-labelledby="sound-packs-title">

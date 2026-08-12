@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { ReactNode } from 'react';
 import type { ActivityLog } from '../types/baby';
-import { Activity, Calendar, Sparkles, TrendingUp } from 'lucide-react';
+import { Activity, Calendar, Clock3, Sparkles, TrendingUp } from 'lucide-react';
 
 interface StatsProps {
   logs: ActivityLog[];
@@ -15,6 +15,7 @@ interface DailyStat {
   date: string;
   milk: number;
   sleepHrs: number;
+  feedingIntervalHrs: number;
   pee: number;
   poop: number;
   weight: number;
@@ -26,6 +27,7 @@ interface BucketStat {
   label: string;
   milk: number;
   sleepHrs: number;
+  feedingIntervalHrs: number;
   pee: number;
   poop: number;
   weight: number;
@@ -243,6 +245,30 @@ function SleepChart({ buckets }: { buckets: BucketStat[] }) {
   );
 }
 
+function FeedingIntervalChart({ buckets }: { buckets: BucketStat[] }) {
+  const dataBuckets = buckets.filter(bucket => bucket.feedingIntervalHrs > 0);
+  if (dataBuckets.length === 0) return <EmptyChart text="当前范围暂无连续喂养间隔数据" />;
+  const metrics = chartMetrics(dataBuckets.length);
+  const maxValue = Math.max(...dataBuckets.map(bucket => bucket.feedingIntervalHrs), 4);
+  const points = dataBuckets.map((bucket, index) => ({
+    x: slotCenter(metrics, index),
+    y: metrics.height - metrics.paddingBottom - (bucket.feedingIntervalHrs / maxValue) * metrics.plotHeight,
+    bucket
+  }));
+  return <svg className="stats-chart-svg" width="100%" height={metrics.height} viewBox={`0 0 ${metrics.width} ${metrics.height}`}>
+    {[0, 0.5, 1].map(ratio => {
+      const y = metrics.paddingTop + ratio * metrics.plotHeight;
+      return <g key={ratio}><line x1={metrics.paddingLeft} y1={y} x2={metrics.width - metrics.paddingRight} y2={y} className="stats-grid-line" /><text x={metrics.paddingLeft - 8} y={y + 5} textAnchor="end" className="stats-axis-label">{(maxValue * (1 - ratio)).toFixed(1)}h</text></g>;
+    })}
+    <path d={makePath(points)} className="stats-feeding-path" />
+    {points.map((point, index) => <g key={point.bucket.key}>
+      <circle cx={point.x} cy={point.y} r="5" className="stats-feeding-dot" />
+      {shouldShowXLabel(dataBuckets, index) && <text x={point.x} y={metrics.height - 13} textAnchor="middle" className="stats-x-label">{point.bucket.label}</text>}
+      {shouldShowValueLabel(dataBuckets.length, index) && <text x={point.x} y={valueLabelY(point.y, index)} textAnchor="middle" className="stats-value-label">{point.bucket.feedingIntervalHrs.toFixed(1)}</text>}
+    </g>)}
+  </svg>;
+}
+
 function DiaperChart({ buckets }: { buckets: BucketStat[] }) {
   const dataBuckets = buckets.filter(bucket => bucket.pee + bucket.poop > 0);
   if (dataBuckets.length === 0) {
@@ -355,6 +381,15 @@ export function Stats({ logs, birthday }: StatsProps) {
       .filter(log => log.logType === 'growth' && log.metadata.weightKg)
       .map(log => log.timestamp.split('T')[0])
   );
+  const feedingIntervalsByDate = new Map<string, number[]>();
+  const feedingLogs = logs.filter(log => log.logType === 'feeding').sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+  feedingLogs.forEach((log, index) => {
+    if (index === 0) return;
+    const interval = (new Date(log.timestamp).getTime() - new Date(feedingLogs[index - 1].timestamp).getTime()) / 3600000;
+    if (interval <= 0 || interval > 24) return;
+    const key = log.timestamp.split('T')[0];
+    feedingIntervalsByDate.set(key, [...(feedingIntervalsByDate.get(key) ?? []), interval]);
+  });
 
   const dailyStats: DailyStat[] = dateRange.map(date => {
     const dayLogs = logs.filter(log => log.timestamp.split('T')[0] === date);
@@ -363,6 +398,7 @@ export function Stats({ logs, birthday }: StatsProps) {
     let peeCount = 0;
     let poopCount = 0;
     let latestWeight = 0;
+    const feedingIntervals = feedingIntervalsByDate.get(date) ?? [];
 
     dayLogs.forEach(log => {
       if (log.logType === 'feeding' && log.metadata.feedingType === 'bottle' && log.metadata.bottle) {
@@ -393,6 +429,7 @@ export function Stats({ logs, birthday }: StatsProps) {
       date,
       milk: totalMilkMl,
       sleepHrs: Number((totalSleepMins / 60).toFixed(1)),
+      feedingIntervalHrs: feedingIntervals.length ? Number((feedingIntervals.reduce((sum, item) => sum + item, 0) / feedingIntervals.length).toFixed(1)) : 0,
       pee: peeCount,
       poop: poopCount,
       weight: latestWeight,
@@ -412,6 +449,7 @@ export function Stats({ logs, birthday }: StatsProps) {
       label,
       milk: avgRecorded(items.map(item => item.milk)),
       sleepHrs: avgRecorded(items.map(item => item.sleepHrs)),
+      feedingIntervalHrs: avgRecorded(items.map(item => item.feedingIntervalHrs)),
       pee: avgRecorded(items.map(item => item.pee)),
       poop: avgRecorded(items.map(item => item.poop)),
       weight: weightItem?.weight || 0,
@@ -529,6 +567,14 @@ export function Stats({ logs, birthday }: StatsProps) {
         icon={<Activity size={18} />}
       >
         <SleepChart buckets={buckets} />
+      </SoftChartCard>
+
+      <SoftChartCard
+        title="喂养间隔"
+        subtitle={`${range.hint}，单位 小时`}
+        icon={<Clock3 size={18} />}
+      >
+        <FeedingIntervalChart buckets={buckets} />
       </SoftChartCard>
 
       <SoftChartCard

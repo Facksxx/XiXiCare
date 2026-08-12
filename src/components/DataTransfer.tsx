@@ -9,11 +9,11 @@ import { ConfirmModal } from './ConfirmModal';
 
 interface DataTransferProps {
   logs: ActivityLog[];
-  onImportLogs: (logs: ActivityLog[]) => void;
   babies: BabyInfo[];
   activeBabyId: string;
-  onImportBabies: (babies: BabyInfo[]) => void;
 }
+
+type ImportMode = 'merge' | 'overwrite' | 'new';
 
 const LOG_TYPE_LABEL: Record<string, string> = {
   feeding: '喂养',
@@ -193,9 +193,10 @@ const rowToLog = (row: Record<string, string>): ActivityLog | null => {
   return { id: row['记录ID'] || `imp_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`, babyId: row['宝宝ID'] || 'imported', timestamp, logType, metadata };
 };
 
-export function DataTransfer({ logs, onImportLogs, babies, activeBabyId, onImportBabies }: DataTransferProps) {
+export function DataTransfer({ logs, babies, activeBabyId }: DataTransferProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [dialog, setDialog] = useState<{ show: boolean; message: string; confirm?: () => void }>({ show: false, message: '' });
+  const [importChoice, setImportChoice] = useState<{ summary: string; apply: (mode: ImportMode) => void } | null>(null);
   const [toast, setToast] = useState<{ message: string; error: boolean } | null>(null);
 
   const showToast = (message: string, error = false) => {
@@ -305,20 +306,56 @@ export function DataTransfer({ logs, onImportLogs, babies, activeBabyId, onImpor
           allergenSheet ? `${Object.values(importedAllergens).flatMap(Object.keys).length} 项过敏排查` : '',
           settingsSheet ? '程序设置' : ''
         ].filter(Boolean).join('、');
-        setDialog({
-          show: true,
-          message: `将导入：${summary}。是否继续？`,
-          confirm: () => {
-            if (importedLogs.length > 0) onImportLogs(importedLogs);
-            if (importedBabies.length > 0) onImportBabies(importedBabies);
-            if (vaccineSheet) Object.entries(importedVaccines).forEach(([babyId, status]) => localStorage.setItem(`babycare_vaccines_${babyId}`, JSON.stringify(status)));
-            if (allergenSheet) Object.entries(importedAllergens).forEach(([babyId, status]) => localStorage.setItem(`babycare_allergens_${babyId}`, JSON.stringify(status)));
+        setImportChoice({
+          summary,
+          apply: (mode) => {
+            const sourceIds = new Set([
+              ...importedBabies.map(item => item.id),
+              ...importedLogs.map(item => item.babyId),
+              ...Object.keys(importedVaccines),
+              ...Object.keys(importedAllergens)
+            ]);
+            const idMap = new Map<string, string>();
+            if (mode === 'new') sourceIds.forEach(id => idMap.set(id, createBabyId()));
+            const mapId = (id: string) => idMap.get(id) ?? id;
+            const nextBabies = importedBabies.map(item => ({ ...item, id: mapId(item.id), name: mode === 'new' ? `${item.name}（导入）` : item.name }));
+            const nextLogs = importedLogs.map(item => ({ ...item, id: mode === 'new' ? `imp_${Date.now()}_${Math.random().toString(36).slice(2, 8)}` : item.id, babyId: mapId(item.babyId) }));
+
+            if (mode === 'overwrite') {
+              babies.forEach(item => {
+                localStorage.removeItem(`babycare_vaccines_${item.id}`);
+                localStorage.removeItem(`babycare_allergens_${item.id}`);
+              });
+              localStorage.setItem('babycare_logs', JSON.stringify(nextLogs));
+              localStorage.setItem('babycare_babies', JSON.stringify(nextBabies));
+              if (nextBabies[0]) localStorage.setItem('babycare_active_baby_id', JSON.stringify(nextBabies[0].id));
+            } else {
+              const babyMap = new Map(babies.map(item => [item.id, item]));
+              nextBabies.forEach(item => babyMap.set(item.id, { ...babyMap.get(item.id), ...item }));
+              const logMap = new Map(logs.map(item => [item.id, item]));
+              nextLogs.forEach(item => logMap.set(item.id, item));
+              localStorage.setItem('babycare_babies', JSON.stringify(Array.from(babyMap.values())));
+              localStorage.setItem('babycare_logs', JSON.stringify(Array.from(logMap.values()).sort((a, b) => b.timestamp.localeCompare(a.timestamp))));
+            }
+
+            if (vaccineSheet) Object.entries(importedVaccines).forEach(([babyId, status]) => {
+              const key = `babycare_vaccines_${mapId(babyId)}`;
+              const value = mode === 'merge' ? { ...readStoredObject<Record<string, boolean>>(key), ...status } : status;
+              localStorage.setItem(key, JSON.stringify(value));
+            });
+            if (allergenSheet) Object.entries(importedAllergens).forEach(([babyId, status]) => {
+              const key = `babycare_allergens_${mapId(babyId)}`;
+              const value = mode === 'merge' ? { ...readStoredObject<Record<string, 'untested' | 'safe' | 'allergic'>>(key), ...status } : status;
+              localStorage.setItem(key, JSON.stringify(value));
+            });
             if (settingsSheet) {
               const legacyName = importedSettings.get('宝宝名字');
               const legacyBirthday = importedSettings.get('出生日期');
               if (!babiesSheet && legacyName && legacyBirthday) {
                 const current = babies.find((item) => item.id === activeBabyId);
-                onImportBabies([{ id: activeBabyId, name: legacyName, birthday: legacyBirthday, avatar: current?.avatar }]);
+                const legacyBaby = { id: mode === 'new' ? createBabyId() : activeBabyId, name: mode === 'new' ? `${legacyName}（导入）` : legacyName, birthday: legacyBirthday, avatar: current?.avatar };
+                const currentBabies = mode === 'overwrite' ? [] : babies;
+                localStorage.setItem('babycare_babies', JSON.stringify([...currentBabies.filter(item => item.id !== legacyBaby.id), legacyBaby]));
               }
               const timeMode = importedSettings.get('时间推断方式');
               if (timeMode) localStorage.setItem('babycare_time_inference_mode', JSON.stringify(timeMode.includes('开始') ? 'start' : 'end'));
@@ -339,16 +376,17 @@ export function DataTransfer({ logs, onImportLogs, babies, activeBabyId, onImpor
                 try {
                   const preferences = JSON.parse(feedingPreferences) as Record<string, { feedingType?: string; bottleVolume?: number; bottleType?: string }>;
                   Object.entries(preferences).forEach(([babyId, preference]) => {
-                    if (['breast', 'bottle', 'solids'].includes(preference.feedingType ?? '')) localStorage.setItem(`babycare_last_feeding_type_${babyId}`, JSON.stringify(preference.feedingType));
-                    if (Number(preference.bottleVolume) > 0) localStorage.setItem(`babycare_last_bottle_volume_${babyId}`, JSON.stringify(Number(preference.bottleVolume)));
-                    if (['formula', 'breastmilk'].includes(preference.bottleType ?? '')) localStorage.setItem(`babycare_last_bottle_type_${babyId}`, JSON.stringify(preference.bottleType));
+                    const targetId = mapId(babyId);
+                    if (['breast', 'bottle', 'solids'].includes(preference.feedingType ?? '')) localStorage.setItem(`babycare_last_feeding_type_${targetId}`, JSON.stringify(preference.feedingType));
+                    if (Number(preference.bottleVolume) > 0) localStorage.setItem(`babycare_last_bottle_volume_${targetId}`, JSON.stringify(Number(preference.bottleVolume)));
+                    if (['formula', 'breastmilk'].includes(preference.bottleType ?? '')) localStorage.setItem(`babycare_last_bottle_type_${targetId}`, JSON.stringify(preference.bottleType));
                   });
                 } catch {
                   // Older backups do not contain per-baby feeding preferences.
                 }
               }
             }
-            setDialog({ show: false, message: '' });
+            setImportChoice(null);
             showToast('全部数据导入成功，正在刷新');
             window.setTimeout(() => window.location.reload(), 600);
           }
@@ -377,6 +415,20 @@ export function DataTransfer({ logs, onImportLogs, babies, activeBabyId, onImpor
         onConfirm={dialog.confirm ?? (() => setDialog({ show: false, message: '' }))}
         onCancel={() => setDialog({ show: false, message: '' })}
       />
+      {importChoice && (
+        <div className="modal-overlay" onClick={() => setImportChoice(null)}>
+          <section className="import-choice-modal" role="dialog" aria-modal="true" aria-labelledby="import-choice-title" onClick={event => event.stopPropagation()}>
+            <h3 id="import-choice-title">选择导入方式</h3>
+            <p>已读取：{importChoice.summary}</p>
+            <div className="import-choice-actions">
+              <button type="button" onClick={() => importChoice.apply('merge')}><strong>合并</strong><small>保留现有数据，同 ID 内容更新</small></button>
+              <button type="button" onClick={() => importChoice.apply('overwrite')}><strong>覆盖</strong><small>清空现有数据后恢复此备份</small></button>
+              <button type="button" onClick={() => importChoice.apply('new')}><strong>新建</strong><small>复制成新宝宝，不影响现有数据</small></button>
+            </div>
+            <button type="button" className="btn-secondary" onClick={() => setImportChoice(null)}>取消</button>
+          </section>
+        </div>
+      )}
       {toast && <div className={`toast ${toast.error ? 'toast-error' : 'toast-success'}`}>{toast.error ? <AlertTriangle size={16} /> : <Check size={16} />}<span>{toast.message}</span></div>}
     </>
   );
