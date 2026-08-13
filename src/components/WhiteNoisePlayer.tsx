@@ -117,6 +117,7 @@ export function WhiteNoisePlayer({ isOpen, onClose, onPlaybackChange }: WhiteNoi
   const playOnLoadRef = useRef<string | null>(null);
   const backgroundActiveRef = useRef(false);
   const resumePositionRef = useRef(0);
+  const edgeSwipeRef = useRef<{ x: number; y: number; side: 'left' | 'right' } | null>(null);
   const [trackId, setTrackId] = useLocalStorage<string>('babycare_white_noise_track', 'forest-birds');
   const [loopMode, setLoopMode] = useLocalStorage<LoopMode>('babycare_white_noise_loop', 'track');
   const [volume, setVolume] = useLocalStorage<number>('babycare_white_noise_volume', 0.45);
@@ -488,6 +489,23 @@ export function WhiteNoisePlayer({ isOpen, onClose, onPlaybackChange }: WhiteNoi
   const activeLoop = LOOP_OPTIONS.find((option) => option.value === loopMode) ?? LOOP_OPTIONS[0];
   const visibleBuiltinTracks = packTracks.filter((track) => track.category === browseCategory);
   const visibleCustomTracks = customTracks.filter((track) => (track.category ?? 'music') === browseCategory);
+  const handleLayerTouchStart = (event: React.TouchEvent<HTMLDivElement>) => {
+    if (event.touches.length !== 1) return;
+    const touch = event.touches[0];
+    const edge = 34;
+    if (touch.clientX <= edge) edgeSwipeRef.current = { x: touch.clientX, y: touch.clientY, side: 'left' };
+    else if (touch.clientX >= window.innerWidth - edge) edgeSwipeRef.current = { x: touch.clientX, y: touch.clientY, side: 'right' };
+    else edgeSwipeRef.current = null;
+  };
+  const handleLayerTouchEnd = (event: React.TouchEvent<HTMLDivElement>) => {
+    const start = edgeSwipeRef.current;
+    edgeSwipeRef.current = null;
+    if (!start || event.changedTouches.length === 0) return;
+    const touch = event.changedTouches[0];
+    const deltaX = touch.clientX - start.x;
+    if (Math.abs(touch.clientY - start.y) > 70) return;
+    if ((start.side === 'left' && deltaX >= 70) || (start.side === 'right' && deltaX <= -70)) onClose();
+  };
 
   return (
     <>
@@ -504,7 +522,7 @@ export function WhiteNoisePlayer({ isOpen, onClose, onPlaybackChange }: WhiteNoi
       <input ref={fileInputRef} type="file" accept="audio/*" hidden onChange={(event) => void handleFileChange(event)} />
 
       {isOpen && (
-        <div className="noise-player-layer fade-in">
+        <div className="noise-player-layer fade-in" onTouchStart={handleLayerTouchStart} onTouchEnd={handleLayerTouchEnd}>
           <button className="noise-player-backdrop" type="button" onClick={onClose} aria-label="关闭睡眠声音播放器" />
           <section className="noise-player-panel" role="dialog" aria-modal="true" aria-labelledby="noise-player-title">
             <header className="noise-player-header">

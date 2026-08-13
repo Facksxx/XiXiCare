@@ -7,6 +7,7 @@ import type { ActivityLog, BabyInfo } from '../types/baby';
 import { guideData } from '../data/guideData';
 import { createXlsxWorkbook, parseXlsxWorkbook } from '../utils/xlsx';
 import { ConfirmModal } from './ConfirmModal';
+import { normalizeActivityLog, normalizeActivityLogs } from '../utils/logSchema';
 
 interface DataTransferProps {
   logs: ActivityLog[];
@@ -39,7 +40,6 @@ const TABLE_HEADERS = [
   { key: 'foodAmount', label: '辅食量' },
   { key: 'reaction', label: '过敏反应' },
   { key: 'sleepStartTime', label: '睡眠开始时间' },
-  { key: 'sleepEndTime', label: '睡眠结束时间' },
   { key: 'durationMinutes', label: '时长(分钟)' },
   { key: 'pee', label: '嘘嘘' },
   { key: 'poop', label: '便便' },
@@ -85,7 +85,6 @@ const logToRow = (log: ActivityLog) => {
     foodAmount: meta.solids?.amount ?? '',
     reaction: meta.solids?.reaction === 'severe' ? '严重过敏' : meta.solids?.reaction === 'mild' ? '轻度过敏' : meta.solids?.reaction === 'none' ? '无过敏' : '',
     sleepStartTime: meta.startTime ?? '',
-    sleepEndTime: meta.endTime ?? '',
     durationMinutes: meta.durationMinutes ?? '',
     pee: meta.pee ? '是' : '否',
     poop: meta.poop ? '是' : '否',
@@ -100,7 +99,7 @@ const logToRow = (log: ActivityLog) => {
 };
 
 const buildCompleteWorkbook = (logs: ActivityLog[], babies: BabyInfo[], now: Date) => {
-  const rows = [...logs].sort((a, b) => b.timestamp.localeCompare(a.timestamp)).map(log => {
+  const rows = normalizeActivityLogs(logs).sort((a, b) => b.timestamp.localeCompare(a.timestamp)).map(log => {
     const source = logToRow(log);
     const row: Record<string, string | number | boolean> = {};
     TABLE_HEADERS.forEach(header => { row[header.label] = source[header.key as keyof typeof source]; });
@@ -132,7 +131,6 @@ const buildCompleteWorkbook = (logs: ActivityLog[], babies: BabyInfo[], now: Dat
     }));
   });
   const settingRows = [
-    { '设置项': '时间推断方式', '当前值': localStorage.getItem('babycare_time_inference_mode') === '"start"' ? '当前时间为开始时间' : '当前时间为结束时间' },
     { '设置项': '主题', '当前值': localStorage.getItem('babycare_theme') === '"dark"' ? '深色' : '浅色' },
     { '设置项': '睡眠声音', '当前值': localStorage.getItem('babycare_white_noise_track') ?? '' },
     { '设置项': '声音循环方式', '当前值': localStorage.getItem('babycare_white_noise_loop') ?? '' },
@@ -176,7 +174,6 @@ const rowToLog = (row: Record<string, string>): ActivityLog | null => {
     if (metadata.feedingType === 'solids') metadata.solids = { foodName: row['辅食名称'] || '', amount: row['辅食量'] || '', reaction: row['过敏反应'] === '严重过敏' ? 'severe' : row['过敏反应'] === '轻度过敏' ? 'mild' : 'none' };
   } else if (logType === 'sleep') {
     if (row['睡眠开始时间']) metadata.startTime = row['睡眠开始时间'];
-    if (row['睡眠结束时间']) metadata.endTime = row['睡眠结束时间'];
     metadata.durationMinutes = Number(row['时长(分钟)']) || 0;
   } else if (logType === 'diaper') {
     metadata.pee = row['嘘嘘'] === '是' || row['嘘嘘']?.toLowerCase() === 'true';
@@ -191,7 +188,7 @@ const rowToLog = (row: Record<string, string>): ActivityLog | null => {
     if (row['头围(cm)']) metadata.headCircumferenceCm = Number(row['头围(cm)']);
     if (row['体温(°C)']) metadata.temperatureC = Number(row['体温(°C)']);
   }
-  return { id: row['记录ID'] || `imp_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`, babyId: row['宝宝ID'] || 'imported', timestamp, logType, metadata };
+  return normalizeActivityLog({ id: row['记录ID'] || `imp_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`, babyId: row['宝宝ID'] || 'imported', timestamp, logType, metadata });
 };
 
 export function DataTransfer({ logs, babies, activeBabyId }: DataTransferProps) {
@@ -289,7 +286,7 @@ export function DataTransfer({ logs, babies, activeBabyId }: DataTransferProps) 
         name: row['宝宝名字'] || '宝宝',
         birthday: row['出生日期'] || ''
       } satisfies BabyInfo)).filter((item) => item.birthday) ?? [];
-      const importedLogs = recordsSheet.rows.map(rowToLog).filter((log): log is ActivityLog => Boolean(log)).map((log) => babiesSheet ? log : { ...log, babyId: activeBabyId });
+      const importedLogs = normalizeActivityLogs(recordsSheet.rows.map(rowToLog).filter((log): log is ActivityLog => Boolean(log)).map((log) => babiesSheet ? log : { ...log, babyId: activeBabyId }));
       const importedVaccines: Record<string, Record<string, boolean>> = {};
       vaccineSheet?.rows.forEach(row => {
         const stage = guideData.find(item => item.ageRange === row['年龄阶段'] && item.vaccineGuide?.vaccines.some(vaccine => vaccine.name === row['疫苗名称']));
@@ -370,8 +367,6 @@ export function DataTransfer({ logs, babies, activeBabyId }: DataTransferProps) 
                 const currentBabies = mode === 'overwrite' ? [] : babies;
                 localStorage.setItem('babycare_babies', JSON.stringify([...currentBabies.filter(item => item.id !== legacyBaby.id), legacyBaby]));
               }
-              const timeMode = importedSettings.get('时间推断方式');
-              if (timeMode) localStorage.setItem('babycare_time_inference_mode', JSON.stringify(timeMode.includes('开始') ? 'start' : 'end'));
               const theme = importedSettings.get('主题');
               if (theme) localStorage.setItem('babycare_theme', JSON.stringify(theme === '深色' ? 'dark' : 'light'));
               const storedSettingKeys: Array<[string, string]> = [

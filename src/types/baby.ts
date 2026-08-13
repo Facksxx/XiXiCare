@@ -1,7 +1,5 @@
 export type LogType = 'feeding' | 'sleep' | 'diaper' | 'growth';
 
-export type TimeInferenceMode = 'start' | 'end';
-
 export type FeedingType = 'breast' | 'bottle' | 'solids';
 
 export interface BabyInfo {
@@ -36,7 +34,8 @@ export interface FeedingMetadata {
 
 export interface SleepMetadata {
   startTime: string; // ISO string
-  endTime?: string;  // ISO string (undefined/null indicates sleep is active)
+  /** @deprecated Legacy import/migration only. New records use durationMinutes. */
+  endTime?: string;
   durationMinutes?: number;
 }
 

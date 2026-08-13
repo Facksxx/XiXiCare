@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import type { ActivityLog, LogType, FeedingType, TimeInferenceMode } from '../types/baby';
+import type { ActivityLog, LogType, FeedingType } from '../types/baby';
 import { 
-  Milk, Moon, Droplets, Scale, Check, Edit2, AlertTriangle
+  Milk, Moon, Droplets, Scale, Check, Edit2, AlertTriangle, Pause, Play, X
 } from 'lucide-react';
 import { ConfirmModal } from './ConfirmModal';
 import { Incrementor } from './Incrementor';
@@ -14,18 +14,10 @@ interface DashboardProps {
   onUpdateLog: (log: ActivityLog) => void;
   editingLog?: ActivityLog | null;
   onEditingDone?: () => void;
-  timeInferenceMode: TimeInferenceMode;
 }
 
 const getNowLocal = () => {
   const d = new Date();
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-};
-
-const addMinutesToLocal = (localStr: string, minutes: number) => {
-  const d = new Date(localStr);
-  d.setMinutes(d.getMinutes() + minutes);
   const pad = (n: number) => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 };
@@ -35,11 +27,11 @@ const toISO = (localStr: string) => {
   return localStr.length === 16 ? `${localStr}:00` : localStr;
 };
 
-const diffMins = (startLocal: string, endLocal: string) => {
-  const s = new Date(startLocal).getTime();
-  const e = new Date(endLocal).getTime();
-  return Math.round((e - s) / 60000);
-};
+interface SleepTimerState {
+  startedAt: string;
+  elapsedMs: number;
+  runningSince: number | null;
+}
 
 const getLogTypeLabel = (logType: LogType) => {
   const labels: Record<LogType, string> = {
@@ -51,12 +43,14 @@ const getLogTypeLabel = (logType: LogType) => {
   return labels[logType] || logType;
 };
 
-export function Dashboard({ babyId, onAddLog, onUpdateLog, editingLog: externalEditingLog, onEditingDone, timeInferenceMode }: DashboardProps) {
+export function Dashboard({ babyId, onAddLog, onUpdateLog, editingLog: externalEditingLog, onEditingDone }: DashboardProps) {
   const [activeTab, setActiveTab] = useState<LogType>('feeding');
   const [feedingType, setFeedingType] = useLocalStorage<FeedingType>(`babycare_last_feeding_type_${babyId}`, 'breast');
 
   const [startTime, setStartTime] = useState(getNowLocal);
-  const [endTime, setEndTime] = useState(getNowLocal);
+  const [sleepDurationMinutes, setSleepDurationMinutes] = useState(30);
+  const [sleepTimer, setSleepTimer] = useLocalStorage<SleepTimerState | null>(`babycare_sleep_timer_${babyId}`, null);
+  const [timerNow, setTimerNow] = useState(Date.now());
 
   // Feeding State
   const [breastLeft, setBreastLeft] = useState(10);
@@ -84,7 +78,6 @@ export function Dashboard({ babyId, onAddLog, onUpdateLog, editingLog: externalE
 
   // 自定义弹窗状态
   const [alertModal, setAlertModal] = useState<{ show: boolean; message: string }>({ show: false, message: '' });
-  const [confirmModal, setConfirmModal] = useState<{ show: boolean; message: string; onConfirm: () => void }>({ show: false, message: '', onConfirm: () => {} });
   const [toast, setToast] = useState<{ show: boolean; message: string; type: 'success' | 'error' }>({ show: false, message: '', type: 'success' });
 
   const showToast = (message: string, type: 'success' | 'error' = 'success') => {
@@ -95,7 +88,7 @@ export function Dashboard({ babyId, onAddLog, onUpdateLog, editingLog: externalE
   // 重置表单
   const resetForm = () => {
     setStartTime(getNowLocal());
-    setEndTime(getNowLocal());
+    setSleepDurationMinutes(30);
     setSolidsName('');
     setBreastLeft(10);
     setBreastRight(10);
@@ -113,14 +106,7 @@ export function Dashboard({ babyId, onAddLog, onUpdateLog, editingLog: externalE
       setActiveTab(log.logType);
       setStartTime(log.timestamp.replace('Z', '').substring(0, 16));
 
-      if (log.metadata.endTime) {
-        const et = typeof log.metadata.endTime === 'string'
-          ? log.metadata.endTime
-          : String(log.metadata.endTime);
-        setEndTime(et.replace('Z', '').substring(0, 16));
-      } else {
-        setEndTime(log.timestamp.replace('Z', '').substring(0, 16));
-      }
+      if (log.logType === 'sleep') setSleepDurationMinutes(Math.max(5, Number(log.metadata.durationMinutes) || 30));
 
       const meta = log.metadata;
       if (log.logType === 'feeding') {
@@ -157,6 +143,37 @@ export function Dashboard({ babyId, onAddLog, onUpdateLog, editingLog: externalE
     }
   }, [activeTab]);
 
+  useEffect(() => {
+    if (!sleepTimer?.runningSince) return;
+    const interval = window.setInterval(() => setTimerNow(Date.now()), 1000);
+    return () => window.clearInterval(interval);
+  }, [sleepTimer?.runningSince]);
+
+  const timerElapsedMs = sleepTimer
+    ? sleepTimer.elapsedMs + (sleepTimer.runningSince ? Math.max(0, timerNow - sleepTimer.runningSince) : 0)
+    : 0;
+  const timerElapsedMinutes = Math.floor(timerElapsedMs / 60000);
+  const timerClock = `${String(Math.floor(timerElapsedMs / 3600000)).padStart(2, '0')}:${String(Math.floor(timerElapsedMs / 60000) % 60).padStart(2, '0')}:${String(Math.floor(timerElapsedMs / 1000) % 60).padStart(2, '0')}`;
+
+  const startSleepTimer = () => {
+    const now = Date.now();
+    const startedAt = getNowLocal();
+    setStartTime(startedAt);
+    setTimerNow(now);
+    setSleepTimer({ startedAt, elapsedMs: 0, runningSince: now });
+  };
+
+  const toggleSleepTimer = () => {
+    if (!sleepTimer) return startSleepTimer();
+    const now = Date.now();
+    setTimerNow(now);
+    setSleepTimer(sleepTimer.runningSince
+      ? { ...sleepTimer, elapsedMs: sleepTimer.elapsedMs + Math.max(0, now - sleepTimer.runningSince), runningSince: null }
+      : { ...sleepTimer, runningSince: now });
+  };
+
+  const cancelSleepTimer = () => setSleepTimer(null);
+
   const handleSaveLog = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
@@ -165,24 +182,7 @@ export function Dashboard({ babyId, onAddLog, onUpdateLog, editingLog: externalE
       return;
     }
 
-    const needsEndTime = activeTab === 'feeding' || activeTab === 'sleep';
-    let actualEndTime = endTime;
-
-    if (needsEndTime) {
-      if (!endTime) {
-        setAlertModal({ show: true, message: '请选择结束时间' });
-        return;
-      }
-      if (new Date(endTime).getTime() < new Date(startTime).getTime()) {
-        setAlertModal({ show: true, message: '结束时间不能早于开始时间' });
-        return;
-      }
-    } else {
-      actualEndTime = startTime;
-    }
-
-    const duration = diffMins(startTime, actualEndTime);
-
+    let recordStartTime = startTime;
     let metadata: any = {
       pee: false,
       poop: false
@@ -191,8 +191,6 @@ export function Dashboard({ babyId, onAddLog, onUpdateLog, editingLog: externalE
     if (activeTab === 'feeding') {
       metadata.feedingType = feedingType;
       metadata.startTime = toISO(startTime);
-      metadata.endTime = toISO(actualEndTime);
-      metadata.durationMinutes = duration;
       if (feedingType === 'breast') {
         metadata.breast = { leftMinutes: breastLeft, rightMinutes: breastRight };
       } else if (feedingType === 'bottle') {
@@ -201,28 +199,25 @@ export function Dashboard({ babyId, onAddLog, onUpdateLog, editingLog: externalE
         metadata.solids = { foodName: solidsName || '婴儿米粉', amount: solidsAmount, reaction: solidsReaction };
       }
     } else if (activeTab === 'sleep') {
-      metadata.startTime = toISO(startTime);
-      metadata.endTime = toISO(actualEndTime);
+      const duration = sleepTimer ? timerElapsedMinutes : sleepDurationMinutes;
+      const sleepStart = sleepTimer?.startedAt ?? startTime;
+      recordStartTime = sleepStart;
+      metadata.startTime = toISO(sleepStart);
       metadata.durationMinutes = duration;
-      if (duration < 1) {
-        setAlertModal({ show: true, message: '睡眠时间太短（少于1分钟），不记录' });
+      if (duration < 5) {
+        setAlertModal({ show: true, message: '睡眠少于5分钟，不会保存记录' });
         return;
       }
+      if (sleepTimer) setSleepTimer(null);
     } else if (activeTab === 'diaper') {
       metadata.pee = diaperPee;
       metadata.poop = diaperPoop;
-      metadata.startTime = toISO(startTime);
-      metadata.endTime = toISO(actualEndTime);
-      metadata.durationMinutes = duration;
       if (diaperPoop) {
         metadata.poopColor = poopColor;
         metadata.poopConsistency = poopConsistency;
       }
     } else if (activeTab === 'growth') {
       metadata.feedingType = 'breast';
-      metadata.startTime = toISO(startTime);
-      metadata.endTime = toISO(actualEndTime);
-      metadata.durationMinutes = duration;
       
       if (growthType === 'weight' && growthWeight) {
         metadata.weightKg = parseFloat(growthWeight);
@@ -239,7 +234,7 @@ export function Dashboard({ babyId, onAddLog, onUpdateLog, editingLog: externalE
     if (editingLog) {
       const updatedLog: ActivityLog = {
         ...editingLog,
-        timestamp: toISO(startTime),
+        timestamp: toISO(recordStartTime),
         metadata
       };
       onUpdateLog(updatedLog);
@@ -248,7 +243,7 @@ export function Dashboard({ babyId, onAddLog, onUpdateLog, editingLog: externalE
       const newLog: ActivityLog = {
         id: `${activeTab}-${Date.now()}`,
         babyId,
-        timestamp: toISO(startTime),
+        timestamp: toISO(recordStartTime),
         logType: activeTab,
         metadata
       };
@@ -298,59 +293,15 @@ export function Dashboard({ babyId, onAddLog, onUpdateLog, editingLog: externalE
 
         <div className="time-range-section">
           {activeTab === 'feeding' || activeTab === 'sleep' ? (
-            <>
-              <div className="time-row-inline">
-                <DateTimePicker
-                  value={startTime}
-                  onChange={setStartTime}
-                  label="开始时间"
-                />
-                <DateTimePicker
-                  value={endTime}
-                  onChange={setEndTime}
-                  label="结束时间"
-                />
-              </div>
-              <div className="duration-quick-row">
-                {startTime && endTime && (
-                  <div className="time-duration-display">
-                    <strong>{diffMins(startTime, endTime)}</strong>
-                    <span>分钟</span>
-                  </div>
-                )}
-                <div className="quick-duration-row">
-                  {(activeTab === 'feeding'
-                    ? [5, 10, 15, 30]
-                    : [30, 60, 120, 180]
-                  ).map((mins) => (
-                    <button
-                      key={mins}
-                      type="button"
-                      className="quick-duration-btn"
-                      onClick={() => {
-                        const now = getNowLocal();
-                        if (timeInferenceMode === 'start') {
-                          setStartTime(now);
-                          setEndTime(addMinutesToLocal(now, mins));
-                        } else {
-                          setStartTime(addMinutesToLocal(now, -mins));
-                          setEndTime(now);
-                        }
-                      }}
-                    >
-                      {mins < 60 ? `${mins}分` : `${Math.floor(mins / 60)}小时`}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </>
+            <div className="time-row-single">
+              <DateTimePicker value={sleepTimer && activeTab === 'sleep' ? sleepTimer.startedAt : startTime} onChange={setStartTime} label="开始时间" />
+            </div>
           ) : (
             <div className="time-row-single">
               <DateTimePicker
                 value={startTime}
                 onChange={(value) => {
                   setStartTime(value);
-                  setEndTime(value);
                 }}
                 label="记录时间"
               />
@@ -360,7 +311,6 @@ export function Dashboard({ babyId, onAddLog, onUpdateLog, editingLog: externalE
                 onClick={() => {
                   const now = getNowLocal();
                   setStartTime(now);
-                  setEndTime(now);
                 }}
                 title="设为当前时间"
               >
@@ -448,7 +398,25 @@ export function Dashboard({ babyId, onAddLog, onUpdateLog, editingLog: externalE
 
           {activeTab === 'sleep' && (
             <div className="fade-in form-stack">
-              <p className="sleep-helper-text">选择睡眠的开始和结束时间，系统会自动计算时长。</p>
+              {!editingLog && (
+                <div className={`sleep-timer-panel${sleepTimer ? ' active' : ''}`}>
+                  <div className="sleep-timer-copy"><span>睡眠计时</span><strong>{sleepTimer ? timerClock : '00:00:00'}</strong></div>
+                  <div className="sleep-timer-actions">
+                    <button type="button" className="sleep-timer-primary" onClick={toggleSleepTimer}>
+                      {sleepTimer?.runningSince ? <><Pause size={17} />暂停</> : sleepTimer ? <><Play size={17} />继续</> : <><Play size={17} />开始</>}
+                    </button>
+                    {sleepTimer && <button type="button" className="sleep-timer-cancel" onClick={cancelSleepTimer} aria-label="取消计时"><X size={17} /></button>}
+                  </div>
+                </div>
+              )}
+              {!sleepTimer && (
+                <div className="sleep-duration-picker">
+                  <span>睡眠时长</span>
+                  <div className="quick-duration-row">
+                    {[5, 30, 60, 120, 180].map((mins) => <button key={mins} type="button" className={`quick-duration-btn${sleepDurationMinutes === mins ? ' active' : ''}`} onClick={() => setSleepDurationMinutes(mins)}>{mins < 60 ? `${mins}分` : `${mins / 60}小时`}</button>)}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -523,16 +491,6 @@ export function Dashboard({ babyId, onAddLog, onUpdateLog, editingLog: externalE
         cancelText=""
         onConfirm={() => setAlertModal({ show: false, message: '' })}
         onCancel={() => setAlertModal({ show: false, message: '' })}
-      />
-
-      <ConfirmModal
-        isOpen={confirmModal.show}
-        message={confirmModal.message}
-        type="danger"
-        confirmText="删除"
-        cancelText="取消"
-        onConfirm={confirmModal.onConfirm}
-        onCancel={() => setConfirmModal({ show: false, message: '', onConfirm: () => {} })}
       />
 
       {toast.show && (

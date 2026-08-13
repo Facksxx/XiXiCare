@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef, type TouchEvent as ReactTouchEvent } from 'react';
 import { useLocalStorage } from './hooks/useLocalStorage';
-import type { ActivityLog, BabyInfo, TimeInferenceMode } from './types/baby';
+import type { ActivityLog, BabyInfo } from './types/baby';
 import { compressImage } from './utils/imageCompress';
 import { fixTimezoneIssues, hasTimezoneIssues } from './utils/timezoneFix';
+import { normalizeActivityLogs } from './utils/logSchema';
 
 import { Dashboard } from './components/Dashboard';
 import { Guide } from './components/Guide';
@@ -116,19 +117,17 @@ export default function App() {
 
   // Theme: 'light' | 'dark'
   const [theme, setTheme] = useLocalStorage<'light' | 'dark'>('babycare_theme', 'light');
-  const [timeInferenceMode, setTimeInferenceMode] = useLocalStorage<TimeInferenceMode>('babycare_time_inference_mode', 'end');
-
   // Logs state: empty by default
   const [logs, setLogs] = useLocalStorage<ActivityLog[]>('babycare_logs', []);
 
   // 时区数据迁移：检测并修复历史数据中的时区问题
   useEffect(() => {
-    if (logs.length > 0 && hasTimezoneIssues(logs)) {
-      const fixed = fixTimezoneIssues(logs);
-      if (fixed !== logs) {
-        setLogs(fixed);
-      }
+    if (logs.length > 0) {
+      const timezoneFixed = hasTimezoneIssues(logs) ? fixTimezoneIssues(logs) : logs;
+      const normalized = normalizeActivityLogs(timezoneFixed);
+      if (JSON.stringify(normalized) !== JSON.stringify(logs)) setLogs(normalized);
     }
+    localStorage.removeItem('babycare_time_inference_mode');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -158,11 +157,13 @@ export default function App() {
 
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return;
-    void BackNavigation.setIntercepting({ enabled: showSettings });
+    const intercepting = showSettings || showWhiteNoise;
+    void BackNavigation.setIntercepting({ enabled: intercepting });
     let remove: (() => Promise<void>) | undefined;
-    void BackNavigation.addListener('backPressed', closeSettings).then(handle => { remove = () => handle.remove(); });
+    const handleBack = () => showWhiteNoise ? setShowWhiteNoise(false) : closeSettings();
+    void BackNavigation.addListener('backPressed', handleBack).then(handle => { remove = () => handle.remove(); });
     return () => { void remove?.(); };
-  }, [showSettings]);
+  }, [showSettings, showWhiteNoise]);
 
   const clearSwipeStyles = () => {
     [currentPageRef.current, previewPageRef.current].forEach(element => element?.removeAttribute('style'));
@@ -535,7 +536,6 @@ export default function App() {
           onUpdateLog={handleUpdateLog}
           editingLog={externalEditingLog}
           onEditingDone={handleEditingDone}
-          timeInferenceMode={timeInferenceMode}
         />
       );
     }
@@ -624,8 +624,6 @@ export default function App() {
         <div className="page-swipe-stage">
           {showSettings ? (
           <div className="page-swipe-view" ref={currentPageRef}><SettingsPage
-            timeInferenceMode={timeInferenceMode}
-            onTimeInferenceModeChange={setTimeInferenceMode}
             logs={logs}
             babies={babies}
             activeBabyId={baby.id}

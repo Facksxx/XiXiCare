@@ -1,13 +1,11 @@
 import { ChevronDown, Edit2, Music2, Plus, Trash2, Users } from 'lucide-react';
 import type { RemoteRelease } from '../utils/version';
-import type { ActivityLog, BabyInfo, TimeInferenceMode } from '../types/baby';
+import type { ActivityLog, BabyInfo } from '../types/baby';
 import { DataTransfer } from './DataTransfer';
 import { UpdateChecker } from './UpdateChecker';
 import { SoundPackManager } from './SoundPackManager';
 
 interface SettingsProps {
-  timeInferenceMode: TimeInferenceMode;
-  onTimeInferenceModeChange: (mode: TimeInferenceMode) => void;
   logs: ActivityLog[];
   babies: BabyInfo[];
   activeBabyId: string;
@@ -20,7 +18,7 @@ interface SettingsProps {
   onBack: () => void;
 }
 
-export function Settings({ timeInferenceMode, onTimeInferenceModeChange, logs, babies, activeBabyId, onAddBaby, onSwitchBaby, onEditBaby, onDeleteBaby, detectedRelease, onReleaseChange, onBack }: SettingsProps) {
+export function Settings({ logs, babies, activeBabyId, onAddBaby, onSwitchBaby, onEditBaby, onDeleteBaby, detectedRelease, onReleaseChange, onBack }: SettingsProps) {
   return (
     <div className="container settings-page fade-in">
       <div className="settings-heading">
@@ -45,29 +43,6 @@ export function Settings({ timeInferenceMode, onTimeInferenceModeChange, logs, b
               <button type="button" disabled={babies.length <= 1} onClick={() => onDeleteBaby(baby.id)} aria-label={`删除${baby.name}`}><Trash2 size={15} /></button>
             </div>
           ))}
-        </div>
-      </section>
-
-      <section className="settings-section" aria-labelledby="time-inference-title">
-        <div className="settings-segmented" id="time-inference-title" role="radiogroup" aria-label="快捷时间推断方式">
-          <button
-            type="button"
-            role="radio"
-            aria-checked={timeInferenceMode === 'end'}
-            className={timeInferenceMode === 'end' ? 'active' : ''}
-            onClick={() => onTimeInferenceModeChange('end')}
-          >
-            当前时间为结束
-          </button>
-          <button
-            type="button"
-            role="radio"
-            aria-checked={timeInferenceMode === 'start'}
-            className={timeInferenceMode === 'start' ? 'active' : ''}
-            onClick={() => onTimeInferenceModeChange('start')}
-          >
-            当前时间为开始
-          </button>
         </div>
       </section>
 
