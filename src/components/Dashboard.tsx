@@ -48,7 +48,7 @@ export function Dashboard({ babyId, onAddLog, onUpdateLog, editingLog: externalE
   const [feedingType, setFeedingType] = useLocalStorage<FeedingType>(`babycare_last_feeding_type_${babyId}`, 'breast');
 
   const [startTime, setStartTime] = useState(getNowLocal);
-  const [sleepDurationMinutes, setSleepDurationMinutes] = useState(30);
+  const [sleepDurationMinutes, setSleepDurationMinutes] = useLocalStorage<number>(`babycare_last_sleep_duration_${babyId}`, 30);
   const [sleepTimer, setSleepTimer] = useLocalStorage<SleepTimerState | null>(`babycare_sleep_timer_${babyId}`, null);
   const [timerNow, setTimerNow] = useState(Date.now());
 
@@ -88,7 +88,6 @@ export function Dashboard({ babyId, onAddLog, onUpdateLog, editingLog: externalE
   // 重置表单
   const resetForm = () => {
     setStartTime(getNowLocal());
-    setSleepDurationMinutes(30);
     setSolidsName('');
     setBreastLeft(10);
     setBreastRight(10);
@@ -402,10 +401,16 @@ export function Dashboard({ babyId, onAddLog, onUpdateLog, editingLog: externalE
                 <div className={`sleep-timer-panel${sleepTimer ? ' active' : ''}`}>
                   <div className="sleep-timer-copy"><span>睡眠计时</span><strong>{sleepTimer ? timerClock : '00:00:00'}</strong></div>
                   <div className="sleep-timer-actions">
-                    <button type="button" className="sleep-timer-primary" onClick={toggleSleepTimer}>
-                      {sleepTimer?.runningSince ? <><Pause size={17} />暂停</> : sleepTimer ? <><Play size={17} />继续</> : <><Play size={17} />开始</>}
+                    <button
+                      type="button"
+                      className="sleep-timer-primary"
+                      onClick={toggleSleepTimer}
+                      aria-label={sleepTimer?.runningSince ? '暂停计时' : sleepTimer ? '继续计时' : '开始计时'}
+                      title={sleepTimer?.runningSince ? '暂停计时' : sleepTimer ? '继续计时' : '开始计时'}
+                    >
+                      {sleepTimer?.runningSince ? <Pause size={18} /> : <Play size={18} />}
                     </button>
-                    {sleepTimer && <button type="button" className="sleep-timer-cancel" onClick={cancelSleepTimer} aria-label="取消计时"><X size={17} /></button>}
+                    {sleepTimer && <button type="button" className="sleep-timer-cancel" onClick={cancelSleepTimer} aria-label="取消计时" title="取消计时"><X size={18} /></button>}
                   </div>
                 </div>
               )}
@@ -413,7 +418,7 @@ export function Dashboard({ babyId, onAddLog, onUpdateLog, editingLog: externalE
                 <div className="sleep-duration-picker">
                   <span>睡眠时长</span>
                   <div className="quick-duration-row">
-                    {[5, 30, 60, 120, 180].map((mins) => <button key={mins} type="button" className={`quick-duration-btn${sleepDurationMinutes === mins ? ' active' : ''}`} onClick={() => setSleepDurationMinutes(mins)}>{mins < 60 ? `${mins}分` : `${mins / 60}小时`}</button>)}
+                    {[5, 30, 60, 120, 180].map((mins) => <button key={mins} type="button" className={`quick-duration-btn${sleepDurationMinutes === mins ? ' active' : ''}`} onClick={() => setSleepDurationMinutes(mins)}>{mins < 60 ? `${mins}分钟` : `${mins / 60}小时`}</button>)}
                   </div>
                 </div>
               )}

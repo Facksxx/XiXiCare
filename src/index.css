@@ -1097,9 +1097,23 @@ select {
 .sleep-timer-copy span, .sleep-duration-picker > span { color: var(--text-muted); font-size: 13px; }
 .sleep-timer-copy strong { font-size: 25px; font-variant-numeric: tabular-nums; letter-spacing: 0; }
 .sleep-timer-actions { display: flex; align-items: center; gap: 7px; }
-.sleep-timer-actions button { display: inline-flex; align-items: center; justify-content: center; gap: 5px; height: 40px; border-radius: 8px; }
-.sleep-timer-primary { min-width: 84px; padding: 0 13px; color: #fff; background: var(--sage); }
-.sleep-timer-cancel { width: 40px; color: var(--danger); border: 1px solid var(--border); background: var(--bg-card); }
+.sleep-timer-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-card);
+  transition: var(--transition-fast);
+}
+.sleep-timer-actions button:active { transform: scale(0.94); }
+.sleep-timer-primary { color: var(--sage); }
+.sleep-timer-primary:hover { border-color: var(--sage); background: var(--sage-light); }
+.sleep-timer-cancel { color: var(--danger); }
+.sleep-timer-cancel:hover { border-color: var(--danger); background: var(--rose-light); }
 .sleep-duration-picker { display: grid; gap: 9px; }
 .sleep-duration-picker .quick-duration-row { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 7px; }
 .sleep-duration-picker .quick-duration-btn { min-width: 0; padding: 0 4px; }
