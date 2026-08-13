@@ -1,4 +1,4 @@
-package com.babycare.app;
+package com.xixicare.app;
 
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;

@@ -1,4 +1,4 @@
-package com.babycare.app;
+package com.xixicare.app;
 
 import android.app.Notification;
 import android.app.NotificationChannel;
@@ -18,8 +18,8 @@ import com.getcapacitor.JSObject;
 import java.util.ArrayList;
 
 public class BackgroundAudioService extends Service implements MediaPlayer.OnCompletionListener, MediaPlayer.OnErrorListener {
-    public static final String ACTION_START = "com.babycare.app.BACKGROUND_AUDIO_START";
-    public static final String ACTION_STOP = "com.babycare.app.BACKGROUND_AUDIO_STOP";
+    public static final String ACTION_START = "com.xixicare.app.BACKGROUND_AUDIO_START";
+    public static final String ACTION_STOP = "com.xixicare.app.BACKGROUND_AUDIO_STOP";
     private static final String CHANNEL_ID = "xixicare_sleep_audio";
     private static final int NOTIFICATION_ID = 1048;
     private static volatile String activeTrackId = "";
@@ -151,7 +151,7 @@ public class BackgroundAudioService extends Service implements MediaPlayer.OnCom
         PendingIntent pending = PendingIntent.getActivity(this, 0, launch, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         return new NotificationCompat.Builder(this, CHANNEL_ID)
                 .setSmallIcon(R.mipmap.ic_launcher)
-                .setContentTitle("XiXiCare 睡眠声音")
+                .setContentTitle("XIXI CARE 睡眠声音")
                 .setContentText("正在后台播放")
                 .setContentIntent(pending)
                 .setOngoing(true)

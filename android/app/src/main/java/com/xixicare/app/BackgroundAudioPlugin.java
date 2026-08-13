@@ -1,4 +1,4 @@
-package com.babycare.app;
+package com.xixicare.app;
 
 import android.content.Intent;
 import android.os.Build;

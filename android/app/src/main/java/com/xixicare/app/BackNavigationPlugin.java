@@ -1,4 +1,4 @@
-package com.babycare.app;
+package com.xixicare.app;
 
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
