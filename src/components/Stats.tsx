@@ -7,7 +7,8 @@ import { BarChart as EChartsBar, LineChart as EChartsLine } from 'echarts/charts
 import { GridComponent, TooltipComponent } from 'echarts/components';
 import { CanvasRenderer } from 'echarts/renderers';
 import type { ActivityLog } from '../types/baby';
-import { Activity, Calendar, Clock3, Sparkles, TrendingUp } from 'lucide-react';
+import { Clock3, Heart, Milk, Moon, Scale } from 'lucide-react';
+import { getEffectiveFeedingIntervals } from '../utils/feedingIntervals';
 
 echarts.use([EChartsBar, EChartsLine, GridComponent, TooltipComponent, CanvasRenderer]);
 
@@ -172,19 +173,21 @@ function SoftChartCard({
   title,
   subtitle,
   icon,
+  tone,
   children,
   legend
 }: {
   title: string;
   subtitle: string;
   icon: ReactNode;
+  tone: 'rose' | 'amber' | 'lavender' | 'sage' | 'peach';
   children: ReactNode;
   legend?: ReactNode;
 }) {
   return (
     <section className="stats-card">
       <div className="stats-card-header">
-        <div className="stats-card-icon">{icon}</div>
+        <div className={`stats-card-icon ${tone}`}>{icon}</div>
         <div>
           <h3>{title}</h3>
           <p>{subtitle}</p>
@@ -288,13 +291,9 @@ export function Stats({ logs, birthday }: StatsProps) {
       .map(log => log.timestamp.split('T')[0])
   );
   const feedingIntervalsByDate = new Map<string, number[]>();
-  const feedingLogs = logs.filter(log => log.logType === 'feeding').sort((a, b) => a.timestamp.localeCompare(b.timestamp));
-  feedingLogs.forEach((log, index) => {
-    if (index === 0) return;
-    const interval = (new Date(log.timestamp).getTime() - new Date(feedingLogs[index - 1].timestamp).getTime()) / 3600000;
-    if (interval <= 0 || interval > 24) return;
+  getEffectiveFeedingIntervals(logs).forEach(({ log, minutes }) => {
     const key = log.timestamp.split('T')[0];
-    feedingIntervalsByDate.set(key, [...(feedingIntervalsByDate.get(key) ?? []), interval]);
+    feedingIntervalsByDate.set(key, [...(feedingIntervalsByDate.get(key) ?? []), minutes / 60]);
   });
 
   const dailyStats: DailyStat[] = dateRange.map(date => {
@@ -448,7 +447,8 @@ export function Stats({ logs, birthday }: StatsProps) {
       <SoftChartCard
         title="体重增长"
         subtitle="仅显示实际体重记录"
-        icon={<TrendingUp size={18} />}
+        icon={<Scale size={17} />}
+        tone="rose"
       >
         <GrowthChart buckets={buckets} />
       </SoftChartCard>
@@ -456,7 +456,8 @@ export function Stats({ logs, birthday }: StatsProps) {
       <SoftChartCard
         title="瓶喂奶量"
         subtitle={`${range.hint}，单位 ml/天`}
-        icon={<Calendar size={18} />}
+        icon={<Milk size={17} />}
+        tone="amber"
       >
         <BarChart
           buckets={buckets}
@@ -470,7 +471,8 @@ export function Stats({ logs, birthday }: StatsProps) {
       <SoftChartCard
         title="睡眠时长"
         subtitle={`${range.hint}，单位 小时/天`}
-        icon={<Activity size={18} />}
+        icon={<Moon size={17} />}
+        tone="lavender"
       >
         <SleepChart buckets={buckets} />
       </SoftChartCard>
@@ -479,6 +481,7 @@ export function Stats({ logs, birthday }: StatsProps) {
         title="喂养间隔"
         subtitle={`${range.hint}，单位 小时`}
         icon={<Clock3 size={18} />}
+        tone="sage"
       >
         <FeedingIntervalChart buckets={buckets} />
       </SoftChartCard>
@@ -486,7 +489,8 @@ export function Stats({ logs, birthday }: StatsProps) {
       <SoftChartCard
         title="排泄统计"
         subtitle={`${range.hint}，单位 次/天`}
-        icon={<Sparkles size={18} />}
+        icon={<Heart size={17} />}
+        tone="peach"
         legend={(
           <div className="stats-legend">
             <span><i className="legend-pee" />嘘嘘</span>

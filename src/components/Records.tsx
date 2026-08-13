@@ -3,6 +3,7 @@ import type { ActivityLog, FeedingType, LogType } from '../types/baby';
 import { Calendar, Droplets, Edit2, Milk, Moon, Scale, Trash2 } from 'lucide-react';
 import { ConfirmModal } from './ConfirmModal';
 import { DateTimePicker } from './DateTimePicker';
+import { getEffectiveFeedingIntervals } from '../utils/feedingIntervals';
 
 interface RecordsProps {
   logs: ActivityLog[];
@@ -57,19 +58,7 @@ export function Records({ logs, onEditLog, onDeleteLog }: RecordsProps) {
   }), [sortedLogs, startDate, endDate, typeFilter, feedingFilter]);
 
   const feedingIntervals = useMemo(() => {
-    const result = new Map<string, number>();
-    let previousFeedingStart: number | null = null;
-    [...logs]
-      .filter(log => log.logType === 'feeding')
-      .sort((a, b) => a.timestamp.localeCompare(b.timestamp) || a.id.localeCompare(b.id))
-      .forEach(log => {
-        const start = new Date(log.timestamp).getTime();
-        if (previousFeedingStart !== null && start >= previousFeedingStart) {
-          result.set(log.id, Math.round((start - previousFeedingStart) / 60000));
-        }
-        if (Number.isFinite(start)) previousFeedingStart = start;
-      });
-    return result;
+    return new Map(getEffectiveFeedingIntervals(logs).map(item => [item.log.id, item.minutes]));
   }, [logs]);
 
   const groupedLogs = useMemo(() => {

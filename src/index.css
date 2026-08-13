@@ -3099,9 +3099,12 @@ select {
   display: flex;
   gap: 8px;
   align-items: center;
+  justify-content: center;
+  text-align: center;
 }
 
 .stats-card-icon {
+  position: relative;
   width: 28px;
   height: 28px;
   flex: 0 0 28px;
@@ -3111,7 +3114,26 @@ select {
   border-radius: 9px;
   color: var(--sage);
   background: var(--sage-light);
+  transform: rotate(-3deg);
 }
+
+.stats-card-icon::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.55;
+}
+
+.stats-card-icon.rose { color: var(--rose); background: var(--rose-light); }
+.stats-card-icon.amber { color: var(--amber); background: var(--amber-light); }
+.stats-card-icon.lavender { color: var(--lavender); background: var(--lavender-light); }
+.stats-card-icon.sage { color: var(--sage); background: var(--sage-light); }
+.stats-card-icon.peach { color: var(--amber); background: color-mix(in srgb, var(--amber-light) 70%, var(--rose-light)); }
 
 .stats-card-icon svg,
 .btn-primary svg,
@@ -3140,6 +3162,8 @@ select {
   overflow-y: hidden;
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
+  display: flex;
+  justify-content: center;
 }
 
 .stats-echart {
@@ -3309,6 +3333,10 @@ select {
   overflow-wrap: anywhere;
   border-radius: 10px;
   background: var(--bg-input);
+}
+
+.stats-legend {
+  justify-content: center;
 }
 
 .stat-box-label {
