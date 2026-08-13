@@ -2998,6 +2998,7 @@ select {
   background: var(--bg-card);
   box-shadow: none;
   min-width: 0;
+  text-align: center;
 }
 
 .stats-summary-item span {
@@ -3010,6 +3011,7 @@ select {
 .stats-summary-item strong {
   display: flex;
   align-items: baseline;
+  justify-content: center;
   gap: 3px;
   margin-top: 5px;
   color: var(--text-heading);
@@ -3099,8 +3101,8 @@ select {
   display: flex;
   gap: 8px;
   align-items: center;
-  justify-content: center;
-  text-align: center;
+  justify-content: flex-start;
+  text-align: left;
 }
 
 .stats-card-icon {
