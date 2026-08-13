@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">XIXI CARE</string>
+    <string name="title_activity_main">XIXI CARE</string>
+    <string name="package_name">com.xixicare.app</string>
+    <string name="custom_url_scheme">com.xixicare.app</string>
+</resources>
