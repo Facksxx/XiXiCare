@@ -1,7 +1,0 @@
-{
-  "navigationStyle": "custom",
-  "disableScroll": false,
-  "usingComponents": {
-    "ec-canvas": "../../ec-canvas/ec-canvas"
-  }
-}
