@@ -3,6 +3,7 @@ package com.xixicare.app;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
+import com.getcapacitor.JSObject;
 import com.getcapacitor.annotation.CapacitorPlugin;
 
 import java.io.BufferedInputStream;
@@ -65,6 +66,8 @@ public class SoundDownloadPlugin extends Plugin {
         HttpURLConnection connection = openConnection(id, source);
         int code = connection.getResponseCode();
         if (code != HttpURLConnection.HTTP_OK) throw new IOException("HTTP " + code);
+        long total = connection.getContentLengthLong();
+        long received = 0;
         try (BufferedInputStream input = new BufferedInputStream(connection.getInputStream());
              FileOutputStream output = new FileOutputStream(target, false)) {
             byte[] buffer = new byte[64 * 1024];
@@ -72,6 +75,13 @@ public class SoundDownloadPlugin extends Plugin {
             while ((count = input.read(buffer)) != -1) {
                 if (cancelled.contains(id)) throw new IOException("cancelled");
                 output.write(buffer, 0, count);
+                received += count;
+                JSObject progress = new JSObject();
+                progress.put("id", id);
+                progress.put("bytes", received);
+                progress.put("total", Math.max(0, total));
+                progress.put("percent", total > 0 ? Math.min(100, received * 100.0 / total) : 0);
+                notifyListeners("downloadProgress", progress);
             }
             output.getFD().sync();
         } finally {

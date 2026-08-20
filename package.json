@@ -1,8 +1,11 @@
 {
   "name": "babycare",
   "private": true,
-  "version": "1.1.12",
+  "version": "1.1.13",
   "type": "module",
+  "workspaces": [
+    "XIXI-CARE-Site"
+  ],
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
@@ -11,7 +14,10 @@
     "apk": "node scripts/release-apk.mjs",
     "apk:build": "node scripts/package-apk.mjs",
     "apk:ci": "node scripts/package-apk.mjs --no-bump",
-    "release:apk": "npm run apk"
+    "release:apk": "npm run apk",
+    "site:dev": "npm run dev --workspace=XIXI-CARE-Site",
+    "site:build": "npm run build --workspace=XIXI-CARE-Site",
+    "site:test": "npm run test --workspace=XIXI-CARE-Site"
   },
   "dependencies": {
     "@capacitor/android": "^8.4.2",
@@ -19,6 +25,7 @@
     "@capacitor/core": "^8.4.2",
     "@capacitor/file-transfer": "^2.0.4",
     "@capacitor/filesystem": "^7.1.8",
+    "@capacitor/ios": "^8.4.2",
     "echarts": "^6.1.0",
     "lucide-react": "^1.27.0",
     "react": "^19.2.7",

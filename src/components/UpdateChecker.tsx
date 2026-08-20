@@ -75,6 +75,7 @@ interface UpdateCheckerProps {
 }
 
 export function UpdateChecker({ detectedRelease = null, onReleaseChange }: UpdateCheckerProps) {
+  const isAndroid = Capacitor.getPlatform() === 'android';
   const [checkState, setCheckState] = useState<CheckState>('idle');
   const [toast, setToast] = useState<{ message: string; error: boolean } | null>(null);
   const [newRelease, setNewRelease] = useState<RemoteRelease | null>(detectedRelease);
@@ -112,7 +113,7 @@ export function UpdateChecker({ detectedRelease = null, onReleaseChange }: Updat
   };
 
   const discardUpdate = async () => {
-    if (updatePhase === 'downloading' && Capacitor.isNativePlatform()) {
+    if (updatePhase === 'downloading' && isAndroid) {
       await AppUpdate.pauseDownload();
     }
     await clearUpdateCache();
@@ -165,6 +166,10 @@ export function UpdateChecker({ detectedRelease = null, onReleaseChange }: Updat
   };
 
   const startInstallation = async (path: string) => {
+    if (!isAndroid) {
+      setErrorModal({ show: true, message: 'iOS 版本请通过 App Store 更新。' });
+      return;
+    }
     try {
       await AppUpdate.installApk({ path });
       resetUpdate();
@@ -181,6 +186,10 @@ export function UpdateChecker({ detectedRelease = null, onReleaseChange }: Updat
 
   const handleDownload = async () => {
     if (!newRelease || updatePhase === 'downloading') return;
+    if (Capacitor.getPlatform() === 'ios') {
+      setErrorModal({ show: true, message: 'iOS 版本请通过 App Store 更新。' });
+      return;
+    }
     const isResuming = updatePhase === 'paused' && Boolean(downloadedPath);
     setUpdatePhase('downloading');
     setInstallNotice('');
@@ -254,7 +263,7 @@ export function UpdateChecker({ detectedRelease = null, onReleaseChange }: Updat
   };
 
   const handlePauseDownload = async () => {
-    if (updatePhase !== 'downloading' || !Capacitor.isNativePlatform()) return;
+    if (updatePhase !== 'downloading' || !isAndroid) return;
     try {
       await AppUpdate.pauseDownload();
       setUpdatePhase('paused');
@@ -357,7 +366,7 @@ export function UpdateChecker({ detectedRelease = null, onReleaseChange }: Updat
                 type="button"
                 className="btn-primary"
                 onClick={updatePhase === 'downloading' ? () => void handlePauseDownload() : handleUpdateConfirm}
-                disabled={updatePhase === 'downloading' && !Capacitor.isNativePlatform()}
+                disabled={updatePhase === 'downloading' && !isAndroid}
               >
                 {updatePhase === 'downloading' ? (
                   <><Pause size={16} /> 暂停下载</>

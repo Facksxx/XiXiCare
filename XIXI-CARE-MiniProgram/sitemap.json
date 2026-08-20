@@ -1,0 +1,4 @@
+{
+  "desc": "XIXI CARE 页面索引配置",
+  "rules": [{ "action": "disallow", "page": "*" }]
+}

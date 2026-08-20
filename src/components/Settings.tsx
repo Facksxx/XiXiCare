@@ -1,4 +1,5 @@
 import { ChevronDown, Edit2, Music2, Plus, Trash2, Users } from 'lucide-react';
+import { Capacitor } from '@capacitor/core';
 import type { RemoteRelease } from '../utils/version';
 import type { ActivityLog, BabyInfo } from '../types/baby';
 import { DataTransfer } from './DataTransfer';
@@ -58,9 +59,9 @@ export function Settings({ logs, babies, activeBabyId, onAddBaby, onSwitchBaby, 
         <SoundPackManager />
       </section>
 
-      <section className="settings-section" aria-labelledby="about-title">
+      {Capacitor.getPlatform() !== 'ios' && <section className="settings-section" aria-labelledby="about-title">
         <div id="about-title"><UpdateChecker detectedRelease={detectedRelease} onReleaseChange={onReleaseChange} /></div>
-      </section>
+      </section>}
     </div>
   );
 }

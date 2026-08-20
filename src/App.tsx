@@ -75,6 +75,7 @@ export default function App() {
   useEffect(() => {
     let cancelled = false;
     const checkForUpdate = async () => {
+      if (Capacitor.getPlatform() === 'ios') return;
       lastUpdateCheckRef.current = Date.now();
       try {
         const release = await fetchLatestRelease();
@@ -156,7 +157,7 @@ export default function App() {
   const legacyBabyInfo = JSON.stringify(baby);
 
   useEffect(() => {
-    if (!Capacitor.isNativePlatform()) return;
+    if (Capacitor.getPlatform() !== 'android') return;
     const intercepting = showSettings || showWhiteNoise;
     void BackNavigation.setIntercepting({ enabled: intercepting });
     let remove: (() => Promise<void>) | undefined;

@@ -111,7 +111,15 @@ export const downloadSoundPack = async (pack: SoundPackDefinition, task: SoundPa
       const url = `${RAW_ROOT}/${pack.id}/${track.file}`;
       task.activeFileId = `${task.id}-${index}`;
       if (Capacitor.isNativePlatform()) {
-        await SoundDownload.download({ id: task.activeFileId, url, path: target.uri });
+        const activeId = task.activeFileId;
+        const listener = await SoundDownload.addListener('downloadProgress', (event) => {
+          if (event.id === activeId) onProgress(index + event.percent / 100, pack.tracks.length);
+        });
+        try {
+          await SoundDownload.download({ id: activeId, url, path: target.uri });
+        } finally {
+          await listener.remove();
+        }
       } else {
         task.abortController = new AbortController();
         const response = await fetch(url, { signal: task.abortController.signal });

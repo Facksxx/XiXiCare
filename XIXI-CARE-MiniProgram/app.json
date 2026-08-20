@@ -1,0 +1,16 @@
+{
+  "pages": ["pages/index/index"],
+  "window": {
+    "navigationStyle": "custom",
+    "backgroundColor": "#fbfaf8",
+    "backgroundTextStyle": "dark"
+  },
+  "requiredBackgroundModes": ["audio"],
+  "networkTimeout": {
+    "request": 30000,
+    "connectSocket": 30000,
+    "uploadFile": 120000,
+    "downloadFile": 180000
+  },
+  "sitemapLocation": "sitemap.json"
+}

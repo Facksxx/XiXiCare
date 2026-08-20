@@ -13,6 +13,7 @@ interface RecordsProps {
 
 type TypeFilter = 'all' | LogType;
 type FeedingFilter = 'all' | FeedingType;
+type BottleFilter = 'all' | 'formula' | 'breastmilk';
 
 const TYPE_FILTERS: Array<{ value: TypeFilter; label: string }> = [
   { value: 'all', label: '全部' },
@@ -27,6 +28,12 @@ const FEEDING_FILTERS: Array<{ value: FeedingFilter; label: string }> = [
   { value: 'breast', label: '母乳亲喂' },
   { value: 'bottle', label: '奶瓶喂养' },
   { value: 'solids', label: '辅食' }
+];
+
+const BOTTLE_FILTERS: Array<{ value: BottleFilter; label: string }> = [
+  { value: 'all', label: '全部奶瓶' },
+  { value: 'formula', label: '配方奶' },
+  { value: 'breastmilk', label: '母乳' }
 ];
 
 const feedingTypeLabel = (type?: FeedingType) => (
@@ -45,6 +52,7 @@ export function Records({ logs, onEditLog, onDeleteLog }: RecordsProps) {
   const [endDate, setEndDate] = useState('');
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');
   const [feedingFilter, setFeedingFilter] = useState<FeedingFilter>('all');
+  const [bottleFilter, setBottleFilter] = useState<BottleFilter>('all');
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
 
   const sortedLogs = useMemo(() => [...logs].sort((a, b) => b.timestamp.localeCompare(a.timestamp)), [logs]);
@@ -54,8 +62,9 @@ export function Records({ logs, onEditLog, onDeleteLog }: RecordsProps) {
     if (endDate && logDate > endDate) return false;
     if (typeFilter !== 'all' && log.logType !== typeFilter) return false;
     if (typeFilter === 'feeding' && feedingFilter !== 'all' && log.metadata.feedingType !== feedingFilter) return false;
+    if (typeFilter === 'feeding' && feedingFilter === 'bottle' && bottleFilter !== 'all' && log.metadata.bottle?.fluidType !== bottleFilter) return false;
     return true;
-  }), [sortedLogs, startDate, endDate, typeFilter, feedingFilter]);
+  }), [sortedLogs, startDate, endDate, typeFilter, feedingFilter, bottleFilter]);
 
   const feedingIntervals = useMemo(() => {
     return new Map(getEffectiveFeedingIntervals(logs).map(item => [item.log.id, item.minutes]));
@@ -120,12 +129,13 @@ export function Records({ logs, onEditLog, onDeleteLog }: RecordsProps) {
     setDeleteTargetId(id);
   };
 
-  const hasFilter = Boolean(startDate || endDate || typeFilter !== 'all' || feedingFilter !== 'all');
+  const hasFilter = Boolean(startDate || endDate || typeFilter !== 'all' || feedingFilter !== 'all' || bottleFilter !== 'all');
   const clearFilter = () => {
     setStartDate('');
     setEndDate('');
     setTypeFilter('all');
     setFeedingFilter('all');
+    setBottleFilter('all');
   };
 
   return (
@@ -150,7 +160,10 @@ export function Records({ logs, onEditLog, onDeleteLog }: RecordsProps) {
               className={typeFilter === option.value ? 'active' : ''}
               onClick={() => {
                 setTypeFilter(option.value);
-                if (option.value !== 'feeding') setFeedingFilter('all');
+                if (option.value !== 'feeding') {
+                  setFeedingFilter('all');
+                  setBottleFilter('all');
+                }
               }}
             >
               {option.label}
@@ -166,7 +179,26 @@ export function Records({ logs, onEditLog, onDeleteLog }: RecordsProps) {
                 role="radio"
                 aria-checked={feedingFilter === option.value}
                 className={feedingFilter === option.value ? 'active' : ''}
-                onClick={() => setFeedingFilter(option.value)}
+                onClick={() => {
+                  setFeedingFilter(option.value);
+                  if (option.value !== 'bottle') setBottleFilter('all');
+                }}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        )}
+        {typeFilter === 'feeding' && feedingFilter === 'bottle' && (
+          <div className="records-feeding-filter" role="radiogroup" aria-label="奶瓶类型">
+            {BOTTLE_FILTERS.map(option => (
+              <button
+                key={option.value}
+                type="button"
+                role="radio"
+                aria-checked={bottleFilter === option.value}
+                className={bottleFilter === option.value ? 'active' : ''}
+                onClick={() => setBottleFilter(option.value)}
               >
                 {option.label}
               </button>

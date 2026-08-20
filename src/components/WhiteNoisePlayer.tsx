@@ -322,7 +322,7 @@ export function WhiteNoisePlayer({ isOpen, onClose, onPlaybackChange }: WhiteNoi
   );
 
   useEffect(() => {
-    if (!Capacitor.isNativePlatform()) return;
+    if (Capacitor.getPlatform() !== 'android') return;
     const handleVisibility = async () => {
       const audio = audioRef.current;
       if (document.hidden) {

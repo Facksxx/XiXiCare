@@ -13,3 +13,7 @@ android/capacitor-cordova-android-plugins/
 XiXiCare.apk
 .DS_Store
 .trae*
+/tmp/
+/XIXI-CARE-MiniProgram.zip
+/XIXI-CARE-Site/
+**/xcuserdata/
