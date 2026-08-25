@@ -19,10 +19,17 @@ import { Capacitor } from '@capacitor/core';
 import { Sun, Moon, Calendar, BookOpen, BarChart2, Edit2, Check, Sparkles, Settings, Music2, ChevronDown, Plus } from 'lucide-react';
 import type { Icon } from 'lucide-react';
 import './index.css';
+import './liquid-glass.css';
 
 type AppTab = 'dashboard' | 'records' | 'guide' | 'stats';
 type SwipePreview = { tab: AppTab; side: -1 | 1 };
 const APP_TABS: AppTab[] = ['dashboard', 'records', 'guide', 'stats'];
+const NAV_ITEMS = [
+  { tab: 'dashboard' as AppTab, label: '记录大盘', icon: Calendar },
+  { tab: 'records' as AppTab, label: '时间轴', icon: Sparkles },
+  { tab: 'guide' as AppTab, label: '喂养指南', icon: BookOpen },
+  { tab: 'stats' as AppTab, label: '成长统计', icon: BarChart2 }
+];
 const UPDATE_CHECK_INTERVAL = 24 * 60 * 60 * 1000;
 
 function NavIcon({ icon: IconComponent, active }: { icon: Icon; active: boolean }) {
@@ -65,6 +72,7 @@ export default function App() {
   // Navigation tabs: 'dashboard' | 'guide' | 'stats' | 'records'
   const [activeTab, setActiveTab] = useState<AppTab>('dashboard');
   const [navMotion, setNavMotion] = useState({ tab: 'dashboard' as AppTab, direction: 1 as -1 | 1, sequence: 0 });
+  const [navHighlightedTab, setNavHighlightedTab] = useState<AppTab>('dashboard');
   const [swipePreview, setSwipePreview] = useState<SwipePreview | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [showWhiteNoise, setShowWhiteNoise] = useState(false);
@@ -154,6 +162,7 @@ export default function App() {
   const navRailRef = useRef<HTMLSpanElement>(null);
   const navTrackRef = useRef<HTMLSpanElement>(null);
   const navDragRef = useRef<{ pointerId: number; startX: number; lastX: number; lastTime: number; position: number; dragging: boolean } | null>(null);
+  const navHighlightedRef = useRef<AppTab>('dashboard');
   const suppressNavClickRef = useRef(false);
   const swipePreviewRef = useRef<SwipePreview | null>(null);
   const swipeTimerRef = useRef<number | null>(null);
@@ -177,6 +186,8 @@ export default function App() {
 
   const completeNavigation = (nextTab: AppTab) => {
     setActiveTab(nextTab);
+    navHighlightedRef.current = nextTab;
+    setNavHighlightedTab(nextTab);
     setSwipePreview(null);
     swipePreviewRef.current = null;
     clearSwipeStyles();
@@ -190,6 +201,8 @@ export default function App() {
     }
     if (swipeTimerRef.current !== null) return;
     const side: -1 | 1 = APP_TABS.indexOf(nextTab) > APP_TABS.indexOf(activeTab) ? 1 : -1;
+    navHighlightedRef.current = nextTab;
+    setNavHighlightedTab(nextTab);
     setNavMotion((current) => ({ tab: nextTab, direction: side, sequence: current.sequence + 1 }));
     const preview = { tab: nextTab, side };
     swipePreviewRef.current = preview;
@@ -226,6 +239,8 @@ export default function App() {
     const position = Math.max(0, Math.min(APP_TABS.length - 1, (clientX - bounds.left) / itemWidth - 0.5));
     const elapsed = Math.max(8, timeStamp - drag.lastTime);
     const velocity = Math.max(-1, Math.min(1, (clientX - drag.lastX) / elapsed));
+    const nearestIndex = Math.round(position);
+    const nearestTab = APP_TABS[nearestIndex];
     drag.position = position;
     drag.lastX = clientX;
     drag.lastTime = timeStamp;
@@ -233,7 +248,11 @@ export default function App() {
     track.style.setProperty('--nav-position', position.toFixed(4));
     track.style.setProperty('--nav-drag-scale', (1 + Math.abs(velocity) * 0.24).toFixed(3));
     track.style.setProperty('--nav-drag-skew', `${(velocity * -5).toFixed(2)}deg`);
-    track.style.setProperty('--nav-tail-opacity', Math.min(0.62, Math.abs(velocity) * 0.75).toFixed(3));
+    track.style.setProperty('--nav-lens-offset', `${((nearestIndex - position) * itemWidth * 0.42).toFixed(2)}px`);
+    if (nearestTab !== navHighlightedRef.current) {
+      navHighlightedRef.current = nearestTab;
+      setNavHighlightedTab(nearestTab);
+    }
   };
 
   const handleNavPointerDown = (event: ReactPointerEvent<HTMLElement>) => {
@@ -263,12 +282,14 @@ export default function App() {
     navTrackRef.current?.classList.remove('is-dragging');
     navTrackRef.current?.style.removeProperty('--nav-drag-scale');
     navTrackRef.current?.style.removeProperty('--nav-drag-skew');
-    navTrackRef.current?.style.removeProperty('--nav-tail-opacity');
+    navTrackRef.current?.style.removeProperty('--nav-lens-offset');
     const targetIndex = cancelled ? APP_TABS.indexOf(activeTab) : Math.round(drag.position);
     const targetTab = APP_TABS[targetIndex];
     const direction: -1 | 1 = targetIndex >= APP_TABS.indexOf(activeTab) ? 1 : -1;
     suppressNavClickRef.current = drag.dragging;
     navDragRef.current = null;
+    navHighlightedRef.current = targetTab;
+    setNavHighlightedTab(targetTab);
     if (targetTab !== activeTab) animateToTab(targetTab, true);
     else setNavMotion((current) => ({ tab: targetTab, direction, sequence: current.sequence + 1 }));
   };
@@ -742,43 +763,51 @@ export default function App() {
             <span
               key={navMotion.sequence}
               className={`nav-liquid-glass ${navMotion.direction > 0 ? 'moving-forward' : 'moving-backward'}`}
-            />
+            >
+              {NAV_ITEMS.map(({ tab, label, icon }) => tab === navHighlightedTab ? (
+                <span key={tab} className="nav-lens-symbol">
+                  <NavIcon icon={icon} active />
+                  <span>{label}</span>
+                </span>
+              ) : null)}
+              <span className="nav-lens-glare" />
+            </span>
           </span>
         </span>
         <button 
           type="button"
           onClick={() => handleNavClick('dashboard')}
-          className={`nav-tab-item ${activeTab === 'dashboard' ? 'active' : ''}`}
+          className={`nav-tab-item ${navHighlightedTab === 'dashboard' ? 'active' : ''}`}
           aria-current={activeTab === 'dashboard' ? 'page' : undefined}
         >
-          <NavIcon icon={Calendar} active={activeTab === 'dashboard'} />
+          <NavIcon icon={Calendar} active={navHighlightedTab === 'dashboard'} />
           <span>记录大盘</span>
         </button>
         <button 
           type="button"
           onClick={() => handleNavClick('records')}
-          className={`nav-tab-item ${activeTab === 'records' ? 'active' : ''}`}
+          className={`nav-tab-item ${navHighlightedTab === 'records' ? 'active' : ''}`}
           aria-current={activeTab === 'records' ? 'page' : undefined}
         >
-          <NavIcon icon={Sparkles} active={activeTab === 'records'} />
+          <NavIcon icon={Sparkles} active={navHighlightedTab === 'records'} />
           <span>时间轴</span>
         </button>
         <button 
           type="button"
           onClick={() => handleNavClick('guide')}
-          className={`nav-tab-item ${activeTab === 'guide' ? 'active' : ''}`}
+          className={`nav-tab-item ${navHighlightedTab === 'guide' ? 'active' : ''}`}
           aria-current={activeTab === 'guide' ? 'page' : undefined}
         >
-          <NavIcon icon={BookOpen} active={activeTab === 'guide'} />
+          <NavIcon icon={BookOpen} active={navHighlightedTab === 'guide'} />
           <span>喂养指南</span>
         </button>
         <button 
           type="button"
           onClick={() => handleNavClick('stats')}
-          className={`nav-tab-item ${activeTab === 'stats' ? 'active' : ''}`}
+          className={`nav-tab-item ${navHighlightedTab === 'stats' ? 'active' : ''}`}
           aria-current={activeTab === 'stats' ? 'page' : undefined}
         >
-          <NavIcon icon={BarChart2} active={activeTab === 'stats'} />
+          <NavIcon icon={BarChart2} active={navHighlightedTab === 'stats'} />
           <span>成长统计</span>
         </button>
       </nav>}

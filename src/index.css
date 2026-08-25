@@ -334,7 +334,7 @@ select {
   backdrop-filter: blur(22px) saturate(1.22);
   transition: var(--transition);
   isolation: isolate;
-  overflow: hidden;
+  overflow: visible;
   touch-action: none;
   user-select: none;
 }
@@ -348,11 +348,14 @@ select {
 
 .nav-liquid-track {
   position: absolute;
-  inset-block: 0;
+  top: 50%;
   left: 0;
   width: 25%;
-  padding: 2px 3px;
-  transform: translate3d(calc(var(--nav-position) * 100%), 0, 0);
+  height: 78px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform: translate3d(calc(var(--nav-position) * 100%), -50%, 0);
   transition: transform 440ms cubic-bezier(0.2, 0.9, 0.22, 1);
   will-change: transform;
 }
@@ -364,46 +367,73 @@ select {
 .nav-liquid-glass {
   position: relative;
   display: block;
-  width: 100%;
-  height: 100%;
-  border: 1px solid rgba(255, 255, 255, 0.78);
-  border-radius: 21px;
+  width: 78px;
+  height: 78px;
+  flex: 0 0 78px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.86);
+  border-radius: 50%;
   background:
-    radial-gradient(circle at 32% 12%, rgba(255, 255, 255, 0.78), transparent 42%),
-    linear-gradient(145deg, rgba(255, 255, 255, 0.36), rgba(255, 255, 255, 0.04) 58%),
-    rgba(117, 166, 144, 0.24);
+    radial-gradient(circle at 50% 58%, rgba(255, 255, 255, 0.06) 0 45%, rgba(255, 255, 255, 0.34) 74%, rgba(255, 255, 255, 0.82) 100%),
+    rgba(219, 238, 229, 0.22);
   box-shadow:
-    0 8px 18px rgba(77, 121, 103, 0.16),
-    inset 0 1px 0 rgba(255, 255, 255, 0.86),
-    inset 0 -5px 10px rgba(91, 145, 122, 0.08);
-  -webkit-backdrop-filter: blur(16px) saturate(1.32);
-  backdrop-filter: blur(16px) saturate(1.32);
+    0 10px 22px rgba(57, 86, 73, 0.2),
+    inset 0 0 0 2px rgba(255, 255, 255, 0.26),
+    inset -8px -10px 16px rgba(83, 137, 113, 0.13),
+    inset 8px 8px 18px rgba(255, 255, 255, 0.58);
+  -webkit-backdrop-filter: blur(1.2px) saturate(1.42) brightness(1.08);
+  backdrop-filter: blur(1.2px) saturate(1.42) brightness(1.08);
   will-change: transform, border-radius;
 }
 
 .nav-liquid-glass::after {
-  content: '';
-  position: absolute;
-  top: 31%;
-  width: 16px;
-  height: 38%;
-  border-radius: 999px;
-  background: rgba(117, 166, 144, 0.3);
-  filter: blur(3px);
-  opacity: 0;
+  content: none;
 }
 
 .nav-liquid-track.is-dragging .nav-liquid-glass {
   animation: none;
   transform: scaleX(var(--nav-drag-scale, 1)) skewX(var(--nav-drag-skew, 0deg));
   transition: transform 70ms linear, border-radius 90ms linear;
-  border-radius: 24px 18px 24px 18px;
+  border-radius: 46% 54% 49% 51%;
 }
 
-.nav-liquid-track.is-dragging .nav-liquid-glass::after {
-  right: 86%;
-  opacity: var(--nav-tail-opacity, 0);
-  transform: scaleX(var(--nav-drag-scale, 1));
+.nav-lens-symbol {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  color: var(--sage);
+  font-size: 11px;
+  font-weight: 700;
+  transform: translateX(var(--nav-lens-offset, 0px)) scale(1.14);
+  transition: transform 80ms linear, opacity 100ms ease;
+  white-space: nowrap;
+}
+
+.nav-lens-symbol .nav-icon {
+  width: 25px;
+  height: 25px;
+  flex-basis: 25px;
+  filter: none;
+  animation: none;
+}
+
+.nav-lens-glare {
+  position: absolute;
+  z-index: 2;
+  top: 8px;
+  left: 14px;
+  width: 31px;
+  height: 13px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.58);
+  filter: blur(3px);
+  transform: rotate(-20deg);
+  pointer-events: none;
 }
 
 .nav-liquid-glass.moving-forward {
@@ -411,19 +441,9 @@ select {
   animation: navLiquidForward 560ms cubic-bezier(0.18, 0.82, 0.2, 1) both;
 }
 
-.nav-liquid-glass.moving-forward::after {
-  right: 82%;
-  animation: navLiquidTail 540ms ease-out both;
-}
-
 .nav-liquid-glass.moving-backward {
   transform-origin: left center;
   animation: navLiquidBackward 560ms cubic-bezier(0.18, 0.82, 0.2, 1) both;
-}
-
-.nav-liquid-glass.moving-backward::after {
-  left: 82%;
-  animation: navLiquidTail 540ms ease-out both;
 }
 
 .nav-tab-item {
@@ -493,8 +513,8 @@ select {
 }
 
 .nav-tab-item.active .nav-icon {
-  filter: drop-shadow(0 4px 4px rgba(103, 151, 130, 0.2));
-  animation: navIconSelected 520ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  filter: drop-shadow(0 2px 3px rgba(103, 151, 130, 0.18));
+  transform: scale(1.05);
 }
 
 .nav-tab-item span {
@@ -502,7 +522,7 @@ select {
 }
 
 .nav-tab-item.active span {
-  transform: translateY(-1px);
+  transform: none;
 }
 
 .nav-tab-item:focus-visible {
@@ -515,65 +535,33 @@ select {
   text-underline-offset: 4px;
 }
 
-@keyframes navIconSelected {
-  0% {
-    opacity: 0.55;
-    transform: translateY(2px) scale(0.72) rotate(-7deg);
-  }
-  44% {
-    opacity: 1;
-    transform: translateY(-5px) scale(1.18) rotate(3deg);
-  }
-  72% {
-    transform: translateY(-2px) scale(0.98) rotate(-1deg);
-  }
-  100% {
-    transform: translateY(-2px) scale(1.08) rotate(0);
-  }
-}
-
 @keyframes navLiquidForward {
   0% {
-    transform: scaleX(0.78) scaleY(0.92);
-    border-radius: 24px;
+    transform: scaleX(0.9) scaleY(0.96);
+    border-radius: 50%;
   }
   42% {
-    transform: scaleX(1.22) scaleY(0.9);
-    border-radius: 15px 24px 24px 15px;
+    transform: scaleX(1.11) scaleY(0.94);
+    border-radius: 46% 54% 50% 50%;
   }
   100% {
     transform: scaleX(1) scaleY(1);
-    border-radius: 19px;
+    border-radius: 50%;
   }
 }
 
 @keyframes navLiquidBackward {
   0% {
-    transform: scaleX(0.78) scaleY(0.92);
-    border-radius: 24px;
+    transform: scaleX(0.9) scaleY(0.96);
+    border-radius: 50%;
   }
   42% {
-    transform: scaleX(1.22) scaleY(0.9);
-    border-radius: 24px 15px 15px 24px;
+    transform: scaleX(1.11) scaleY(0.94);
+    border-radius: 54% 46% 50% 50%;
   }
   100% {
     transform: scaleX(1) scaleY(1);
-    border-radius: 19px;
-  }
-}
-
-@keyframes navLiquidTail {
-  0%, 18% {
-    opacity: 0;
-    transform: scaleX(0.25);
-  }
-  42% {
-    opacity: 0.7;
-    transform: scaleX(1.4);
-  }
-  100% {
-    opacity: 0;
-    transform: translateX(8px) scaleX(0.25);
+    border-radius: 50%;
   }
 }
 
@@ -4153,7 +4141,7 @@ body.modal-open {
 
   .nav-tab-item.active .nav-icon {
     animation: none;
-    transform: translateY(-2px) scale(1.08);
+    transform: scale(1.05);
   }
 
   .nav-liquid-track {
