@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, type CSSProperties, type TouchEvent as ReactTouchEvent } from 'react';
+import { useState, useEffect, useRef, type CSSProperties, type PointerEvent as ReactPointerEvent, type TouchEvent as ReactTouchEvent } from 'react';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import type { ActivityLog, BabyInfo } from './types/baby';
 import { compressImage } from './utils/imageCompress';
@@ -151,6 +151,10 @@ export default function App() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const currentPageRef = useRef<HTMLDivElement>(null);
   const previewPageRef = useRef<HTMLDivElement>(null);
+  const navRailRef = useRef<HTMLSpanElement>(null);
+  const navTrackRef = useRef<HTMLSpanElement>(null);
+  const navDragRef = useRef<{ pointerId: number; startX: number; lastX: number; lastTime: number; position: number; dragging: boolean } | null>(null);
+  const suppressNavClickRef = useRef(false);
   const swipePreviewRef = useRef<SwipePreview | null>(null);
   const swipeTimerRef = useRef<number | null>(null);
   const swipeStartRef = useRef<{ x: number; y: number; time: number; blocked: boolean; horizontal: boolean } | null>(null);
@@ -210,6 +214,71 @@ export default function App() {
         completeNavigation(nextTab);
       }, duration);
     }));
+  };
+
+  const updateDraggedNav = (clientX: number, timeStamp: number) => {
+    const drag = navDragRef.current;
+    const rail = navRailRef.current;
+    const track = navTrackRef.current;
+    if (!drag || !rail || !track) return;
+    const bounds = rail.getBoundingClientRect();
+    const itemWidth = bounds.width / APP_TABS.length;
+    const position = Math.max(0, Math.min(APP_TABS.length - 1, (clientX - bounds.left) / itemWidth - 0.5));
+    const elapsed = Math.max(8, timeStamp - drag.lastTime);
+    const velocity = Math.max(-1, Math.min(1, (clientX - drag.lastX) / elapsed));
+    drag.position = position;
+    drag.lastX = clientX;
+    drag.lastTime = timeStamp;
+    drag.dragging ||= Math.abs(clientX - drag.startX) > 5;
+    track.style.setProperty('--nav-position', position.toFixed(4));
+    track.style.setProperty('--nav-drag-scale', (1 + Math.abs(velocity) * 0.24).toFixed(3));
+    track.style.setProperty('--nav-drag-skew', `${(velocity * -5).toFixed(2)}deg`);
+    track.style.setProperty('--nav-tail-opacity', Math.min(0.62, Math.abs(velocity) * 0.75).toFixed(3));
+  };
+
+  const handleNavPointerDown = (event: ReactPointerEvent<HTMLElement>) => {
+    if (event.button !== 0 || swipeTimerRef.current !== null) return;
+    event.currentTarget.setPointerCapture(event.pointerId);
+    navDragRef.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      lastX: event.clientX,
+      lastTime: event.timeStamp,
+      position: APP_TABS.indexOf(navMotion.tab),
+      dragging: false
+    };
+    navTrackRef.current?.classList.add('is-dragging');
+    updateDraggedNav(event.clientX, event.timeStamp);
+  };
+
+  const handleNavPointerMove = (event: ReactPointerEvent<HTMLElement>) => {
+    if (navDragRef.current?.pointerId !== event.pointerId) return;
+    updateDraggedNav(event.clientX, event.timeStamp);
+  };
+
+  const finishNavDrag = (event: ReactPointerEvent<HTMLElement>, cancelled = false) => {
+    const drag = navDragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+    navTrackRef.current?.classList.remove('is-dragging');
+    navTrackRef.current?.style.removeProperty('--nav-drag-scale');
+    navTrackRef.current?.style.removeProperty('--nav-drag-skew');
+    navTrackRef.current?.style.removeProperty('--nav-tail-opacity');
+    const targetIndex = cancelled ? APP_TABS.indexOf(activeTab) : Math.round(drag.position);
+    const targetTab = APP_TABS[targetIndex];
+    const direction: -1 | 1 = targetIndex >= APP_TABS.indexOf(activeTab) ? 1 : -1;
+    suppressNavClickRef.current = drag.dragging;
+    navDragRef.current = null;
+    if (targetTab !== activeTab) animateToTab(targetTab, true);
+    else setNavMotion((current) => ({ tab: targetTab, direction, sequence: current.sequence + 1 }));
+  };
+
+  const handleNavClick = (tab: AppTab) => {
+    if (suppressNavClickRef.current) {
+      suppressNavClickRef.current = false;
+      return;
+    }
+    animateToTab(tab);
   };
 
   const resetSwipe = () => {
@@ -657,11 +726,18 @@ export default function App() {
       </main>
 
       {/* Bottom Floating Navigation Tabs */}
-      {!showSettings && <nav className="nav-tabs">
-        <span className="nav-liquid-rail" aria-hidden="true">
+      {!showSettings && <nav
+        className="nav-tabs"
+        onPointerDown={handleNavPointerDown}
+        onPointerMove={handleNavPointerMove}
+        onPointerUp={finishNavDrag}
+        onPointerCancel={(event) => finishNavDrag(event, true)}
+      >
+        <span ref={navRailRef} className="nav-liquid-rail" aria-hidden="true">
           <span
+            ref={navTrackRef}
             className="nav-liquid-track"
-            style={{ '--nav-index': APP_TABS.indexOf(navMotion.tab) } as CSSProperties}
+            style={{ '--nav-position': APP_TABS.indexOf(navMotion.tab) } as CSSProperties}
           >
             <span
               key={navMotion.sequence}
@@ -671,7 +747,7 @@ export default function App() {
         </span>
         <button 
           type="button"
-          onClick={() => animateToTab('dashboard')}
+          onClick={() => handleNavClick('dashboard')}
           className={`nav-tab-item ${activeTab === 'dashboard' ? 'active' : ''}`}
           aria-current={activeTab === 'dashboard' ? 'page' : undefined}
         >
@@ -680,7 +756,7 @@ export default function App() {
         </button>
         <button 
           type="button"
-          onClick={() => animateToTab('records')}
+          onClick={() => handleNavClick('records')}
           className={`nav-tab-item ${activeTab === 'records' ? 'active' : ''}`}
           aria-current={activeTab === 'records' ? 'page' : undefined}
         >
@@ -689,7 +765,7 @@ export default function App() {
         </button>
         <button 
           type="button"
-          onClick={() => animateToTab('guide')}
+          onClick={() => handleNavClick('guide')}
           className={`nav-tab-item ${activeTab === 'guide' ? 'active' : ''}`}
           aria-current={activeTab === 'guide' ? 'page' : undefined}
         >
@@ -698,7 +774,7 @@ export default function App() {
         </button>
         <button 
           type="button"
-          onClick={() => animateToTab('stats')}
+          onClick={() => handleNavClick('stats')}
           className={`nav-tab-item ${activeTab === 'stats' ? 'active' : ''}`}
           aria-current={activeTab === 'stats' ? 'page' : undefined}
         >
