@@ -12,10 +12,14 @@ import { VelocityTracker1D } from '../vendor/liquid-glass-webgl/velocity-tracker
 const CONTROL_SELECTOR = [
   '.header-icon-btn',
   '.record-tab-grid button',
+  '.records-type-filter button',
+  '.records-feeding-filter button',
+  '.records-clear-filter',
   '.pill-option',
   '.pill-selection button',
   '.guide-pill',
   '.stats-segmented button',
+  '.stats-summary-item',
   '.settings-segmented button',
   '.noise-segmented button',
   '.noise-category-tabs button',
@@ -28,6 +32,9 @@ const CONTROL_SELECTOR = [
   '.settings-update-btn',
   '.baby-add-button',
   '.noise-track-option',
+  '.incrementor-btn',
+  '.timeline-edit-btn',
+  '.timeline-delete-btn',
   '[role="switch"]',
 ].join(',');
 

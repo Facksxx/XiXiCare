@@ -69,7 +69,7 @@ export default function App() {
   // Navigation tabs: 'dashboard' | 'guide' | 'stats' | 'records'
   const [activeTab, setActiveTab] = useState<AppTab>('dashboard');
   const [navMotion, setNavMotion] = useState({ tab: 'dashboard' as AppTab, direction: 1 as -1 | 1, sequence: 0 });
-  const [navHighlightedTab, setNavHighlightedTab] = useState<AppTab>('dashboard');
+  const [navVisualPosition, setNavVisualPosition] = useState(0);
   const [swipePreview, setSwipePreview] = useState<SwipePreview | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [showWhiteNoise, setShowWhiteNoise] = useState(false);
@@ -185,7 +185,7 @@ export default function App() {
   const completeNavigation = (nextTab: AppTab) => {
     setActiveTab(nextTab);
     navHighlightedRef.current = nextTab;
-    setNavHighlightedTab(nextTab);
+    setNavVisualPosition(APP_TABS.indexOf(nextTab));
     setSwipePreview(null);
     swipePreviewRef.current = null;
     clearSwipeStyles();
@@ -200,7 +200,7 @@ export default function App() {
     if (swipeTimerRef.current !== null) return;
     const side: -1 | 1 = APP_TABS.indexOf(nextTab) > APP_TABS.indexOf(activeTab) ? 1 : -1;
     navHighlightedRef.current = nextTab;
-    setNavHighlightedTab(nextTab);
+    if (!fromDrag) setNavVisualPosition(APP_TABS.indexOf(nextTab));
     setNavMotion((current) => ({ tab: nextTab, direction: side, sequence: current.sequence + 1 }));
     const preview = { tab: nextTab, side };
     swipePreviewRef.current = preview;
@@ -241,11 +241,11 @@ export default function App() {
     drag.tracker.addPosition(timeStamp, position);
     drag.dragging ||= Math.abs(clientX - drag.startX) > 5;
     track.style.setProperty('--nav-position', position.toFixed(4));
+    setNavVisualPosition(position);
     const dragVelocity = Math.max(-3, Math.min(3, drag.tracker.calculateVelocity()));
     track.style.setProperty('--nav-drag-scale', (1 + Math.abs(dragVelocity) * 0.018).toFixed(3));
     if (nearestTab !== navHighlightedRef.current) {
       navHighlightedRef.current = nearestTab;
-      setNavHighlightedTab(nearestTab);
     }
   };
 
@@ -285,7 +285,6 @@ export default function App() {
     suppressNavClickRef.current = drag.dragging;
     navDragRef.current = null;
     navHighlightedRef.current = targetTab;
-    setNavHighlightedTab(targetTab);
     if (targetTab !== activeTab) animateToTab(targetTab, true);
     else setNavMotion((current) => ({ tab: targetTab, direction, sequence: current.sequence + 1 }));
 
@@ -300,8 +299,10 @@ export default function App() {
       position = next.current;
       velocity = next.velocity;
       track.style.setProperty('--nav-position', position.toFixed(4));
+      setNavVisualPosition(position);
       if (Math.abs(position - targetIndex) < SPRING_THRESHOLD && Math.abs(velocity) < 0.03) {
         track.style.setProperty('--nav-position', String(targetIndex));
+        setNavVisualPosition(targetIndex);
         navSpringFrameRef.current = null;
         return;
       }
@@ -775,7 +776,7 @@ export default function App() {
           <span
             ref={navTrackRef}
             className="nav-liquid-track"
-            style={{ '--nav-position': APP_TABS.indexOf(navMotion.tab) } as CSSProperties}
+            style={{ '--nav-position': navVisualPosition } as CSSProperties}
           >
             <span className="nav-liquid-glass" />
           </span>
@@ -783,37 +784,41 @@ export default function App() {
         <button 
           type="button"
           onClick={() => handleNavClick('dashboard')}
-          className={`nav-tab-item ${navHighlightedTab === 'dashboard' ? 'active' : ''}`}
+          className={`nav-tab-item ${Math.abs(navVisualPosition) < 1 ? 'active' : ''}`}
+          style={{ '--nav-proximity': Math.max(0, 1 - Math.abs(navVisualPosition)) } as CSSProperties}
           aria-current={activeTab === 'dashboard' ? 'page' : undefined}
         >
-          <NavIcon icon={Calendar} active={navHighlightedTab === 'dashboard'} />
+          <NavIcon icon={Calendar} active={Math.abs(navVisualPosition) < 1} />
           <span>记录大盘</span>
         </button>
         <button 
           type="button"
           onClick={() => handleNavClick('records')}
-          className={`nav-tab-item ${navHighlightedTab === 'records' ? 'active' : ''}`}
+          className={`nav-tab-item ${Math.abs(navVisualPosition - 1) < 1 ? 'active' : ''}`}
+          style={{ '--nav-proximity': Math.max(0, 1 - Math.abs(navVisualPosition - 1)) } as CSSProperties}
           aria-current={activeTab === 'records' ? 'page' : undefined}
         >
-          <NavIcon icon={Sparkles} active={navHighlightedTab === 'records'} />
+          <NavIcon icon={Sparkles} active={Math.abs(navVisualPosition - 1) < 1} />
           <span>时间轴</span>
         </button>
         <button 
           type="button"
           onClick={() => handleNavClick('guide')}
-          className={`nav-tab-item ${navHighlightedTab === 'guide' ? 'active' : ''}`}
+          className={`nav-tab-item ${Math.abs(navVisualPosition - 2) < 1 ? 'active' : ''}`}
+          style={{ '--nav-proximity': Math.max(0, 1 - Math.abs(navVisualPosition - 2)) } as CSSProperties}
           aria-current={activeTab === 'guide' ? 'page' : undefined}
         >
-          <NavIcon icon={BookOpen} active={navHighlightedTab === 'guide'} />
+          <NavIcon icon={BookOpen} active={Math.abs(navVisualPosition - 2) < 1} />
           <span>喂养指南</span>
         </button>
         <button 
           type="button"
           onClick={() => handleNavClick('stats')}
-          className={`nav-tab-item ${navHighlightedTab === 'stats' ? 'active' : ''}`}
+          className={`nav-tab-item ${Math.abs(navVisualPosition - 3) < 1 ? 'active' : ''}`}
+          style={{ '--nav-proximity': Math.max(0, 1 - Math.abs(navVisualPosition - 3)) } as CSSProperties}
           aria-current={activeTab === 'stats' ? 'page' : undefined}
         >
-          <NavIcon icon={BarChart2} active={navHighlightedTab === 'stats'} />
+          <NavIcon icon={BarChart2} active={Math.abs(navVisualPosition - 3) < 1} />
           <span>成长统计</span>
         </button>
       </nav>}

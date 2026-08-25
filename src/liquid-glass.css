@@ -15,6 +15,8 @@
   --glass-inset: inset 0 1px 0 rgba(255, 255, 255, 0.92), inset 0 -1px 0 rgba(91, 122, 107, 0.08);
   --glass-blur: 16px;
   --glass-saturation: 1.5;
+  --glass-control-border: rgba(113, 148, 132, 0.3);
+  --glass-control-highlight: rgba(255, 255, 255, 0.88);
 }
 
 [data-theme='dark'] {
@@ -26,6 +28,8 @@
   --glass-shadow: 0 12px 30px rgba(0, 0, 0, 0.27), 0 2px 8px rgba(0, 0, 0, 0.18);
   --glass-shadow-float: 0 20px 56px rgba(0, 0, 0, 0.42), 0 4px 16px rgba(0, 0, 0, 0.24);
   --glass-inset: inset 0 1px 0 rgba(255, 255, 255, 0.12), inset 0 -1px 0 rgba(0, 0, 0, 0.16);
+  --glass-control-border: rgba(175, 218, 198, 0.24);
+  --glass-control-highlight: rgba(255, 255, 255, 0.15);
 }
 
 body {
@@ -63,8 +67,8 @@ body:has([data-theme='dark']) {
 .incrementor-btn,
 .icon-button {
   background: var(--glass-surface-soft);
-  border-color: var(--glass-stroke);
-  box-shadow: var(--glass-inset), 0 5px 14px rgba(61, 82, 72, 0.06);
+  border: 1px solid var(--glass-control-border);
+  box-shadow: inset 0 1px 0 var(--glass-control-highlight), inset 0 -1px 0 rgba(74, 116, 96, 0.08), 0 6px 16px rgba(61, 82, 72, 0.09);
   -webkit-backdrop-filter: blur(10px) saturate(1.35);
   backdrop-filter: blur(10px) saturate(1.35);
 }
@@ -150,6 +154,47 @@ select,
   backdrop-filter: blur(10px) saturate(1.35);
 }
 
+.records-type-filter,
+.records-feeding-filter,
+.pill-selection,
+.quick-options-row,
+.quick-duration-row {
+  background: color-mix(in srgb, var(--glass-surface-soft) 82%, transparent);
+  border: 1px solid var(--glass-stroke-soft);
+  border-radius: 12px;
+  padding: 3px;
+  box-shadow: var(--glass-inset);
+  -webkit-backdrop-filter: blur(8px) saturate(1.35);
+  backdrop-filter: blur(8px) saturate(1.35);
+}
+
+.record-tab-grid {
+  border: 0;
+  box-shadow: none;
+  background: transparent;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+.record-tab-grid .pill-option,
+.records-type-filter button,
+.records-feeding-filter button,
+.stats-segmented button,
+.settings-segmented button,
+.noise-segmented button,
+.noise-category-tabs button,
+.pill-selection .pill-option,
+.quick-option-chip,
+.quick-duration-btn,
+.quick-time-btn {
+  border: 1px solid transparent;
+  background: transparent;
+  box-shadow: none;
+  overflow: hidden;
+  -webkit-backdrop-filter: blur(0);
+  backdrop-filter: blur(0);
+}
+
 .stats-segmented button.active,
 .settings-segmented button.active,
 .noise-segmented button.active,
@@ -160,6 +205,45 @@ select,
   box-shadow: 0 7px 18px rgba(57, 82, 70, 0.12), var(--glass-inset);
   -webkit-backdrop-filter: blur(12px) saturate(1.5);
   backdrop-filter: blur(12px) saturate(1.5);
+}
+
+.record-tab-grid .pill-option.active,
+.record-tab-grid .pill-option.active-amber,
+.record-tab-grid .pill-option.active-lavender,
+.records-type-filter button.active,
+.records-feeding-filter button.active,
+.pill-selection .pill-option.active,
+.pill-selection .pill-option.active-amber,
+.pill-selection .pill-option.active-lavender,
+.quick-option-chip.active,
+.quick-duration-btn.active {
+  border-color: var(--glass-control-highlight);
+  background: color-mix(in srgb, var(--glass-surface-strong) 74%, transparent);
+  box-shadow: 0 7px 18px rgba(57, 82, 70, 0.1), var(--glass-inset);
+  -webkit-backdrop-filter: blur(10px) saturate(1.5);
+  backdrop-filter: blur(10px) saturate(1.5);
+}
+
+.quick-option-chip.active,
+.quick-duration-btn.active {
+  color: var(--sage) !important;
+  text-shadow: none;
+}
+
+.records-type-filter button.active,
+.stats-segmented button.active {
+  color: var(--sage);
+}
+
+.records-feeding-filter button.active,
+.record-tab-grid .pill-option.active-amber,
+.pill-selection .pill-option.active-amber {
+  color: var(--amber);
+}
+
+.record-tab-grid .pill-option.active-lavender,
+.pill-selection .pill-option.active-lavender {
+  color: var(--lavender);
 }
 
 .modal-overlay,
@@ -226,6 +310,33 @@ select,
     inset 0 0 0 1px rgba(255, 255, 255, 0.44),
     inset -13px -10px 20px rgba(78, 144, 113, 0.18),
     inset 12px 8px 22px rgba(255, 255, 255, 0.62);
+}
+
+.nav-liquid-track.is-dragging .nav-liquid-glass {
+  transform: scaleX(var(--nav-drag-scale, 1)) scaleY(0.96);
+}
+
+.nav-tab-item.active {
+  color: var(--sage);
+  opacity: calc(0.72 + 0.28 * var(--nav-proximity, 1));
+}
+
+.nav-icon-outline {
+  opacity: 1;
+}
+
+.records-clear-filter,
+.settings-data-actions > button,
+.settings-update-btn,
+.baby-add-button,
+.sound-pack-row button,
+.timeline-edit-btn,
+.timeline-delete-btn {
+  background: color-mix(in srgb, var(--glass-surface-soft) 82%, transparent);
+  border: 1px solid var(--glass-control-border);
+  box-shadow: var(--glass-inset), 0 5px 13px rgba(53, 76, 65, 0.06);
+  -webkit-backdrop-filter: blur(9px) saturate(1.35);
+  backdrop-filter: blur(9px) saturate(1.35);
 }
 
 .liquid-control {

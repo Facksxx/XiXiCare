@@ -450,7 +450,7 @@ select {
 
 .nav-icon-fill {
   fill: currentColor;
-  stroke-width: 4.8px !important;
+  stroke-width: 2px !important;
   opacity: 0;
 }
 
@@ -460,12 +460,12 @@ select {
 }
 
 .nav-icon.filled .nav-icon-fill {
-  opacity: 0.28;
+  opacity: calc(0.42 * var(--nav-proximity, 1));
 }
 
 .nav-tab-item.active .nav-icon {
   filter: drop-shadow(0 2px 3px rgba(103, 151, 130, 0.18));
-  transform: scale(1.05);
+  transform: scale(calc(1 + 0.06 * var(--nav-proximity, 1)));
 }
 
 .nav-tab-item span {
@@ -1040,8 +1040,8 @@ select {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 6px;
-  border-bottom: 1px solid var(--border);
-  padding-bottom: 10px;
+  border-bottom: 0;
+  padding: 3px;
   margin-bottom: 10px;
 }
 
