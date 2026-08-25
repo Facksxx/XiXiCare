@@ -63,6 +63,7 @@ interface GiteeReleaseResponse {
 interface GiteeAttachment {
   id: number;
   name: string;
+  browser_download_url?: string;
 }
 
 /**
@@ -114,7 +115,8 @@ export const fetchLatestRelease = async (): Promise<RemoteRelease> => {
     version,
     tag,
     htmlUrl: data.html_url || RELEASES_PAGE_URL,
-    apkUrl: `https://gitee.com/api/v5/repos/${RELEASE_REPO}/releases/${data.id}/attach_files/${apkAsset.id}/download`,
+    apkUrl: apkAsset.browser_download_url
+      || `https://gitee.com/${RELEASE_REPO}/releases/download/${encodeURIComponent(tag)}/${encodeURIComponent(apkAsset.name)}`,
     publishedAt: data.published_at ?? data.created_at ?? '',
     notes: (data.body ?? '').trim(),
     history
