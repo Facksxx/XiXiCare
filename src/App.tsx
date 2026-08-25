@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, type CSSProperties, type PointerEvent as ReactPointerEvent, type TouchEvent as ReactTouchEvent } from 'react';
+import { useState, useEffect, useRef, type CSSProperties, type TouchEvent as ReactTouchEvent } from 'react';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import type { ActivityLog, BabyInfo } from './types/baby';
 import { compressImage } from './utils/imageCompress';
@@ -13,16 +13,12 @@ import { Settings as SettingsPage } from './components/Settings';
 import { WhiteNoisePlayer } from './components/WhiteNoisePlayer';
 import { ConfirmModal } from './components/ConfirmModal';
 import { DateTimePicker } from './components/DateTimePicker';
-import { LiquidGlassInteractions } from './components/LiquidGlassInteractions';
 import { fetchLatestRelease, isNewer, type RemoteRelease } from './utils/version';
 import { BackNavigation } from './plugins/backNavigation';
 import { Capacitor } from '@capacitor/core';
 import { Sun, Moon, Calendar, BookOpen, BarChart2, Edit2, Check, Sparkles, Settings, Music2, ChevronDown, Plus } from 'lucide-react';
 import type { Icon } from 'lucide-react';
-import { SPRING_THRESHOLD, TOGGLE_VALUE_OMEGA_N, springStepCritical } from './vendor/liquid-glass-webgl/spring';
-import { VelocityTracker1D } from './vendor/liquid-glass-webgl/velocity-tracker';
 import './index.css';
-import './liquid-glass.css';
 
 type AppTab = 'dashboard' | 'records' | 'guide' | 'stats';
 type SwipePreview = { tab: AppTab; side: -1 | 1 };
@@ -69,7 +65,6 @@ export default function App() {
   // Navigation tabs: 'dashboard' | 'guide' | 'stats' | 'records'
   const [activeTab, setActiveTab] = useState<AppTab>('dashboard');
   const [navMotion, setNavMotion] = useState({ tab: 'dashboard' as AppTab, direction: 1 as -1 | 1, sequence: 0 });
-  const [navVisualPosition, setNavVisualPosition] = useState(0);
   const [swipePreview, setSwipePreview] = useState<SwipePreview | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [showWhiteNoise, setShowWhiteNoise] = useState(false);
@@ -156,12 +151,6 @@ export default function App() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const currentPageRef = useRef<HTMLDivElement>(null);
   const previewPageRef = useRef<HTMLDivElement>(null);
-  const navRailRef = useRef<HTMLSpanElement>(null);
-  const navTrackRef = useRef<HTMLSpanElement>(null);
-  const navDragRef = useRef<{ pointerId: number; startX: number; position: number; dragging: boolean; tracker: VelocityTracker1D } | null>(null);
-  const navSpringFrameRef = useRef<number | null>(null);
-  const navHighlightedRef = useRef<AppTab>('dashboard');
-  const suppressNavClickRef = useRef(false);
   const swipePreviewRef = useRef<SwipePreview | null>(null);
   const swipeTimerRef = useRef<number | null>(null);
   const swipeStartRef = useRef<{ x: number; y: number; time: number; blocked: boolean; horizontal: boolean } | null>(null);
@@ -184,8 +173,6 @@ export default function App() {
 
   const completeNavigation = (nextTab: AppTab) => {
     setActiveTab(nextTab);
-    navHighlightedRef.current = nextTab;
-    setNavVisualPosition(APP_TABS.indexOf(nextTab));
     setSwipePreview(null);
     swipePreviewRef.current = null;
     clearSwipeStyles();
@@ -199,8 +186,6 @@ export default function App() {
     }
     if (swipeTimerRef.current !== null) return;
     const side: -1 | 1 = APP_TABS.indexOf(nextTab) > APP_TABS.indexOf(activeTab) ? 1 : -1;
-    navHighlightedRef.current = nextTab;
-    if (!fromDrag) setNavVisualPosition(APP_TABS.indexOf(nextTab));
     setNavMotion((current) => ({ tab: nextTab, direction: side, sequence: current.sequence + 1 }));
     const preview = { tab: nextTab, side };
     swipePreviewRef.current = preview;
@@ -225,98 +210,6 @@ export default function App() {
         completeNavigation(nextTab);
       }, duration);
     }));
-  };
-
-  const updateDraggedNav = (clientX: number, timeStamp: number) => {
-    const drag = navDragRef.current;
-    const rail = navRailRef.current;
-    const track = navTrackRef.current;
-    if (!drag || !rail || !track) return;
-    const bounds = rail.getBoundingClientRect();
-    const itemWidth = bounds.width / APP_TABS.length;
-    const position = Math.max(0, Math.min(APP_TABS.length - 1, (clientX - bounds.left) / itemWidth - 0.5));
-    const nearestIndex = Math.round(position);
-    const nearestTab = APP_TABS[nearestIndex];
-    drag.position = position;
-    drag.tracker.addPosition(timeStamp, position);
-    drag.dragging ||= Math.abs(clientX - drag.startX) > 5;
-    track.style.setProperty('--nav-position', position.toFixed(4));
-    setNavVisualPosition(position);
-    const dragVelocity = Math.max(-3, Math.min(3, drag.tracker.calculateVelocity()));
-    track.style.setProperty('--nav-drag-scale', (1 + Math.abs(dragVelocity) * 0.018).toFixed(3));
-    if (nearestTab !== navHighlightedRef.current) {
-      navHighlightedRef.current = nearestTab;
-    }
-  };
-
-  const handleNavPointerDown = (event: ReactPointerEvent<HTMLElement>) => {
-    if (event.button !== 0 || swipeTimerRef.current !== null) return;
-    event.currentTarget.setPointerCapture(event.pointerId);
-    if (navSpringFrameRef.current !== null) cancelAnimationFrame(navSpringFrameRef.current);
-    const tracker = new VelocityTracker1D();
-    const position = APP_TABS.indexOf(navMotion.tab);
-    tracker.addPosition(event.timeStamp, position);
-    navDragRef.current = {
-      pointerId: event.pointerId,
-      startX: event.clientX,
-      position,
-      dragging: false,
-      tracker,
-    };
-    navTrackRef.current?.classList.add('is-dragging');
-    updateDraggedNav(event.clientX, event.timeStamp);
-  };
-
-  const handleNavPointerMove = (event: ReactPointerEvent<HTMLElement>) => {
-    if (navDragRef.current?.pointerId !== event.pointerId) return;
-    updateDraggedNav(event.clientX, event.timeStamp);
-  };
-
-  const finishNavDrag = (event: ReactPointerEvent<HTMLElement>, cancelled = false) => {
-    const drag = navDragRef.current;
-    if (!drag || drag.pointerId !== event.pointerId) return;
-    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
-    const track = navTrackRef.current;
-    track?.classList.remove('is-dragging');
-    track?.style.removeProperty('--nav-drag-scale');
-    const targetIndex = cancelled ? APP_TABS.indexOf(activeTab) : Math.round(drag.position);
-    const targetTab = APP_TABS[targetIndex];
-    const direction: -1 | 1 = targetIndex >= APP_TABS.indexOf(activeTab) ? 1 : -1;
-    suppressNavClickRef.current = drag.dragging;
-    navDragRef.current = null;
-    navHighlightedRef.current = targetTab;
-    if (targetTab !== activeTab) animateToTab(targetTab, true);
-    else setNavMotion((current) => ({ tab: targetTab, direction, sequence: current.sequence + 1 }));
-
-    if (!track) return;
-    let position = drag.position;
-    let velocity = cancelled ? 0 : drag.tracker.calculateVelocity();
-    let previous = performance.now();
-    const settle = (now: number) => {
-      const dt = Math.min(0.034, Math.max(0.001, (now - previous) / 1000));
-      previous = now;
-      const next = springStepCritical(position, velocity, targetIndex, dt, TOGGLE_VALUE_OMEGA_N);
-      position = next.current;
-      velocity = next.velocity;
-      track.style.setProperty('--nav-position', position.toFixed(4));
-      setNavVisualPosition(position);
-      if (Math.abs(position - targetIndex) < SPRING_THRESHOLD && Math.abs(velocity) < 0.03) {
-        track.style.setProperty('--nav-position', String(targetIndex));
-        setNavVisualPosition(targetIndex);
-        navSpringFrameRef.current = null;
-        return;
-      }
-      navSpringFrameRef.current = requestAnimationFrame(settle);
-    };
-    navSpringFrameRef.current = requestAnimationFrame(settle);
-  };
-
-  const handleNavClick = (tab: AppTab) => {
-    if (suppressNavClickRef.current) {
-      suppressNavClickRef.current = false;
-      return;
-    }
-    animateToTab(tab);
   };
 
   const resetSwipe = () => {
@@ -656,7 +549,6 @@ export default function App() {
 
   return (
     <div className={`app-shell${showSettings ? ' settings-shell' : ''}`}>
-      <LiquidGlassInteractions />
       {/* Header Bar */}
       {!showSettings && <header className="header">
         <div className="baby-info">
@@ -765,60 +657,52 @@ export default function App() {
       </main>
 
       {/* Bottom Floating Navigation Tabs */}
-      {!showSettings && <nav
-        className="nav-tabs"
-        onPointerDown={handleNavPointerDown}
-        onPointerMove={handleNavPointerMove}
-        onPointerUp={finishNavDrag}
-        onPointerCancel={(event) => finishNavDrag(event, true)}
-      >
-        <span ref={navRailRef} className="nav-liquid-rail" aria-hidden="true">
+      {!showSettings && <nav className="nav-tabs">
+        <span className="nav-liquid-rail" aria-hidden="true">
           <span
-            ref={navTrackRef}
             className="nav-liquid-track"
-            style={{ '--nav-position': navVisualPosition } as CSSProperties}
+            style={{ '--nav-index': APP_TABS.indexOf(navMotion.tab) } as CSSProperties}
           >
-            <span className="nav-liquid-glass" />
+            <span
+              key={navMotion.sequence}
+              className={`nav-liquid-glass ${navMotion.direction > 0 ? 'moving-forward' : 'moving-backward'}`}
+            />
           </span>
         </span>
         <button 
           type="button"
-          onClick={() => handleNavClick('dashboard')}
-          className={`nav-tab-item ${Math.abs(navVisualPosition) < 1 ? 'active' : ''}`}
-          style={{ '--nav-proximity': Math.max(0, 1 - Math.abs(navVisualPosition)) } as CSSProperties}
+          onClick={() => animateToTab('dashboard')}
+          className={`nav-tab-item ${activeTab === 'dashboard' ? 'active' : ''}`}
           aria-current={activeTab === 'dashboard' ? 'page' : undefined}
         >
-          <NavIcon icon={Calendar} active={Math.abs(navVisualPosition) < 1} />
+          <NavIcon icon={Calendar} active={activeTab === 'dashboard'} />
           <span>记录大盘</span>
         </button>
         <button 
           type="button"
-          onClick={() => handleNavClick('records')}
-          className={`nav-tab-item ${Math.abs(navVisualPosition - 1) < 1 ? 'active' : ''}`}
-          style={{ '--nav-proximity': Math.max(0, 1 - Math.abs(navVisualPosition - 1)) } as CSSProperties}
+          onClick={() => animateToTab('records')}
+          className={`nav-tab-item ${activeTab === 'records' ? 'active' : ''}`}
           aria-current={activeTab === 'records' ? 'page' : undefined}
         >
-          <NavIcon icon={Sparkles} active={Math.abs(navVisualPosition - 1) < 1} />
+          <NavIcon icon={Sparkles} active={activeTab === 'records'} />
           <span>时间轴</span>
         </button>
         <button 
           type="button"
-          onClick={() => handleNavClick('guide')}
-          className={`nav-tab-item ${Math.abs(navVisualPosition - 2) < 1 ? 'active' : ''}`}
-          style={{ '--nav-proximity': Math.max(0, 1 - Math.abs(navVisualPosition - 2)) } as CSSProperties}
+          onClick={() => animateToTab('guide')}
+          className={`nav-tab-item ${activeTab === 'guide' ? 'active' : ''}`}
           aria-current={activeTab === 'guide' ? 'page' : undefined}
         >
-          <NavIcon icon={BookOpen} active={Math.abs(navVisualPosition - 2) < 1} />
+          <NavIcon icon={BookOpen} active={activeTab === 'guide'} />
           <span>喂养指南</span>
         </button>
         <button 
           type="button"
-          onClick={() => handleNavClick('stats')}
-          className={`nav-tab-item ${Math.abs(navVisualPosition - 3) < 1 ? 'active' : ''}`}
-          style={{ '--nav-proximity': Math.max(0, 1 - Math.abs(navVisualPosition - 3)) } as CSSProperties}
+          onClick={() => animateToTab('stats')}
+          className={`nav-tab-item ${activeTab === 'stats' ? 'active' : ''}`}
           aria-current={activeTab === 'stats' ? 'page' : undefined}
         >
-          <NavIcon icon={BarChart2} active={Math.abs(navVisualPosition - 3) < 1} />
+          <NavIcon icon={BarChart2} active={activeTab === 'stats'} />
           <span>成长统计</span>
         </button>
       </nav>}
