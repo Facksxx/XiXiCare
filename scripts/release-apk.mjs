@@ -23,7 +23,7 @@ run('npm', ['run', 'apk:build']);
 const version = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')).version;
 const tag = `v${version}`;
 
-run('git', ['add', 'package.json', 'package-lock.json', 'android/app/build.gradle']);
+run('git', ['add', 'package.json', 'package-lock.json', 'android/app/build.gradle', 'update-manifest.json']);
 run('git', ['commit', '-m', `release: ${tag}`]);
 run('git', ['tag', '-a', tag, '-m', `XiXiCare ${version}`]);
 run('git', ['push', 'origin', 'main', '--follow-tags']);

@@ -3,9 +3,11 @@
 export const APP_VERSION: string = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '0.0.0';
 
 export const RELEASE_REPO = 'Facksxx/xi-xi-care';
-export const RELEASE_API_URL = `https://gitee.com/api/v5/repos/${RELEASE_REPO}/releases/latest`;
-export const RELEASES_API_URL = `https://gitee.com/api/v5/repos/${RELEASE_REPO}/releases?per_page=100`;
 export const RELEASES_PAGE_URL = `https://gitee.com/${RELEASE_REPO}/releases`;
+export const UPDATE_MANIFEST_URLS = [
+  `https://gitee.com/${RELEASE_REPO}/raw/main/update-manifest.json`,
+  'https://raw.githubusercontent.com/Facksxx/XiXiCare/main/update-manifest.json'
+];
 
 export interface RemoteRelease {
   /** 不带前缀 v 的版本号，例如 "1.0.3" */
@@ -51,72 +53,34 @@ export const compareVersions = (a: string, b: string): number => {
 /** 判断 remote 是否比当前版本更新 */
 export const isNewer = (remote: string, current: string = APP_VERSION): boolean => compareVersions(remote, current) > 0;
 
-interface GiteeReleaseResponse {
-  id: number;
-  tag_name: string;
-  html_url?: string | null;
-  created_at?: string;
-  published_at?: string | null;
-  body?: string;
-}
-
-interface GiteeAttachment {
-  id: number;
-  name: string;
-}
-
 /**
- * 拉取 Gitee 最新 release 及 APK 附件信息。
+ * 从仓库静态清单动态读取最新版本，避免 Gitee 匿名 API 的频率限制。
  * @throws 网络或解析异常时抛出 Error
  */
 export const fetchLatestRelease = async (): Promise<RemoteRelease> => {
-  const headers = { Accept: 'application/json' };
-  const response = await fetch(RELEASE_API_URL, {
-    headers,
-    cache: 'no-store'
-  });
-  if (!response.ok) {
-    throw new Error(`获取更新信息失败（HTTP ${response.status}）`);
-  }
-  const data = (await response.json()) as GiteeReleaseResponse;
-  const tag = data.tag_name ?? '';
-  const version = tag.replace(/^v/i, '');
-  const attachmentsResponse = await fetch(
-    `https://gitee.com/api/v5/repos/${RELEASE_REPO}/releases/${data.id}/attach_files?per_page=100`,
-    { headers, cache: 'no-store' }
-  );
-  if (!attachmentsResponse.ok) {
-    throw new Error(`获取安装包信息失败（HTTP ${attachmentsResponse.status}）`);
-  }
-  const attachments = (await attachmentsResponse.json()) as GiteeAttachment[];
-  const apkAsset = attachments.find(asset => asset.name.toLowerCase() === 'xixicare.apk')
-    ?? attachments.find(asset => asset.name.toLowerCase().endsWith('.apk'));
-  if (!apkAsset) throw new Error('当前发行版未包含 XiXiCare.apk');
-  let history: RemoteRelease['history'] = [];
-  try {
-    const releasesResponse = await fetch(RELEASES_API_URL, { headers, cache: 'no-store' });
-    if (releasesResponse.ok) {
-      const releases = (await releasesResponse.json()) as GiteeReleaseResponse[];
-      history = releases
-        .map(release => ({
-          version: (release.tag_name ?? '').replace(/^v/i, ''),
-          publishedAt: release.published_at ?? release.created_at ?? '',
-          notes: (release.body ?? '').trim()
-        }))
-        .filter(release => release.version && compareVersions(release.version, APP_VERSION) > 0 && compareVersions(release.version, version) <= 0)
-        .sort((a, b) => compareVersions(a.version, b.version));
+  let lastError: unknown;
+  for (const url of UPDATE_MANIFEST_URLS) {
+    try {
+      const separator = url.includes('?') ? '&' : '?';
+      const response = await fetch(`${url}${separator}t=${Date.now()}`, {
+        headers: { Accept: 'application/json' },
+        cache: 'no-store'
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const release = (await response.json()) as RemoteRelease;
+      if (!release.version || !release.tag || !release.apkUrl) throw new Error('更新清单内容不完整');
+      const fullHistory = Array.isArray(release.history) ? release.history : [];
+      return {
+        ...release,
+        htmlUrl: release.htmlUrl || RELEASES_PAGE_URL,
+        history: fullHistory
+          .filter(item => compareVersions(item.version, APP_VERSION) > 0 && compareVersions(item.version, release.version) <= 0)
+          .sort((a, b) => compareVersions(a.version, b.version))
+      };
+    } catch (error) {
+      lastError = error;
     }
-  } catch {
-    // Latest release information is still usable when release history is unavailable.
   }
-  if (history.length === 0) history = [{ version, publishedAt: data.published_at ?? data.created_at ?? '', notes: (data.body ?? '').trim() }];
-  return {
-    version,
-    tag,
-    htmlUrl: data.html_url || RELEASES_PAGE_URL,
-    apkUrl: `https://gitee.com/api/v5/repos/${RELEASE_REPO}/releases/${data.id}/attach_files/${apkAsset.id}/download`,
-    publishedAt: data.published_at ?? data.created_at ?? '',
-    notes: (data.body ?? '').trim(),
-    history
-  };
+  const detail = lastError instanceof Error ? `：${lastError.message}` : '';
+  throw new Error(`获取更新信息失败${detail}`);
 };

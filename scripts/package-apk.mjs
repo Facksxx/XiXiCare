@@ -8,6 +8,7 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const noBump = process.argv.includes('--no-bump');
 const packagePath = join(root, 'package.json');
 const gradlePath = join(root, 'android/app/build.gradle');
+const manifestPath = join(root, 'update-manifest.json');
 const expectedSigningCertificate = 'c52f687a35e149777a7b23c0fb9c96aa0b33f2db74922fe55e28422c7a759193';
 
 const run = (command, args, options = {}) => {
@@ -82,6 +83,35 @@ if (signingCertificate !== expectedSigningCertificate) {
 }
 
 const hash = createHash('sha256').update(readFileSync(targetApk)).digest('hex');
+
+if (!noBump) {
+  let previousHistory = [];
+  if (existsSync(manifestPath)) {
+    try {
+      previousHistory = JSON.parse(readFileSync(manifestPath, 'utf8')).history ?? [];
+    } catch {
+      previousHistory = [];
+    }
+  }
+  const publishedAt = new Date().toISOString();
+  const notes = process.env.RELEASE_NOTES?.trim() || '体验优化与问题修复';
+  const currentEntry = { version, publishedAt, notes };
+  const history = [
+    ...previousHistory.filter(entry => entry?.version && entry.version !== version),
+    currentEntry
+  ].sort((a, b) => a.version.localeCompare(b.version, undefined, { numeric: true }));
+  const tag = `v${version}`;
+  writeFileSync(manifestPath, `${JSON.stringify({
+    version,
+    tag,
+    htmlUrl: `https://gitee.com/Facksxx/xi-xi-care/releases/tag/${tag}`,
+    apkUrl: `https://gitee.com/Facksxx/xi-xi-care/releases/download/${tag}/XiXiCare.apk`,
+    publishedAt,
+    notes,
+    sha256: hash,
+    history
+  }, null, 2)}\n`);
+}
 
 console.log(`\nXiXiCare ${version} (${versionCode})`);
 console.log(`APK: ${targetApk}`);

@@ -1,0 +1,16 @@
+{
+  "version": "1.1.14",
+  "tag": "v1.1.14",
+  "htmlUrl": "https://gitee.com/Facksxx/xi-xi-care/releases/tag/v1.1.14",
+  "apkUrl": "https://gitee.com/Facksxx/xi-xi-care/releases/download/v1.1.14/XiXiCare.apk",
+  "publishedAt": "2026-08-25T00:00:00.000Z",
+  "notes": "当前稳定版本",
+  "sha256": "000ef61efe23f3cb6bf8fd86fe601a885dd867dd74aa6043113806d2c510b4bd",
+  "history": [
+    {
+      "version": "1.1.14",
+      "publishedAt": "2026-08-25T00:00:00.000Z",
+      "notes": "当前稳定版本"
+    }
+  ]
+}
