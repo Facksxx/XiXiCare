@@ -13,23 +13,20 @@ import { Settings as SettingsPage } from './components/Settings';
 import { WhiteNoisePlayer } from './components/WhiteNoisePlayer';
 import { ConfirmModal } from './components/ConfirmModal';
 import { DateTimePicker } from './components/DateTimePicker';
+import { LiquidGlassInteractions } from './components/LiquidGlassInteractions';
 import { fetchLatestRelease, isNewer, type RemoteRelease } from './utils/version';
 import { BackNavigation } from './plugins/backNavigation';
 import { Capacitor } from '@capacitor/core';
 import { Sun, Moon, Calendar, BookOpen, BarChart2, Edit2, Check, Sparkles, Settings, Music2, ChevronDown, Plus } from 'lucide-react';
 import type { Icon } from 'lucide-react';
+import { SPRING_THRESHOLD, TOGGLE_VALUE_OMEGA_N, springStepCritical } from './vendor/liquid-glass-webgl/spring';
+import { VelocityTracker1D } from './vendor/liquid-glass-webgl/velocity-tracker';
 import './index.css';
 import './liquid-glass.css';
 
 type AppTab = 'dashboard' | 'records' | 'guide' | 'stats';
 type SwipePreview = { tab: AppTab; side: -1 | 1 };
 const APP_TABS: AppTab[] = ['dashboard', 'records', 'guide', 'stats'];
-const NAV_ITEMS = [
-  { tab: 'dashboard' as AppTab, label: '记录大盘', icon: Calendar },
-  { tab: 'records' as AppTab, label: '时间轴', icon: Sparkles },
-  { tab: 'guide' as AppTab, label: '喂养指南', icon: BookOpen },
-  { tab: 'stats' as AppTab, label: '成长统计', icon: BarChart2 }
-];
 const UPDATE_CHECK_INTERVAL = 24 * 60 * 60 * 1000;
 
 function NavIcon({ icon: IconComponent, active }: { icon: Icon; active: boolean }) {
@@ -161,7 +158,8 @@ export default function App() {
   const previewPageRef = useRef<HTMLDivElement>(null);
   const navRailRef = useRef<HTMLSpanElement>(null);
   const navTrackRef = useRef<HTMLSpanElement>(null);
-  const navDragRef = useRef<{ pointerId: number; startX: number; lastX: number; lastTime: number; position: number; dragging: boolean } | null>(null);
+  const navDragRef = useRef<{ pointerId: number; startX: number; position: number; dragging: boolean; tracker: VelocityTracker1D } | null>(null);
+  const navSpringFrameRef = useRef<number | null>(null);
   const navHighlightedRef = useRef<AppTab>('dashboard');
   const suppressNavClickRef = useRef(false);
   const swipePreviewRef = useRef<SwipePreview | null>(null);
@@ -237,18 +235,14 @@ export default function App() {
     const bounds = rail.getBoundingClientRect();
     const itemWidth = bounds.width / APP_TABS.length;
     const position = Math.max(0, Math.min(APP_TABS.length - 1, (clientX - bounds.left) / itemWidth - 0.5));
-    const elapsed = Math.max(8, timeStamp - drag.lastTime);
-    const velocity = Math.max(-1, Math.min(1, (clientX - drag.lastX) / elapsed));
     const nearestIndex = Math.round(position);
     const nearestTab = APP_TABS[nearestIndex];
     drag.position = position;
-    drag.lastX = clientX;
-    drag.lastTime = timeStamp;
+    drag.tracker.addPosition(timeStamp, position);
     drag.dragging ||= Math.abs(clientX - drag.startX) > 5;
     track.style.setProperty('--nav-position', position.toFixed(4));
-    track.style.setProperty('--nav-drag-scale', (1 + Math.abs(velocity) * 0.24).toFixed(3));
-    track.style.setProperty('--nav-drag-skew', `${(velocity * -5).toFixed(2)}deg`);
-    track.style.setProperty('--nav-lens-offset', `${((nearestIndex - position) * itemWidth * 0.42).toFixed(2)}px`);
+    const dragVelocity = Math.max(-3, Math.min(3, drag.tracker.calculateVelocity()));
+    track.style.setProperty('--nav-drag-scale', (1 + Math.abs(dragVelocity) * 0.018).toFixed(3));
     if (nearestTab !== navHighlightedRef.current) {
       navHighlightedRef.current = nearestTab;
       setNavHighlightedTab(nearestTab);
@@ -258,13 +252,16 @@ export default function App() {
   const handleNavPointerDown = (event: ReactPointerEvent<HTMLElement>) => {
     if (event.button !== 0 || swipeTimerRef.current !== null) return;
     event.currentTarget.setPointerCapture(event.pointerId);
+    if (navSpringFrameRef.current !== null) cancelAnimationFrame(navSpringFrameRef.current);
+    const tracker = new VelocityTracker1D();
+    const position = APP_TABS.indexOf(navMotion.tab);
+    tracker.addPosition(event.timeStamp, position);
     navDragRef.current = {
       pointerId: event.pointerId,
       startX: event.clientX,
-      lastX: event.clientX,
-      lastTime: event.timeStamp,
-      position: APP_TABS.indexOf(navMotion.tab),
-      dragging: false
+      position,
+      dragging: false,
+      tracker,
     };
     navTrackRef.current?.classList.add('is-dragging');
     updateDraggedNav(event.clientX, event.timeStamp);
@@ -279,10 +276,9 @@ export default function App() {
     const drag = navDragRef.current;
     if (!drag || drag.pointerId !== event.pointerId) return;
     if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
-    navTrackRef.current?.classList.remove('is-dragging');
-    navTrackRef.current?.style.removeProperty('--nav-drag-scale');
-    navTrackRef.current?.style.removeProperty('--nav-drag-skew');
-    navTrackRef.current?.style.removeProperty('--nav-lens-offset');
+    const track = navTrackRef.current;
+    track?.classList.remove('is-dragging');
+    track?.style.removeProperty('--nav-drag-scale');
     const targetIndex = cancelled ? APP_TABS.indexOf(activeTab) : Math.round(drag.position);
     const targetTab = APP_TABS[targetIndex];
     const direction: -1 | 1 = targetIndex >= APP_TABS.indexOf(activeTab) ? 1 : -1;
@@ -292,6 +288,26 @@ export default function App() {
     setNavHighlightedTab(targetTab);
     if (targetTab !== activeTab) animateToTab(targetTab, true);
     else setNavMotion((current) => ({ tab: targetTab, direction, sequence: current.sequence + 1 }));
+
+    if (!track) return;
+    let position = drag.position;
+    let velocity = cancelled ? 0 : drag.tracker.calculateVelocity();
+    let previous = performance.now();
+    const settle = (now: number) => {
+      const dt = Math.min(0.034, Math.max(0.001, (now - previous) / 1000));
+      previous = now;
+      const next = springStepCritical(position, velocity, targetIndex, dt, TOGGLE_VALUE_OMEGA_N);
+      position = next.current;
+      velocity = next.velocity;
+      track.style.setProperty('--nav-position', position.toFixed(4));
+      if (Math.abs(position - targetIndex) < SPRING_THRESHOLD && Math.abs(velocity) < 0.03) {
+        track.style.setProperty('--nav-position', String(targetIndex));
+        navSpringFrameRef.current = null;
+        return;
+      }
+      navSpringFrameRef.current = requestAnimationFrame(settle);
+    };
+    navSpringFrameRef.current = requestAnimationFrame(settle);
   };
 
   const handleNavClick = (tab: AppTab) => {
@@ -639,6 +655,7 @@ export default function App() {
 
   return (
     <div className={`app-shell${showSettings ? ' settings-shell' : ''}`}>
+      <LiquidGlassInteractions />
       {/* Header Bar */}
       {!showSettings && <header className="header">
         <div className="baby-info">
@@ -760,18 +777,7 @@ export default function App() {
             className="nav-liquid-track"
             style={{ '--nav-position': APP_TABS.indexOf(navMotion.tab) } as CSSProperties}
           >
-            <span
-              key={navMotion.sequence}
-              className={`nav-liquid-glass ${navMotion.direction > 0 ? 'moving-forward' : 'moving-backward'}`}
-            >
-              {NAV_ITEMS.map(({ tab, label, icon }) => tab === navHighlightedTab ? (
-                <span key={tab} className="nav-lens-symbol">
-                  <NavIcon icon={icon} active />
-                  <span>{label}</span>
-                </span>
-              ) : null)}
-              <span className="nav-lens-glare" />
-            </span>
+            <span className="nav-liquid-glass" />
           </span>
         </span>
         <button 

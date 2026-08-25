@@ -195,17 +195,16 @@ select,
 
 .nav-liquid-glass {
   background:
-    radial-gradient(circle at 34% 22%, rgba(255, 255, 255, 0.66), transparent 22%),
-    radial-gradient(circle at 56% 58%, rgba(255, 255, 255, 0.04) 0 42%, rgba(255, 255, 255, 0.3) 72%, rgba(255, 255, 255, 0.78) 100%),
-    rgba(210, 235, 222, 0.13);
+    linear-gradient(150deg, rgba(255, 255, 255, 0.36), transparent 45%, rgba(121, 172, 148, 0.11)),
+    rgba(210, 235, 222, 0.1);
   border-color: rgba(255, 255, 255, 0.86);
   box-shadow:
-    0 12px 26px rgba(49, 77, 64, 0.2),
+    0 8px 18px rgba(49, 77, 64, 0.14),
     inset 0 0 0 1px rgba(255, 255, 255, 0.36),
-    inset -10px -12px 18px rgba(75, 132, 106, 0.14),
-    inset 10px 10px 20px rgba(255, 255, 255, 0.54);
-  -webkit-backdrop-filter: blur(0.8px) saturate(1.5) contrast(1.04);
-  backdrop-filter: blur(0.8px) saturate(1.5) contrast(1.04);
+    inset -6px -8px 14px rgba(75, 132, 106, 0.1),
+    inset 6px 7px 16px rgba(255, 255, 255, 0.46);
+  -webkit-backdrop-filter: saturate(1.08) contrast(1.04);
+  backdrop-filter: saturate(1.08) contrast(1.04);
 }
 
 .nav-liquid-glass::before {
@@ -227,6 +226,16 @@ select,
     inset 0 0 0 1px rgba(255, 255, 255, 0.44),
     inset -13px -10px 20px rgba(78, 144, 113, 0.18),
     inset 12px 8px 22px rgba(255, 255, 255, 0.62);
+}
+
+.liquid-control {
+  transform: scaleX(var(--liquid-scale-x, 1)) scaleY(var(--liquid-scale-y, 1));
+  transform-origin: center;
+  will-change: transform;
+}
+
+.liquid-control.liquid-interacting {
+  transition: none !important;
 }
 
 @supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
