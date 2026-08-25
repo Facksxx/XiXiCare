@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, type TouchEvent as ReactTouchEvent } from 'react';
+import { useState, useEffect, useRef, type CSSProperties, type TouchEvent as ReactTouchEvent } from 'react';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import type { ActivityLog, BabyInfo } from './types/baby';
 import { compressImage } from './utils/imageCompress';
@@ -64,6 +64,7 @@ const createBabyId = () => `baby-${Date.now()}-${Math.random().toString(36).slic
 export default function App() {
   // Navigation tabs: 'dashboard' | 'guide' | 'stats' | 'records'
   const [activeTab, setActiveTab] = useState<AppTab>('dashboard');
+  const [navMotion, setNavMotion] = useState({ tab: 'dashboard' as AppTab, direction: 1 as -1 | 1, sequence: 0 });
   const [swipePreview, setSwipePreview] = useState<SwipePreview | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [showWhiteNoise, setShowWhiteNoise] = useState(false);
@@ -185,6 +186,7 @@ export default function App() {
     }
     if (swipeTimerRef.current !== null) return;
     const side: -1 | 1 = APP_TABS.indexOf(nextTab) > APP_TABS.indexOf(activeTab) ? 1 : -1;
+    setNavMotion((current) => ({ tab: nextTab, direction: side, sequence: current.sequence + 1 }));
     const preview = { tab: nextTab, side };
     swipePreviewRef.current = preview;
     setSwipePreview(preview);
@@ -656,6 +658,17 @@ export default function App() {
 
       {/* Bottom Floating Navigation Tabs */}
       {!showSettings && <nav className="nav-tabs">
+        <span className="nav-liquid-rail" aria-hidden="true">
+          <span
+            className="nav-liquid-track"
+            style={{ '--nav-index': APP_TABS.indexOf(navMotion.tab) } as CSSProperties}
+          >
+            <span
+              key={navMotion.sequence}
+              className={`nav-liquid-glass ${navMotion.direction > 0 ? 'moving-forward' : 'moving-backward'}`}
+            />
+          </span>
+        </span>
         <button 
           type="button"
           onClick={() => animateToTab('dashboard')}
