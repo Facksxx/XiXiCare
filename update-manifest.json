@@ -1,11 +1,11 @@
 {
-  "version": "1.1.15",
-  "tag": "v1.1.15",
-  "htmlUrl": "https://gitee.com/Facksxx/xi-xi-care/releases/tag/v1.1.15",
-  "apkUrl": "https://gitee.com/Facksxx/xi-xi-care/releases/download/v1.1.15/XiXiCare.apk",
-  "publishedAt": "2026-08-25T02:30:20.668Z",
-  "notes": "修复 Gitee 匿名 API 403，改用动态更新清单和 APK 发行直链",
-  "sha256": "f76f73138442f25b8fc329e3c73337c6094c963c083f598ee50e2f393a72a9cf",
+  "version": "1.1.16",
+  "tag": "v1.1.16",
+  "htmlUrl": "https://gitee.com/Facksxx/xi-xi-care/releases/tag/v1.1.16",
+  "apkUrl": "https://gitee.com/Facksxx/xi-xi-care/releases/download/v1.1.16/XiXiCare.apk",
+  "publishedAt": "2026-08-27T05:53:35.697Z",
+  "notes": "喂养指南记住每个宝宝选择的月龄；疫苗表按出生日期推算接种时间并自动汇总费用；设置支持维护疫苗价格；新增数据支持完整导入导出",
+  "sha256": "6823940fe94abbc9a52cf0be0ab990172bef0375603fd30a1f7665bb9359698d",
   "history": [
     {
       "version": "1.1.14",
@@ -16,6 +16,11 @@
       "version": "1.1.15",
       "publishedAt": "2026-08-25T02:30:20.668Z",
       "notes": "修复 Gitee 匿名 API 403，改用动态更新清单和 APK 发行直链"
+    },
+    {
+      "version": "1.1.16",
+      "publishedAt": "2026-08-27T05:53:35.697Z",
+      "notes": "喂养指南记住每个宝宝选择的月龄；疫苗表按出生日期推算接种时间并自动汇总费用；设置支持维护疫苗价格；新增数据支持完整导入导出"
     }
   ]
 }
