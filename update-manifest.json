@@ -1,11 +1,11 @@
 {
-  "version": "1.1.16",
-  "tag": "v1.1.16",
-  "htmlUrl": "https://gitee.com/Facksxx/xi-xi-care/releases/tag/v1.1.16",
-  "apkUrl": "https://gitee.com/Facksxx/xi-xi-care/releases/download/v1.1.16/XiXiCare.apk",
-  "publishedAt": "2026-08-27T05:53:35.697Z",
-  "notes": "喂养指南记住每个宝宝选择的月龄；疫苗表按出生日期推算接种时间并自动汇总费用；设置支持维护疫苗价格；新增数据支持完整导入导出",
-  "sha256": "6823940fe94abbc9a52cf0be0ab990172bef0375603fd30a1f7665bb9359698d",
+  "version": "1.1.17",
+  "tag": "v1.1.17",
+  "htmlUrl": "https://gitee.com/Facksxx/xi-xi-care/releases/tag/v1.1.17",
+  "apkUrl": "https://gitee.com/Facksxx/xi-xi-care/releases/download/v1.1.17/XiXiCare.apk",
+  "publishedAt": "2026-08-27T08:36:35.581Z",
+  "notes": "疫苗接种表按月龄完整规划；支持免费与自费方案切换；同一疫苗支持 A/B/C 多厂家品牌选择；品牌价格可在设置中独立维护；选择结果、接种状态与费用支持完整导入导出",
+  "sha256": "1cf022dcb2d54e0f766edc8b18d778d61531d1e0da726e0cfc5437280fb6f796",
   "history": [
     {
       "version": "1.1.14",
@@ -21,6 +21,11 @@
       "version": "1.1.16",
       "publishedAt": "2026-08-27T05:53:35.697Z",
       "notes": "喂养指南记住每个宝宝选择的月龄；疫苗表按出生日期推算接种时间并自动汇总费用；设置支持维护疫苗价格；新增数据支持完整导入导出"
+    },
+    {
+      "version": "1.1.17",
+      "publishedAt": "2026-08-27T08:36:35.581Z",
+      "notes": "疫苗接种表按月龄完整规划；支持免费与自费方案切换；同一疫苗支持 A/B/C 多厂家品牌选择；品牌价格可在设置中独立维护；选择结果、接种状态与费用支持完整导入导出"
     }
   ]
 }
