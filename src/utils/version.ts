@@ -5,6 +5,7 @@ export const APP_VERSION: string = typeof __APP_VERSION__ !== 'undefined' ? __AP
 export const RELEASE_REPO = 'Facksxx/xi-xi-care';
 export const RELEASES_PAGE_URL = `https://gitee.com/${RELEASE_REPO}/releases`;
 export const UPDATE_MANIFEST_URLS = [
+  'https://xixicare-cloud-sync.xixicare-facksxx.workers.dev/public/update-manifest.json',
   `https://gitee.com/${RELEASE_REPO}/raw/main/update-manifest.json`,
   'https://raw.githubusercontent.com/Facksxx/XiXiCare/main/update-manifest.json'
 ];

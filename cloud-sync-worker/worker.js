@@ -11,6 +11,7 @@ const json = (body, status = 200) => new Response(JSON.stringify(body), {
 
 const archivePath = id => `cloud-archives/${id}/archive.json`;
 const apiUrl = (env, path) => `https://gitee.com/api/v5/repos/${env.GITEE_OWNER}/${env.GITEE_REPO}/contents/${path}`;
+const publicApiUrl = (env, path) => `https://gitee.com/api/v5/repos/${env.GITEE_OWNER}/${env.GITEE_PUBLIC_REPO}/contents/${path}`;
 const authHeaders = env => ({ Authorization: `token ${env.GITEE_ACCESS_TOKEN}`, Accept: 'application/json' });
 const decodeBase64Json = value => {
   const bytes = Uint8Array.from(atob(String(value).replace(/\s/g, '')), character => character.charCodeAt(0));
@@ -30,6 +31,14 @@ const readArchive = async (env, id) => {
   const file = await response.json();
   if (Array.isArray(file) || !file?.content) return null;
   return { sha: file.sha, envelope: decodeBase64Json(file.content) };
+};
+
+const readRepoJson = async (env, path) => {
+  const response = await fetch(`${publicApiUrl(env, path)}?ref=${encodeURIComponent(env.GITEE_PUBLIC_BRANCH || 'main')}`, { headers: authHeaders(env) });
+  if (!response.ok) throw new Error(`Gitee public data read failed: ${response.status}`);
+  const file = await response.json();
+  if (Array.isArray(file) || !file?.content) throw new Error('Gitee public data file is missing');
+  return decodeBase64Json(file.content);
 };
 
 const writeArchive = async (env, id, envelope) => {
@@ -53,9 +62,19 @@ export default {
   async fetch(request, env) {
     if (request.method === 'OPTIONS') return json({ ok: true });
     const url = new URL(request.url);
+    const publicMatch = url.pathname.match(/^\/public\/(update-manifest\.json|vaccine-prices\.json)$/);
+    if (publicMatch) {
+      if (request.method !== 'GET') return json({ error: 'Method not allowed' }, 405);
+      try {
+        return json(await readRepoJson(env, publicMatch[1]));
+      } catch (error) {
+        console.error(error);
+        return json({ error: 'Public data service failed' }, 502);
+      }
+    }
     const match = url.pathname.match(/^\/archive\/(\d{6}-\d{8})$/);
     if (!match) return json({ error: 'Not found' }, 404);
-    if (!env.GITEE_ACCESS_TOKEN || !env.GITEE_OWNER || !env.GITEE_REPO) return json({ error: 'Service is not configured' }, 503);
+    if (!env.GITEE_ACCESS_TOKEN || !env.GITEE_OWNER || !env.GITEE_REPO || !env.GITEE_PUBLIC_REPO) return json({ error: 'Service is not configured' }, 503);
     const id = match[1];
     try {
       if (request.method === 'GET') {

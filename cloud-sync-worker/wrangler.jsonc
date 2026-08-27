@@ -8,6 +8,8 @@
   "vars": {
     "GITEE_OWNER": "Facksxx",
     "GITEE_REPO": "xi-xi-care-archives",
-    "GITEE_BRANCH": "master"
+    "GITEE_BRANCH": "master",
+    "GITEE_PUBLIC_REPO": "xi-xi-care",
+    "GITEE_PUBLIC_BRANCH": "main"
   }
 }

@@ -78,6 +78,7 @@ export function getVaccinePrices(): VaccinePrices {
 
 export async function updateVaccinePricesFromRemote() {
   const urls = [
+    'https://xixicare-cloud-sync.xixicare-facksxx.workers.dev/public/vaccine-prices.json',
     'https://gitee.com/Facksxx/xi-xi-care/raw/main/vaccine-prices.json',
     'https://raw.githubusercontent.com/Facksxx/XiXiCare/main/vaccine-prices.json'
   ];

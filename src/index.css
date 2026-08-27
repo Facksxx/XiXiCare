@@ -1488,9 +1488,22 @@ select {
   background: var(--bg-input);
   font-size: 11px;
   font-weight: 650;
+  cursor: pointer;
+  transition: transform 160ms ease, border-color 160ms ease, background-color 160ms ease, box-shadow 160ms ease, opacity 160ms ease;
 }
 
-.cloud-archive-actions button:disabled { opacity: 0.55; }
+.cloud-archive-actions button:not(:disabled):hover {
+  border-color: color-mix(in srgb, var(--sage) 55%, var(--border));
+  background: var(--sage-light);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--sage) 15%, transparent);
+}
+.cloud-archive-actions button:not(:disabled):active { transform: scale(0.97); }
+.cloud-archive-actions button.success {
+  border-color: color-mix(in srgb, var(--sage) 70%, var(--border));
+  background: var(--sage-light);
+}
+.cloud-archive-actions button:disabled { opacity: 0.62; cursor: progress; }
+.cloud-archive-actions button .spin { animation: settings-spin 0.9s linear infinite; }
 .cloud-archive-form > p { grid-column: 1 / -1; color: var(--sage); font-size: 10px; line-height: 1.4; }
 .cloud-archive-form > p.error { color: var(--danger); }
 
@@ -2381,13 +2394,27 @@ select {
 .settings-icon-action {
   width: 36px;
   height: 36px;
+  flex: 0 0 36px;
   display: grid;
   place-items: center;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   color: var(--sage);
   background: var(--bg-input);
+  cursor: pointer;
+  transition: transform 160ms ease, border-color 160ms ease, background-color 160ms ease, box-shadow 160ms ease, opacity 160ms ease;
 }
+
+.settings-price-update > div { min-width: 0; flex: 1; }
+.settings-price-update .settings-icon-action { margin-left: auto; }
+.settings-icon-action:not(:disabled):hover {
+  border-color: color-mix(in srgb, var(--sage) 55%, var(--border));
+  background: var(--sage-light);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--sage) 16%, transparent);
+}
+.settings-icon-action:not(:disabled):active { transform: scale(0.9); }
+.settings-icon-action:disabled { opacity: 0.55; cursor: progress; }
+.settings-icon-action .spin { animation: settings-spin 0.9s linear infinite; }
 
 .settings-footnote { margin-top: 9px; color: var(--text-muted); font-size: 10px; line-height: 1.5; }
 
