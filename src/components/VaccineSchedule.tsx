@@ -83,14 +83,11 @@ export function VaccineSchedule({ baby }: { baby: BabyInfo }) {
           return match ? [{ itemId: candidate.item.id, choiceId: match.id }] : [];
         })
       : [];
-    const hasUnsyncedDose = sameVaccineChoices.some(candidate => selections[candidate.itemId] !== candidate.choiceId);
-
-    if (kind === 'paid' && row.choice?.id === optionId && !hasUnsyncedDose) {
-      const freeChoice = row.item.choices.find(option => option.kind === 'free');
-      if (freeChoice) next[row.item.id] = freeChoice.id;
-      else {
-        next[row.item.id] = '';
-      }
+    if (kind === 'paid' && row.choice?.id === optionId) {
+      sameVaccineChoices.forEach(candidate => {
+        const item = vaccineSchedule.find(entry => entry.id === candidate.itemId);
+        next[candidate.itemId] = item?.choices.find(option => option.kind === 'free')?.id ?? '';
+      });
     } else {
       next[row.item.id] = optionId;
       sameVaccineChoices.forEach(candidate => { next[candidate.itemId] = candidate.choiceId; });
