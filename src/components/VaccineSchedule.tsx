@@ -65,7 +65,17 @@ export function VaccineSchedule({ baby }: { baby: BabyInfo }) {
         next[row.item.id] = '';
         if (row.done) setStatus({ ...status, [`schedule:${row.item.id}`]: false });
       }
-    } else next[row.item.id] = optionId;
+    } else {
+      next[row.item.id] = optionId;
+      const selectedOption = row.item.choices.find(option => option.id === optionId);
+      if (kind === 'paid' && selectedOption?.brand) {
+        vaccineSchedule.forEach(item => {
+          if (item.month <= row.item.month || item.id === row.item.id) return;
+          const sameBrandChoice = item.choices.find(option => option.name === selectedOption.name && option.brand === selectedOption.brand);
+          if (sameBrandChoice) next[item.id] = sameBrandChoice.id;
+        });
+      }
+    }
     setSelections(next);
   };
 
