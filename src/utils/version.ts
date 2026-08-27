@@ -5,10 +5,12 @@ export const APP_VERSION: string = typeof __APP_VERSION__ !== 'undefined' ? __AP
 export const RELEASE_REPO = 'Facksxx/xi-xi-care';
 export const RELEASES_PAGE_URL = `https://gitee.com/${RELEASE_REPO}/releases`;
 export const UPDATE_MANIFEST_URLS = [
-  'https://xixicare-cloud-sync.xixicare-facksxx.workers.dev/public/update-manifest.json',
   `https://gitee.com/${RELEASE_REPO}/raw/main/update-manifest.json`,
-  'https://raw.githubusercontent.com/Facksxx/XiXiCare/main/update-manifest.json'
+  'https://raw.githubusercontent.com/Facksxx/XiXiCare/main/update-manifest.json',
+  'https://xixicare-cloud-sync.xixicare-facksxx.workers.dev/public/update-manifest.json'
 ];
+
+const FETCH_TIMEOUT_MS = 5_000;
 
 export interface RemoteRelease {
   /** 不带前缀 v 的版本号，例如 "1.0.3" */
@@ -61,11 +63,14 @@ export const isNewer = (remote: string, current: string = APP_VERSION): boolean 
 export const fetchLatestRelease = async (): Promise<RemoteRelease> => {
   let lastError: unknown;
   for (const url of UPDATE_MANIFEST_URLS) {
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
     try {
       const separator = url.includes('?') ? '&' : '?';
       const response = await fetch(`${url}${separator}t=${Date.now()}`, {
         headers: { Accept: 'application/json' },
-        cache: 'no-store'
+        cache: 'no-store',
+        signal: controller.signal
       });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const release = (await response.json()) as RemoteRelease;
@@ -80,6 +85,8 @@ export const fetchLatestRelease = async (): Promise<RemoteRelease> => {
       };
     } catch (error) {
       lastError = error;
+    } finally {
+      window.clearTimeout(timeout);
     }
   }
   const detail = lastError instanceof Error ? `：${lastError.message}` : '';

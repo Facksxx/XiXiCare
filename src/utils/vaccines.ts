@@ -78,14 +78,16 @@ export function getVaccinePrices(): VaccinePrices {
 
 export async function updateVaccinePricesFromRemote() {
   const urls = [
-    'https://xixicare-cloud-sync.xixicare-facksxx.workers.dev/public/vaccine-prices.json',
     'https://gitee.com/Facksxx/xi-xi-care/raw/main/vaccine-prices.json',
-    'https://raw.githubusercontent.com/Facksxx/XiXiCare/main/vaccine-prices.json'
+    'https://raw.githubusercontent.com/Facksxx/XiXiCare/main/vaccine-prices.json',
+    'https://xixicare-cloud-sync.xixicare-facksxx.workers.dev/public/vaccine-prices.json'
   ];
   let lastError: unknown;
   for (const url of urls) {
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 5_000);
     try {
-      const response = await fetch(`${url}?t=${Date.now()}`, { cache: 'no-store' });
+      const response = await fetch(`${url}?t=${Date.now()}`, { cache: 'no-store', signal: controller.signal });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const payload = await response.json() as { updatedAt?: string; prices?: Record<string, unknown> };
       if (!payload.prices || typeof payload.prices !== 'object') throw new Error('价格表格式错误');
@@ -96,6 +98,7 @@ export async function updateVaccinePricesFromRemote() {
       localStorage.setItem(VACCINE_PRICE_UPDATED_AT_KEY, JSON.stringify(updatedAt));
       return updatedAt;
     } catch (error) { lastError = error; }
+    finally { window.clearTimeout(timeout); }
   }
   throw lastError instanceof Error ? lastError : new Error('价格表更新失败');
 }
