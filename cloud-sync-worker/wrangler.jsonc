@@ -1,0 +1,13 @@
+{
+  "$schema": "../node_modules/wrangler/config-schema.json",
+  "name": "xixicare-cloud-sync",
+  "main": "worker.js",
+  "compatibility_date": "2026-08-27",
+  "workers_dev": true,
+  "preview_urls": false,
+  "vars": {
+    "GITEE_OWNER": "Facksxx",
+    "GITEE_REPO": "xi-xi-care-archives",
+    "GITEE_BRANCH": "master"
+  }
+}

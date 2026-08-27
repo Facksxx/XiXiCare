@@ -98,8 +98,11 @@ export function VaccineSchedule({ baby }: { baby: BabyInfo }) {
   const renderChoiceCell = (row: typeof rows[number], kind: 'free' | 'paid') => {
     const options = row.item.choices.filter(option => option.kind === kind);
     if (options.length === 0) return <span className="vaccine-cell-empty">—</span>;
+    const vaccineName = options.length === 1 && options[0].label
+      ? `${options[0].label}${row.item.doseLabel}`
+      : row.item.doseLabel;
     return <div className="vaccine-cell-content">
-      <strong>{row.item.doseLabel}</strong>
+      <strong>{vaccineName}</strong>
       <div className="vaccine-brand-options">
         {options.map(option => {
           const optionPrice = kind === 'paid' ? prices[option.priceKey] ?? option.defaultPrice : 0;
@@ -107,7 +110,6 @@ export function VaccineSchedule({ baby }: { baby: BabyInfo }) {
           const isLocked = row.done || Boolean(lockedChoice);
           const isActive = lockedChoice ? (!lockedChoice.brand || option.brand === lockedChoice.brand) : row.choice?.id === option.id;
           return <button type="button" disabled={isLocked} aria-label={`${option.brand || option.name}${isLocked ? '，方案已锁定' : ''}`} aria-pressed={isActive} className={isActive ? 'active' : ''} onClick={() => selectChoice(row, option.id, kind)} key={option.id}>
-            {option.label && <b>{option.label}</b>}
             {option.brand && <b>{option.brand}</b>}
             <span>{option.brand ? `¥${optionPrice.toFixed(0)}` : (kind === 'free' ? '免费' : `¥${optionPrice.toFixed(0)}`)}</span>
           </button>;

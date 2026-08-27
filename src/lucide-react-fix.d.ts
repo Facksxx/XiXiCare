@@ -59,6 +59,10 @@ declare module 'lucide-react' {
   export const ChevronDown: Icon;
   export const Users: Icon;
   export const Syringe: Icon;
+  export const CloudDownload: Icon;
+  export const CloudUpload: Icon;
+  export const Dice5: Icon;
+  export const LoaderCircle: Icon;
 
   const icons: { [key: string]: Icon };
   export default icons;

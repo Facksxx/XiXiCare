@@ -1425,6 +1425,75 @@ select {
   min-width: 0;
 }
 
+.cloud-archive-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 9px;
+}
+
+.cloud-archive-form label {
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+  color: var(--text-muted);
+  font-size: 10px;
+}
+
+.cloud-archive-form input {
+  width: 100%;
+  min-width: 0;
+  height: 38px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  outline: 0;
+  color: var(--text-heading);
+  background: var(--bg-input);
+  font-size: 12px;
+}
+
+.cloud-archive-form input:focus { border-color: var(--sage); }
+.cloud-code-input { position: relative; min-width: 0; }
+.cloud-code-input input { padding-right: 40px; }
+.cloud-code-input button {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: var(--radius-xs);
+  color: var(--sage);
+  background: transparent;
+}
+
+.cloud-archive-actions {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.cloud-archive-actions button {
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--sage);
+  background: var(--bg-input);
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.cloud-archive-actions button:disabled { opacity: 0.55; }
+.cloud-archive-form > p { grid-column: 1 / -1; color: var(--sage); font-size: 10px; line-height: 1.4; }
+.cloud-archive-form > p.error { color: var(--danger); }
+
 .settings-data-actions > button strong {
   color: var(--text-heading);
   font-size: 12px;

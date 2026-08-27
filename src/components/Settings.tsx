@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { Activity, ChevronDown, Edit2, Music2, Plus, RefreshCw, Trash2, Users } from 'lucide-react';
+import { Activity, ChevronDown, Database, Edit2, Music2, Plus, RefreshCw, Trash2, Users } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
 import type { RemoteRelease } from '../utils/version';
 import type { ActivityLog, BabyInfo } from '../types/baby';
 import { DataTransfer } from './DataTransfer';
 import { UpdateChecker } from './UpdateChecker';
 import { SoundPackManager } from './SoundPackManager';
+import { CloudArchiveManager } from './CloudArchiveManager';
 import { updateVaccinePricesFromRemote, VACCINE_PRICE_UPDATED_AT_KEY } from '../utils/vaccines';
 
 interface SettingsProps {
@@ -70,6 +71,14 @@ export function Settings({ logs, babies, activeBabyId, onAddBaby, onSwitchBaby, 
 
       <section className="settings-section" aria-labelledby="data-management-title">
         <div id="data-management-title"><DataTransfer logs={logs} babies={babies} activeBabyId={activeBabyId} /></div>
+      </section>
+
+      <section className="settings-section" aria-labelledby="cloud-archive-title">
+        <div className="settings-item-heading">
+          <span className="settings-icon" aria-hidden="true"><Database size={18} /></span>
+          <div><h2 id="cloud-archive-title">云存档</h2><p>加密备份并在多个设备间同步</p></div>
+        </div>
+        <CloudArchiveManager babies={babies} activeBabyId={activeBabyId} />
       </section>
 
       <section className="settings-section" aria-labelledby="vaccine-data-title">
