@@ -48,7 +48,7 @@
   --transition-slow: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-top: env(safe-area-inset-top, 0px);
-  --app-sticky-top: calc(var(--safe-top) + 76px);
+  --app-sticky-top: calc(var(--safe-top) + 77px);
 }
 
 [data-theme='dark'] {
@@ -2111,7 +2111,7 @@ select {
   position: sticky;
   top: var(--app-sticky-top);
   z-index: 50;
-  padding-top: 13px;
+  padding-top: 8px;
   padding-bottom: 12px;
   border-bottom: 1px solid var(--border);
   background: var(--bg);
@@ -2322,6 +2322,9 @@ select {
 
 .settings-footnote { margin-top: 9px; color: var(--text-muted); font-size: 10px; line-height: 1.5; }
 
+.guide-page,
+.vaccine-page { padding-top: 0; }
+
 .vaccine-page { display: grid; gap: 12px; }
 
 .vaccine-sticky {
@@ -2330,8 +2333,8 @@ select {
   z-index: 55;
   display: grid;
   gap: 8px;
-  margin: -2px calc(-1 * var(--container-gutter)) 0;
-  padding: 10px var(--container-gutter) 9px;
+  margin: 0 calc(-1 * var(--container-gutter));
+  padding: 8px var(--container-gutter) 9px;
   background: var(--bg);
   -webkit-backdrop-filter: blur(14px);
   backdrop-filter: blur(14px);
@@ -4419,7 +4422,6 @@ body.modal-open {
 }
 
 @media screen and (max-width: 480px) {
-  :root { --app-sticky-top: calc(var(--safe-top) + 74px); }
   .record-tab-grid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
