@@ -6,6 +6,7 @@ const decoder = new TextDecoder();
 export interface CloudArchiveEnvelope {
   version: 1;
   updatedAt: string;
+  compression?: 'gzip';
   salt: string;
   iv: string;
   ciphertext: string;
@@ -26,6 +27,19 @@ const bytesToBase64 = (bytes: Uint8Array) => {
 };
 
 const base64ToBytes = (value: string) => Uint8Array.from(atob(value), character => character.charCodeAt(0));
+
+const compressBytes = async (bytes: Uint8Array) => {
+  if (typeof CompressionStream === 'undefined') return { bytes, compression: undefined } as const;
+  const stream = new Blob([bytes as BlobPart]).stream().pipeThrough(new CompressionStream('gzip'));
+  return { bytes: new Uint8Array(await new Response(stream).arrayBuffer()), compression: 'gzip' as const };
+};
+
+const decompressBytes = async (bytes: Uint8Array, compression?: 'gzip') => {
+  if (compression !== 'gzip') return bytes;
+  if (typeof DecompressionStream === 'undefined') throw new Error('当前系统不支持解压云存档');
+  const stream = new Blob([bytes as BlobPart]).stream().pipeThrough(new DecompressionStream('gzip'));
+  return new Uint8Array(await new Response(stream).arrayBuffer());
+};
 
 const deriveKey = async (code: string, birthday: string, salt: Uint8Array) => {
   const source = await crypto.subtle.importKey('raw', encoder.encode(`${code}:${birthday}`), 'PBKDF2', false, ['deriveKey']);
@@ -110,8 +124,9 @@ export const encryptArchiveSnapshot = async (snapshot: ArchiveSnapshot, code: st
   const salt = crypto.getRandomValues(new Uint8Array(16));
   const iv = crypto.getRandomValues(new Uint8Array(12));
   const key = await deriveKey(code, birthday, salt);
-  const ciphertext = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, encoder.encode(JSON.stringify(snapshot)));
-  return { version: 1, updatedAt: snapshot.updatedAt, salt: bytesToBase64(salt), iv: bytesToBase64(iv), ciphertext: bytesToBase64(new Uint8Array(ciphertext)) };
+  const compressed = await compressBytes(encoder.encode(JSON.stringify(snapshot)));
+  const ciphertext = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, compressed.bytes as BufferSource);
+  return { version: 1, updatedAt: snapshot.updatedAt, compression: compressed.compression, salt: bytesToBase64(salt), iv: bytesToBase64(iv), ciphertext: bytesToBase64(new Uint8Array(ciphertext)) };
 };
 
 export const decryptArchiveSnapshot = async (envelope: CloudArchiveEnvelope, code: string, birthday: string): Promise<ArchiveSnapshot> => {
@@ -119,7 +134,8 @@ export const decryptArchiveSnapshot = async (envelope: CloudArchiveEnvelope, cod
   try {
     const key = await deriveKey(code, birthday, base64ToBytes(envelope.salt));
     const plaintext = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: base64ToBytes(envelope.iv) }, key, base64ToBytes(envelope.ciphertext));
-    const snapshot = JSON.parse(decoder.decode(plaintext)) as ArchiveSnapshot;
+    const bytes = await decompressBytes(new Uint8Array(plaintext), envelope.compression);
+    const snapshot = JSON.parse(decoder.decode(bytes)) as ArchiveSnapshot;
     if (snapshot.version !== 1 || !snapshot.values) throw new Error('存档格式错误');
     return snapshot;
   } catch { throw new Error('存档码或宝宝生日不正确'); }
@@ -133,7 +149,10 @@ const requireApiUrl = () => {
 export const fetchCloudArchive = async (code: string, birthday: string): Promise<CloudArchiveEnvelope | null> => {
   const response = await fetch(`${requireApiUrl()}/archive/${getArchiveId(code, birthday)}`, { cache: 'no-store' });
   if (response.status === 404) return null;
-  if (!response.ok) throw new Error(`读取云存档失败（${response.status}）`);
+  if (!response.ok) {
+    const payload = await response.json().catch(() => null) as { error?: string } | null;
+    throw new Error(payload?.error || `读取云存档失败（${response.status}）`);
+  }
   return response.json() as Promise<CloudArchiveEnvelope>;
 };
 
@@ -143,7 +162,10 @@ export const saveCloudArchive = async (code: string, birthday: string, envelope:
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(envelope)
   });
-  if (!response.ok) throw new Error(`上传云存档失败（${response.status}）`);
+  if (!response.ok) {
+    const payload = await response.json().catch(() => null) as { error?: string } | null;
+    throw new Error(payload?.error || `上传云存档失败（${response.status}）`);
+  }
 };
 
 export const CLOUD_ARCHIVE_CODE_KEY = `${CLOUD_CONFIG_PREFIX}code`;
