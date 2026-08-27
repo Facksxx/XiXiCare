@@ -110,7 +110,7 @@ export function VaccineSchedule({ baby }: { baby: BabyInfo }) {
           <header><span>月龄</span><span>免规疫苗（免费）</span><span>非免规疫苗（自费）</span><span>状态</span></header>
           {groupedRows.map(group => (
             <article className="vaccine-age-row" key={group.key}>
-              <div className="vaccine-table-age"><strong>{group.ageLabel}</strong><small>{group.plannedDate}</small></div>
+              <div className="vaccine-table-age"><strong>{group.ageLabel}</strong><small><span className="vaccine-date-full">{group.plannedDate}</span><span className="vaccine-date-month">{group.plannedDate.slice(0, 7)}</span></small></div>
               <div className="vaccine-age-items">
                 {group.rows.map(row => <div className={`vaccine-vial-row ${row.level.key}`} key={row.item.id}>
                   <div className="vaccine-free-cell">{renderChoiceCell(row, 'free')}</div>
