@@ -111,18 +111,20 @@ const buildCompleteWorkbook = (logs: ActivityLog[], babies: BabyInfo[], now: Dat
     const vaccines = readStoredObject<Record<string, boolean>>(`babycare_vaccines_${baby.id}`);
     const selections = readStoredObject<Record<string, string>>(`${VACCINE_SELECTION_STORAGE_PREFIX}${baby.id}`);
     return vaccineSchedule.map(item => {
-      const choice = item.choices.find(option => option.id === selections[item.id]) ?? item.choices[0];
       const isDone = vaccines[`schedule:${item.id}`] || item.legacyNames?.some(name => Object.entries(vaccines).some(([key, done]) => done && key.endsWith(`:${name}`)));
+      const storedChoice = item.choices.find(option => option.id === selections[item.id]);
+      const freeChoice = item.choices.find(option => option.kind === 'free');
+      const choice = storedChoice ?? freeChoice ?? (isDone ? item.choices[0] : undefined);
       return {
       '宝宝ID': baby.id,
       '宝宝名字': baby.name,
       '接种节点ID': item.id,
       '建议接种时间': item.ageLabel,
       '疫苗名称': item.doseLabel,
-      '选择方案ID': choice.id,
-      '选择方案': `${choice.brand || (choice.kind === 'free' ? '免费方案' : choice.name)}${choice.brand ? ` · ${choice.name}` : ''}`,
-      '预计接种日期': getPlannedVaccineDate(baby.birthday, choice.month ?? item.month),
-      '预计价格(元)': choice.kind === 'paid' ? vaccinePrices[choice.priceKey] ?? choice.defaultPrice : 0,
+      '选择方案ID': choice?.id ?? '',
+      '选择方案': choice ? `${choice.label || choice.brand || (choice.kind === 'free' ? '免费方案' : choice.name)}${choice.brand ? ` · ${choice.name}` : ''}` : '未选择',
+      '预计接种日期': getPlannedVaccineDate(baby.birthday, choice?.month ?? item.month),
+      '预计价格(元)': choice?.kind === 'paid' ? vaccinePrices[choice.priceKey] ?? choice.defaultPrice : 0,
       '接种状态': isDone ? '已接种' : '未接种',
       '接种说明': item.note ?? ''
     }; });
@@ -301,6 +303,7 @@ export function DataTransfer({ logs, babies, activeBabyId }: DataTransferProps) 
       } satisfies BabyInfo)).filter((item) => item.birthday) ?? [];
       const importedLogs = normalizeActivityLogs(recordsSheet.rows.map(rowToLog).filter((log): log is ActivityLog => Boolean(log)).map((log) => babiesSheet ? log : { ...log, babyId: activeBabyId }));
       const importedVaccines: Record<string, Record<string, boolean>> = {};
+      const importedVaccineSelections: Record<string, Record<string, string>> = {};
       vaccineSheet?.rows.forEach(row => {
         const scheduleItem = vaccineSchedule.find(item => item.id === row['接种节点ID']);
         const stage = guideData.find(item => item.ageRange === row['年龄阶段'] && item.vaccineGuide?.vaccines.some(vaccine => vaccine.name === row['疫苗名称']));
@@ -308,6 +311,11 @@ export function DataTransfer({ logs, babies, activeBabyId }: DataTransferProps) 
         if (scheduleItem) {
           importedVaccines[babyId] ??= {};
           importedVaccines[babyId][`schedule:${scheduleItem.id}`] = row['接种状态'] === '已接种';
+          const choiceId = row['选择方案ID'];
+          if (choiceId && scheduleItem.choices.some(choice => choice.id === choiceId)) {
+            importedVaccineSelections[babyId] ??= {};
+            importedVaccineSelections[babyId][scheduleItem.id] = choiceId;
+          }
         } else if (stage && row['疫苗名称']) {
           importedVaccines[babyId] ??= {};
           importedVaccines[babyId][`${stage.id}:${row['疫苗名称']}`] = row['接种状态'] === '已接种';
@@ -340,6 +348,7 @@ export function DataTransfer({ logs, babies, activeBabyId }: DataTransferProps) 
               ...importedBabies.map(item => item.id),
               ...importedLogs.map(item => item.babyId),
               ...Object.keys(importedVaccines),
+              ...Object.keys(importedVaccineSelections),
               ...Object.keys(importedAllergens)
             ]);
             const idMap = new Map<string, string>();
@@ -369,6 +378,11 @@ export function DataTransfer({ logs, babies, activeBabyId }: DataTransferProps) 
             if (vaccineSheet) Object.entries(importedVaccines).forEach(([babyId, status]) => {
               const key = `babycare_vaccines_${mapId(babyId)}`;
               const value = mode === 'merge' ? { ...readStoredObject<Record<string, boolean>>(key), ...status } : status;
+              localStorage.setItem(key, JSON.stringify(value));
+            });
+            if (vaccineSheet) Object.entries(importedVaccineSelections).forEach(([babyId, selections]) => {
+              const key = `${VACCINE_SELECTION_STORAGE_PREFIX}${mapId(babyId)}`;
+              const value = mode === 'merge' ? { ...readStoredObject<Record<string, string>>(key), ...selections } : selections;
               localStorage.setItem(key, JSON.stringify(value));
             });
             if (allergenSheet) Object.entries(importedAllergens).forEach(([babyId, status]) => {
@@ -427,7 +441,11 @@ export function DataTransfer({ logs, babies, activeBabyId }: DataTransferProps) 
               if (vaccineSelections) {
                 try {
                   const selections = JSON.parse(vaccineSelections) as Record<string, Record<string, string>>;
-                  Object.entries(selections).forEach(([babyId, values]) => localStorage.setItem(`${VACCINE_SELECTION_STORAGE_PREFIX}${mapId(babyId)}`, JSON.stringify(values)));
+                  Object.entries(selections).forEach(([babyId, values]) => {
+                    const key = `${VACCINE_SELECTION_STORAGE_PREFIX}${mapId(babyId)}`;
+                    const next = mode === 'merge' ? { ...readStoredObject<Record<string, string>>(key), ...values } : values;
+                    localStorage.setItem(key, JSON.stringify(next));
+                  });
                 } catch {
                   // Older backups do not contain selected vaccine brands.
                 }

@@ -29,12 +29,12 @@ export function VaccineSchedule({ baby }: { baby: BabyInfo }) {
     const legacyDone = item.legacyNames?.some(name => Object.entries(status).some(([key, value]) => value && key.endsWith(`:${name}`))) ?? false;
     return [item.id, hasCurrentStatus ? Boolean(status[statusKey]) : legacyDone] as const;
   })), [status]);
-  const lockedBrands = useMemo(() => {
-    const result = new Map<string, string>();
+  const lockedChoices = useMemo(() => {
+    const result = new Map<string, (typeof vaccineSchedule)[number]['choices'][number]>();
     vaccineSchedule.forEach(item => {
       if (!completedItems.get(item.id)) return;
       const choice = item.choices.find(option => option.id === selections[item.id]) ?? item.choices[0];
-      if (choice?.brand && !result.has(choice.name)) result.set(choice.name, choice.brand);
+      if (choice && !result.has(choice.name)) result.set(choice.name, choice);
     });
     return result;
   }, [completedItems, selections]);
@@ -42,13 +42,16 @@ export function VaccineSchedule({ baby }: { baby: BabyInfo }) {
     const done = Boolean(completedItems.get(item.id));
     const storedChoice = item.choices.find(option => option.id === selections[item.id]);
     const freeChoice = item.choices.find(option => option.kind === 'free');
-    const lockedChoice = item.choices.find(option => option.brand && lockedBrands.get(option.name) === option.brand);
+    const lockedChoice = item.choices.find(option => {
+      const locked = lockedChoices.get(option.name);
+      return locked && (!locked.brand || option.brand === locked.brand);
+    });
     const choice = lockedChoice ?? storedChoice ?? freeChoice ?? (done ? item.choices[0] : undefined);
     const plannedDate = getPlannedVaccineDate(baby.birthday, choice?.month ?? item.month);
     const price = choice?.kind === 'paid' ? prices[choice.priceKey] ?? choice.defaultPrice : 0;
     const requiresStatus = Boolean(choice || freeChoice);
     return { item, choice, done, plannedDate, price, requiresStatus, level: dateStatus(plannedDate, done) };
-  }), [baby.birthday, completedItems, lockedBrands, prices, selections]);
+  }), [baby.birthday, completedItems, lockedChoices, prices, selections]);
 
   const selectedRows = rows.filter(row => filter === 'all' || (filter === 'done' ? row.done : !row.done && row.requiresStatus));
   const groupedRows = useMemo(() => Array.from(selectedRows.reduce((groups, row) => {
@@ -72,15 +75,15 @@ export function VaccineSchedule({ baby }: { baby: BabyInfo }) {
   const selectChoice = (row: typeof rows[number], optionId: string, kind: 'free' | 'paid') => {
     const next = { ...selections };
     const selectedOption = row.item.choices.find(option => option.id === optionId);
-    if (row.done || (selectedOption && lockedBrands.has(selectedOption.name))) return;
-    const sameVaccineBrandChoices = kind === 'paid' && selectedOption?.brand
+    if (row.done || (selectedOption && lockedChoices.has(selectedOption.name))) return;
+    const sameVaccineChoices = selectedOption
       ? rows.flatMap(candidate => {
           if (candidate.done) return [];
-          const match = candidate.item.choices.find(option => option.name === selectedOption.name && option.brand === selectedOption.brand);
+          const match = candidate.item.choices.find(option => option.name === selectedOption.name && (!selectedOption.brand || option.brand === selectedOption.brand));
           return match ? [{ itemId: candidate.item.id, choiceId: match.id }] : [];
         })
       : [];
-    const hasUnsyncedDose = sameVaccineBrandChoices.some(candidate => selections[candidate.itemId] !== candidate.choiceId);
+    const hasUnsyncedDose = sameVaccineChoices.some(candidate => selections[candidate.itemId] !== candidate.choiceId);
 
     if (kind === 'paid' && row.choice?.id === optionId && !hasUnsyncedDose) {
       const freeChoice = row.item.choices.find(option => option.kind === 'free');
@@ -90,7 +93,7 @@ export function VaccineSchedule({ baby }: { baby: BabyInfo }) {
       }
     } else {
       next[row.item.id] = optionId;
-      sameVaccineBrandChoices.forEach(candidate => { next[candidate.itemId] = candidate.choiceId; });
+      sameVaccineChoices.forEach(candidate => { next[candidate.itemId] = candidate.choiceId; });
     }
     setSelections(next);
   };
@@ -103,10 +106,11 @@ export function VaccineSchedule({ baby }: { baby: BabyInfo }) {
       <div className="vaccine-brand-options">
         {options.map(option => {
           const optionPrice = kind === 'paid' ? prices[option.priceKey] ?? option.defaultPrice : 0;
-          const lockedBrand = lockedBrands.get(option.name);
-          const isLocked = row.done || Boolean(lockedBrand);
-          const isActive = lockedBrand ? option.brand === lockedBrand : row.choice?.id === option.id;
-          return <button type="button" disabled={isLocked} aria-label={`${option.brand || option.name}${isLocked ? '，厂家已锁定' : ''}`} aria-pressed={isActive} className={isActive ? 'active' : ''} onClick={() => selectChoice(row, option.id, kind)} key={option.id}>
+          const lockedChoice = lockedChoices.get(option.name);
+          const isLocked = row.done || Boolean(lockedChoice);
+          const isActive = lockedChoice ? (!lockedChoice.brand || option.brand === lockedChoice.brand) : row.choice?.id === option.id;
+          return <button type="button" disabled={isLocked} aria-label={`${option.brand || option.name}${isLocked ? '，方案已锁定' : ''}`} aria-pressed={isActive} className={isActive ? 'active' : ''} onClick={() => selectChoice(row, option.id, kind)} key={option.id}>
+            {option.label && <b>{option.label}</b>}
             {option.brand && <b>{option.brand}</b>}
             <span>{option.brand ? `¥${optionPrice.toFixed(0)}` : (kind === 'free' ? '免费' : `¥${optionPrice.toFixed(0)}`)}</span>
           </button>;
