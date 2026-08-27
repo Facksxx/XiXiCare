@@ -486,6 +486,7 @@ export default function App() {
         setBabies(remaining);
         setLogs((current) => current.filter((log) => log.babyId !== babyId));
         localStorage.removeItem(`babycare_vaccines_${babyId}`);
+        localStorage.removeItem(`babycare_vaccine_selections_${babyId}`);
         localStorage.removeItem(`babycare_allergens_${babyId}`);
         ['weight', 'height', 'temp'].forEach((type) => localStorage.removeItem(`babycare_growth_${type}_${babyId}`));
         if (activeBabyId === babyId) setActiveBabyId(remaining[0].id);

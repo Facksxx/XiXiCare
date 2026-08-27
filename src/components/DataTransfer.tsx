@@ -8,7 +8,7 @@ import { guideData } from '../data/guideData';
 import { createXlsxWorkbook, parseXlsxWorkbook } from '../utils/xlsx';
 import { ConfirmModal } from './ConfirmModal';
 import { normalizeActivityLog, normalizeActivityLogs } from '../utils/logSchema';
-import { getPlannedVaccineDate, getVaccinePrices, VACCINE_PRICE_STORAGE_KEY } from '../utils/vaccines';
+import { getPlannedVaccineDate, getVaccinePrices, vaccineSchedule, VACCINE_PRICE_STORAGE_KEY, VACCINE_SELECTION_STORAGE_PREFIX } from '../utils/vaccines';
 
 interface DataTransferProps {
   logs: ActivityLog[];
@@ -109,17 +109,23 @@ const buildCompleteWorkbook = (logs: ActivityLog[], babies: BabyInfo[], now: Dat
   });
   const vaccineRows = babies.flatMap(baby => {
     const vaccines = readStoredObject<Record<string, boolean>>(`babycare_vaccines_${baby.id}`);
-    return guideData.flatMap(stage => (stage.vaccineGuide?.vaccines ?? []).map(vaccine => ({
+    const selections = readStoredObject<Record<string, string>>(`${VACCINE_SELECTION_STORAGE_PREFIX}${baby.id}`);
+    return vaccineSchedule.map(item => {
+      const choice = item.choices.find(option => option.id === selections[item.id]) ?? item.choices[0];
+      const isDone = vaccines[`schedule:${item.id}`] || item.legacyNames?.some(name => Object.entries(vaccines).some(([key, done]) => done && key.endsWith(`:${name}`)));
+      return {
       '宝宝ID': baby.id,
       '宝宝名字': baby.name,
-      '年龄阶段': stage.ageRange,
-      '疫苗名称': vaccine.name,
-      '建议接种时间': vaccine.age,
-      '预计接种日期': getPlannedVaccineDate(baby.birthday, vaccine.scheduleMonth),
-      '预计价格(元)': vaccinePrices[vaccine.name] || 0,
-      '接种状态': vaccines[`${stage.id}:${vaccine.name}`] ? '已接种' : '未接种',
-      '接种说明': vaccine.note ?? ''
-    })));
+      '接种节点ID': item.id,
+      '建议接种时间': item.ageLabel,
+      '疫苗名称': item.doseLabel,
+      '选择方案ID': choice.id,
+      '选择方案': `${choice.brand || (choice.kind === 'free' ? '免费方案' : choice.name)}${choice.brand ? ` · ${choice.name}` : ''}`,
+      '预计接种日期': getPlannedVaccineDate(baby.birthday, choice.month ?? item.month),
+      '预计价格(元)': choice.kind === 'paid' ? vaccinePrices[choice.priceKey] ?? choice.defaultPrice : 0,
+      '接种状态': isDone ? '已接种' : '未接种',
+      '接种说明': item.note ?? ''
+    }; });
   });
   const allergenRows = babies.flatMap(baby => {
     const allergens = readStoredObject<Record<string, 'untested' | 'safe' | 'allergic'>>(`babycare_allergens_${baby.id}`);
@@ -142,6 +148,7 @@ const buildCompleteWorkbook = (logs: ActivityLog[], babies: BabyInfo[], now: Dat
     { '设置项': '自定义音乐信息', '当前值': localStorage.getItem('babycare_custom_audio') ?? '[]' },
     { '设置项': '疫苗价格', '当前值': localStorage.getItem(VACCINE_PRICE_STORAGE_KEY) ?? '{}' },
     { '设置项': '各宝宝喂养指南阶段', '当前值': JSON.stringify(Object.fromEntries(babies.map(baby => [baby.id, readStoredValue(`babycare_guide_stage_${baby.id}`, '1')]))) },
+    { '设置项': '各宝宝疫苗方案', '当前值': JSON.stringify(Object.fromEntries(babies.map(baby => [baby.id, readStoredValue(`${VACCINE_SELECTION_STORAGE_PREFIX}${baby.id}`, {})]))) },
     { '设置项': '各宝宝喂养偏好', '当前值': JSON.stringify(Object.fromEntries(babies.map(baby => [baby.id, {
       feedingType: readStoredValue(`babycare_last_feeding_type_${baby.id}`, 'breast'),
       bottleVolume: readStoredValue(`babycare_last_bottle_volume_${baby.id}`, 120),
@@ -154,7 +161,7 @@ const buildCompleteWorkbook = (logs: ActivityLog[], babies: BabyInfo[], now: Dat
   return createXlsxWorkbook([
     { name: '宝宝列表', headers: ['宝宝ID', '宝宝名字', '出生日期', '头像状态'], rows: babies.map(baby => ({ '宝宝ID': baby.id, '宝宝名字': baby.name, '出生日期': baby.birthday, '头像状态': baby.avatar ? '已设置（图片不写入表格）' : '未设置' })) },
     { name: '全部记录', headers: TABLE_HEADERS.map(header => header.label), rows },
-    { name: '疫苗接种记录', headers: ['宝宝ID', '宝宝名字', '年龄阶段', '疫苗名称', '建议接种时间', '预计接种日期', '预计价格(元)', '接种状态', '接种说明'], rows: vaccineRows },
+    { name: '疫苗接种记录', headers: ['宝宝ID', '宝宝名字', '接种节点ID', '建议接种时间', '疫苗名称', '选择方案ID', '选择方案', '预计接种日期', '预计价格(元)', '接种状态', '接种说明'], rows: vaccineRows },
     { name: '过敏排查记录', headers: ['宝宝ID', '宝宝名字', '年龄阶段', '过敏原/食物', '排查状态'], rows: allergenRows },
     { name: '宝宝与程序设置', headers: ['设置项', '当前值'], rows: settingRows }
   ]);
@@ -295,9 +302,13 @@ export function DataTransfer({ logs, babies, activeBabyId }: DataTransferProps) 
       const importedLogs = normalizeActivityLogs(recordsSheet.rows.map(rowToLog).filter((log): log is ActivityLog => Boolean(log)).map((log) => babiesSheet ? log : { ...log, babyId: activeBabyId }));
       const importedVaccines: Record<string, Record<string, boolean>> = {};
       vaccineSheet?.rows.forEach(row => {
+        const scheduleItem = vaccineSchedule.find(item => item.id === row['接种节点ID']);
         const stage = guideData.find(item => item.ageRange === row['年龄阶段'] && item.vaccineGuide?.vaccines.some(vaccine => vaccine.name === row['疫苗名称']));
         const babyId = row['宝宝ID'] || activeBabyId;
-        if (stage && row['疫苗名称']) {
+        if (scheduleItem) {
+          importedVaccines[babyId] ??= {};
+          importedVaccines[babyId][`schedule:${scheduleItem.id}`] = row['接种状态'] === '已接种';
+        } else if (stage && row['疫苗名称']) {
           importedVaccines[babyId] ??= {};
           importedVaccines[babyId][`${stage.id}:${row['疫苗名称']}`] = row['接种状态'] === '已接种';
         }
@@ -340,6 +351,7 @@ export function DataTransfer({ logs, babies, activeBabyId }: DataTransferProps) 
             if (mode === 'overwrite') {
               babies.forEach(item => {
                 localStorage.removeItem(`babycare_vaccines_${item.id}`);
+                localStorage.removeItem(`${VACCINE_SELECTION_STORAGE_PREFIX}${item.id}`);
                 localStorage.removeItem(`babycare_allergens_${item.id}`);
               });
               localStorage.setItem('babycare_logs', JSON.stringify(nextLogs));
@@ -409,6 +421,15 @@ export function DataTransfer({ logs, babies, activeBabyId }: DataTransferProps) 
                   });
                 } catch {
                   // Backups before guide stage persistence do not contain this setting.
+                }
+              }
+              const vaccineSelections = importedSettings.get('各宝宝疫苗方案');
+              if (vaccineSelections) {
+                try {
+                  const selections = JSON.parse(vaccineSelections) as Record<string, Record<string, string>>;
+                  Object.entries(selections).forEach(([babyId, values]) => localStorage.setItem(`${VACCINE_SELECTION_STORAGE_PREFIX}${mapId(babyId)}`, JSON.stringify(values)));
+                } catch {
+                  // Older backups do not contain selected vaccine brands.
                 }
               }
             }

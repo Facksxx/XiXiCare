@@ -2311,7 +2311,7 @@ select {
 }
 
 .vaccine-row:active {
-  transform: scale(0.985);
+  transform: none;
 }
 
 .vaccine-row.completed {
@@ -2328,6 +2328,8 @@ select {
   border-radius: 50%;
   background: var(--rose);
   color: white;
+  border: 0;
+  flex: 0 0 auto;
 }
 
 .vaccine-row.completed .vaccine-check {
@@ -2406,6 +2408,36 @@ select {
 .vaccine-summary strong { grid-column: 2; color: var(--text-heading); font-size: 13px; }
 .vaccine-plan { color: var(--sage); font-size: 11px; font-weight: 600; }
 
+.vaccine-choice-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 5px;
+}
+
+.vaccine-choice-list button {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  padding: 5px 7px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-card);
+  color: var(--text-muted);
+  text-align: left;
+}
+
+.vaccine-choice-list button.active {
+  border-color: var(--sage);
+  background: var(--sage-light);
+  color: var(--sage);
+}
+
+.vaccine-choice-list b { font-size: 10px; line-height: 1.25; }
+.vaccine-choice-list small { max-width: 150px; font-size: 9px; line-height: 1.25; white-space: normal; }
+
 .settings-icon-action {
   width: 36px;
   height: 36px;
@@ -2442,6 +2474,7 @@ select {
   font-size: 12px;
   font-weight: 600;
 }
+.vaccine-price-row > span:first-child small { display: block; margin-top: 2px; color: var(--text-muted); font-size: 10px; font-weight: 500; }
 
 .vaccine-price-input { flex: 0 0 78px; display: flex; align-items: center; color: var(--text-muted); }
 .vaccine-price-input input { width: 100%; min-width: 0; padding: 5px 3px; border: 0; background: transparent; color: var(--text-heading); text-align: right; font-size: 12px; font-weight: 700; }

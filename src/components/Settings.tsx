@@ -6,7 +6,7 @@ import { DataTransfer } from './DataTransfer';
 import { UpdateChecker } from './UpdateChecker';
 import { SoundPackManager } from './SoundPackManager';
 import { useLocalStorage } from '../hooks/useLocalStorage';
-import { defaultVaccinePrices, VACCINE_PRICE_STORAGE_KEY, vaccineNames, type VaccinePrices } from '../utils/vaccines';
+import { defaultVaccinePrices, VACCINE_PRICE_STORAGE_KEY, vaccinePriceOptions, type VaccinePrices } from '../utils/vaccines';
 
 interface SettingsProps {
   logs: ActivityLog[];
@@ -24,9 +24,9 @@ interface SettingsProps {
 export function Settings({ logs, babies, activeBabyId, onAddBaby, onSwitchBaby, onEditBaby, onDeleteBaby, detectedRelease, onReleaseChange, onBack }: SettingsProps) {
   const [vaccinePrices, setVaccinePrices] = useLocalStorage<VaccinePrices>(VACCINE_PRICE_STORAGE_KEY, defaultVaccinePrices);
 
-  const updateVaccinePrice = (name: string, rawValue: string) => {
+  const updateVaccinePrice = (id: string, rawValue: string) => {
     const price = Math.max(0, Number(rawValue) || 0);
-    setVaccinePrices({ ...defaultVaccinePrices, ...vaccinePrices, [name]: price });
+    setVaccinePrices({ ...defaultVaccinePrices, ...vaccinePrices, [id]: price });
   };
 
   return (
@@ -67,10 +67,10 @@ export function Settings({ logs, babies, activeBabyId, onAddBaby, onSwitchBaby, 
           <button type="button" className="settings-icon-action" onClick={() => setVaccinePrices(defaultVaccinePrices)} aria-label="恢复默认价格"><RefreshCw size={16} /></button>
         </div>
         <div className="vaccine-price-list">
-          {vaccineNames.map(name => (
-            <label className="vaccine-price-row" key={name}>
-              <span>{name}</span>
-              <span className="vaccine-price-input"><b>¥</b><input type="number" min="0" step="0.01" inputMode="decimal" value={vaccinePrices[name] ?? defaultVaccinePrices[name] ?? 0} onChange={event => updateVaccinePrice(name, event.target.value)} aria-label={`${name}价格`} /></span>
+          {vaccinePriceOptions.map(option => (
+            <label className="vaccine-price-row" key={option.priceKey}>
+              <span>{option.name}{option.brand ? <small>{option.brand}</small> : null}</span>
+              <span className="vaccine-price-input"><b>¥</b><input type="number" min="0" step="0.01" inputMode="decimal" value={vaccinePrices[option.priceKey] ?? defaultVaccinePrices[option.priceKey] ?? 0} onChange={event => updateVaccinePrice(option.priceKey, event.target.value)} aria-label={`${option.name}${option.brand || ''}价格`} /></span>
             </label>
           ))}
         </div>
