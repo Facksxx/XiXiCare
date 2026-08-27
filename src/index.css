@@ -2405,6 +2405,8 @@ select {
 .vaccine-brand-options { display: flex; flex-wrap: wrap; gap: 4px; }
 .vaccine-brand-options button { min-width: 0; display: inline-flex; align-items: center; gap: 3px; padding: 3px 5px; border: 1px solid var(--border); border-radius: 6px; color: var(--text-muted); background: var(--bg-card); font-size: 8px; line-height: 1; }
 .vaccine-brand-options button.active { border-color: var(--sage); color: var(--sage); background: var(--sage-light); }
+.vaccine-brand-options button:disabled { cursor: not-allowed; opacity: 0.48; }
+.vaccine-brand-options button.active:disabled { opacity: 1; }
 .vaccine-brand-options b { font-size: 9px; }
 .vaccine-table-status { width: 58px; min-height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; border: 0; border-left: 1px solid var(--border); border-radius: 0; color: var(--text-muted); background: var(--bg-input); }
 .vaccine-table-status span { font-size: 9px; font-weight: 700; }

@@ -23,19 +23,32 @@ export function VaccineSchedule({ baby }: { baby: BabyInfo }) {
   const [selections, setSelections] = useLocalStorage<Record<string, string>>(`${VACCINE_SELECTION_STORAGE_PREFIX}${baby.id}`, {});
   const prices = getVaccinePrices();
 
-  const rows = useMemo(() => vaccineSchedule.map(item => {
+  const completedItems = useMemo(() => new Map(vaccineSchedule.map(item => {
     const statusKey = `schedule:${item.id}`;
     const hasCurrentStatus = Object.prototype.hasOwnProperty.call(status, statusKey);
     const legacyDone = item.legacyNames?.some(name => Object.entries(status).some(([key, value]) => value && key.endsWith(`:${name}`))) ?? false;
-    const done = hasCurrentStatus ? Boolean(status[statusKey]) : legacyDone;
+    return [item.id, hasCurrentStatus ? Boolean(status[statusKey]) : legacyDone] as const;
+  })), [status]);
+  const lockedBrands = useMemo(() => {
+    const result = new Map<string, string>();
+    vaccineSchedule.forEach(item => {
+      if (!completedItems.get(item.id)) return;
+      const choice = item.choices.find(option => option.id === selections[item.id]) ?? item.choices[0];
+      if (choice?.brand && !result.has(choice.name)) result.set(choice.name, choice.brand);
+    });
+    return result;
+  }, [completedItems, selections]);
+  const rows = useMemo(() => vaccineSchedule.map(item => {
+    const done = Boolean(completedItems.get(item.id));
     const storedChoice = item.choices.find(option => option.id === selections[item.id]);
     const freeChoice = item.choices.find(option => option.kind === 'free');
-    const choice = storedChoice ?? freeChoice ?? (done ? item.choices[0] : undefined);
+    const lockedChoice = item.choices.find(option => option.brand && lockedBrands.get(option.name) === option.brand);
+    const choice = lockedChoice ?? storedChoice ?? freeChoice ?? (done ? item.choices[0] : undefined);
     const plannedDate = getPlannedVaccineDate(baby.birthday, choice?.month ?? item.month);
     const price = choice?.kind === 'paid' ? prices[choice.priceKey] ?? choice.defaultPrice : 0;
     const requiresStatus = Boolean(choice || freeChoice);
     return { item, choice, done, plannedDate, price, requiresStatus, level: dateStatus(plannedDate, done) };
-  }), [baby.birthday, prices, selections, status]);
+  }), [baby.birthday, completedItems, lockedBrands, prices, selections]);
 
   const selectedRows = rows.filter(row => filter === 'all' || (filter === 'done' ? row.done : !row.done && row.requiresStatus));
   const groupedRows = useMemo(() => Array.from(selectedRows.reduce((groups, row) => {
@@ -59,6 +72,7 @@ export function VaccineSchedule({ baby }: { baby: BabyInfo }) {
   const selectChoice = (row: typeof rows[number], optionId: string, kind: 'free' | 'paid') => {
     const next = { ...selections };
     const selectedOption = row.item.choices.find(option => option.id === optionId);
+    if (row.done || (selectedOption && lockedBrands.has(selectedOption.name))) return;
     const sameVaccineBrandChoices = kind === 'paid' && selectedOption?.brand
       ? rows.flatMap(candidate => {
           if (candidate.done) return [];
@@ -73,7 +87,6 @@ export function VaccineSchedule({ baby }: { baby: BabyInfo }) {
       if (freeChoice) next[row.item.id] = freeChoice.id;
       else {
         next[row.item.id] = '';
-        if (row.done) setStatus({ ...status, [`schedule:${row.item.id}`]: false });
       }
     } else {
       next[row.item.id] = optionId;
@@ -90,8 +103,10 @@ export function VaccineSchedule({ baby }: { baby: BabyInfo }) {
       <div className="vaccine-brand-options">
         {options.map(option => {
           const optionPrice = kind === 'paid' ? prices[option.priceKey] ?? option.defaultPrice : 0;
-          const isActive = row.choice?.id === option.id;
-          return <button type="button" aria-pressed={isActive} className={isActive ? 'active' : ''} onClick={() => selectChoice(row, option.id, kind)} key={option.id}>
+          const lockedBrand = lockedBrands.get(option.name);
+          const isLocked = row.done || Boolean(lockedBrand);
+          const isActive = lockedBrand ? option.brand === lockedBrand : row.choice?.id === option.id;
+          return <button type="button" disabled={isLocked} aria-label={`${option.brand || option.name}${isLocked ? '，厂家已锁定' : ''}`} aria-pressed={isActive} className={isActive ? 'active' : ''} onClick={() => selectChoice(row, option.id, kind)} key={option.id}>
             {option.brand && <b>{option.brand}</b>}
             <span>{option.brand ? `¥${optionPrice.toFixed(0)}` : (kind === 'free' ? '免费' : `¥${optionPrice.toFixed(0)}`)}</span>
           </button>;
