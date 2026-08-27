@@ -12,9 +12,9 @@ export interface VaccineScheduleItem {
 const free = (id: string, name: string): VaccineChoice => ({ id, priceKey: id, name, kind: 'free', defaultPrice: 0 });
 const paid = (id: string, name: string, price: number, brand?: string, priceKey = id.replace(/-\d+$/, '')): VaccineChoice => ({ id, priceKey, name, brand, kind: 'paid', defaultPrice: price });
 const pcv13 = (dose: number): VaccineChoice[] => [
-  { ...paid(`pcv13-${dose}-a`, '13价肺炎球菌疫苗', 721, 'A厂（进口）', 'pcv13-a'), month: dose === 3 ? 3.5 : undefined },
-  { ...paid(`pcv13-${dose}-b`, '13价肺炎球菌疫苗', 621, 'B厂（国产）', 'pcv13-b'), month: dose === 3 ? 5.5 : undefined },
-  { ...paid(`pcv13-${dose}-c`, '13价肺炎球菌疫苗', 481, 'C厂（国产）', 'pcv13-c'), month: dose === 3 ? 5.5 : undefined }
+  { ...paid(`pcv13-${dose}-a`, '13价肺炎球菌疫苗', 721, 'A', 'pcv13-a'), month: dose === 3 ? 3.5 : undefined },
+  { ...paid(`pcv13-${dose}-b`, '13价肺炎球菌疫苗', 621, 'B', 'pcv13-b'), month: dose === 3 ? 5.5 : undefined },
+  { ...paid(`pcv13-${dose}-c`, '13价肺炎球菌疫苗', 481, 'C', 'pcv13-c'), month: dose === 3 ? 5.5 : undefined }
 ];
 
 export const vaccineSchedule: VaccineScheduleItem[] = [
@@ -40,13 +40,13 @@ export const vaccineSchedule: VaccineScheduleItem[] = [
   { id: 'm5-mencwy3', month: 5, ageLabel: '5月龄', doseLabel: 'ACWY流脑第3剂', choices: [paid('mencwy-3', 'ACWY135流脑结合疫苗', 443)] },
   { id: 'm6-hepb3', month: 6, ageLabel: '6月龄', doseLabel: '乙肝第3剂', choices: [free('hepb-3-free', '乙肝疫苗')], legacyNames: ['乙肝疫苗 (第3剂)'] },
   { id: 'm6-dtap3', month: 6, ageLabel: '6月龄', doseLabel: '百白破第3剂', choices: [free('dtap-3b-free', '百白破疫苗')], legacyNames: ['百白破疫苗 (第3剂)'] },
-  { id: 'm6-mena1', month: 6, ageLabel: '6月龄', doseLabel: 'A群流脑第1剂', choices: [free('mena-1-free', 'A群流脑疫苗'), paid('mencwy-alt-1', 'ACWY135流脑结合疫苗', 443)] },
+  { id: 'm6-mena1', month: 6, ageLabel: '6月龄', doseLabel: 'A群流脑第1剂', choices: [free('mena-1-free', 'A群流脑疫苗'), paid('mencwy-alt-1', 'ACWY135流脑结合疫苗', 443, undefined, 'mencwy')] },
   { id: 'm6-hib3', month: 6, ageLabel: '6月龄', doseLabel: 'Hib第3剂', choices: [paid('hib-3', 'Hib疫苗', 125)] },
   { id: 'm6_5-ev71-1', month: 6.5, ageLabel: '6.5月龄', doseLabel: 'EV71第1剂', choices: [paid('ev71-1', 'EV71手足口疫苗', 211)] },
   { id: 'm7_5-ev71-2', month: 7.5, ageLabel: '7.5月龄', doseLabel: 'EV71第2剂', choices: [paid('ev71-2', 'EV71手足口疫苗', 211)], note: '与第1剂间隔1个月' },
   { id: 'm8-mmr1', month: 8, ageLabel: '8月龄', doseLabel: '麻腮风第1剂', choices: [free('mmr-1-free', '麻腮风疫苗')], legacyNames: ['麻腮风疫苗 (第1剂)'] },
   { id: 'm8-je1', month: 8, ageLabel: '8月龄', doseLabel: '乙脑第1剂', choices: [free('je-1-free', '乙脑减毒活疫苗')], legacyNames: ['乙脑减毒活疫苗 (第1剂)'] },
-  { id: 'm9-mena2', month: 9, ageLabel: '9月龄', doseLabel: 'A群流脑第2剂', choices: [free('mena-2-free', 'A群流脑疫苗'), paid('mencwy-alt-2', 'ACWY135流脑结合疫苗', 443)] },
+  { id: 'm9-mena2', month: 9, ageLabel: '9月龄', doseLabel: 'A群流脑第2剂', choices: [free('mena-2-free', 'A群流脑疫苗'), paid('mencwy-alt-2', 'ACWY135流脑结合疫苗', 443, undefined, 'mencwy')] },
   { id: 'm12-pcv4', month: 12, ageLabel: '12-15月龄', doseLabel: '13价肺炎加强剂', choices: pcv13(4) },
   { id: 'm12-mencwy4', month: 12, ageLabel: '12-15月龄', doseLabel: 'ACWY流脑第4剂', choices: [paid('mencwy-4', 'ACWY135流脑结合疫苗', 443)] },
   { id: 'm15-varicella1', month: 15, ageLabel: '15月龄', doseLabel: '水痘第1剂', choices: [paid('varicella-1', '水痘疫苗', 159)], legacyNames: ['水痘疫苗 (第1剂)'] },
@@ -66,6 +66,7 @@ export const vaccineSchedule: VaccineScheduleItem[] = [
 ];
 
 export const VACCINE_PRICE_STORAGE_KEY = 'babycare_vaccine_prices_v2';
+export const VACCINE_PRICE_UPDATED_AT_KEY = 'babycare_vaccine_prices_updated_at';
 export const VACCINE_SELECTION_STORAGE_PREFIX = 'babycare_vaccine_selections_';
 export const vaccinePriceOptions = Array.from(new Map(vaccineSchedule.flatMap(item => item.choices).filter(choice => choice.kind === 'paid').map(choice => [choice.priceKey, choice])).values());
 export const defaultVaccinePrices: VaccinePrices = Object.fromEntries(vaccinePriceOptions.map(choice => [choice.priceKey, choice.defaultPrice]));
@@ -73,6 +74,29 @@ export const defaultVaccinePrices: VaccinePrices = Object.fromEntries(vaccinePri
 export function getVaccinePrices(): VaccinePrices {
   try { return { ...defaultVaccinePrices, ...JSON.parse(localStorage.getItem(VACCINE_PRICE_STORAGE_KEY) || '{}') }; }
   catch { return defaultVaccinePrices; }
+}
+
+export async function updateVaccinePricesFromRemote() {
+  const urls = [
+    'https://gitee.com/Facksxx/xi-xi-care/raw/main/vaccine-prices.json',
+    'https://raw.githubusercontent.com/Facksxx/XiXiCare/main/vaccine-prices.json'
+  ];
+  let lastError: unknown;
+  for (const url of urls) {
+    try {
+      const response = await fetch(`${url}?t=${Date.now()}`, { cache: 'no-store' });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const payload = await response.json() as { updatedAt?: string; prices?: Record<string, unknown> };
+      if (!payload.prices || typeof payload.prices !== 'object') throw new Error('价格表格式错误');
+      const prices = Object.fromEntries(Object.entries(payload.prices).filter(([, value]) => Number.isFinite(Number(value)) && Number(value) >= 0).map(([key, value]) => [key, Number(value)]));
+      if (Object.keys(prices).length === 0) throw new Error('价格表为空');
+      localStorage.setItem(VACCINE_PRICE_STORAGE_KEY, JSON.stringify({ ...defaultVaccinePrices, ...prices }));
+      const updatedAt = payload.updatedAt || new Date().toISOString();
+      localStorage.setItem(VACCINE_PRICE_UPDATED_AT_KEY, JSON.stringify(updatedAt));
+      return updatedAt;
+    } catch (error) { lastError = error; }
+  }
+  throw lastError instanceof Error ? lastError : new Error('价格表更新失败');
 }
 
 export function getPlannedVaccineDate(birthday: string, monthOffset: number) {

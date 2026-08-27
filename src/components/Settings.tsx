@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Activity, ChevronDown, Edit2, Music2, Plus, RefreshCw, Trash2, Users } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
 import type { RemoteRelease } from '../utils/version';
@@ -5,8 +6,7 @@ import type { ActivityLog, BabyInfo } from '../types/baby';
 import { DataTransfer } from './DataTransfer';
 import { UpdateChecker } from './UpdateChecker';
 import { SoundPackManager } from './SoundPackManager';
-import { useLocalStorage } from '../hooks/useLocalStorage';
-import { defaultVaccinePrices, VACCINE_PRICE_STORAGE_KEY, vaccinePriceOptions, type VaccinePrices } from '../utils/vaccines';
+import { updateVaccinePricesFromRemote, VACCINE_PRICE_UPDATED_AT_KEY } from '../utils/vaccines';
 
 interface SettingsProps {
   logs: ActivityLog[];
@@ -22,11 +22,23 @@ interface SettingsProps {
 }
 
 export function Settings({ logs, babies, activeBabyId, onAddBaby, onSwitchBaby, onEditBaby, onDeleteBaby, detectedRelease, onReleaseChange, onBack }: SettingsProps) {
-  const [vaccinePrices, setVaccinePrices] = useLocalStorage<VaccinePrices>(VACCINE_PRICE_STORAGE_KEY, defaultVaccinePrices);
+  const [priceUpdating, setPriceUpdating] = useState(false);
+  const [priceMessage, setPriceMessage] = useState('');
+  const [priceUpdatedAt, setPriceUpdatedAt] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(VACCINE_PRICE_UPDATED_AT_KEY) || 'null') as string | null; }
+    catch { return null; }
+  });
 
-  const updateVaccinePrice = (id: string, rawValue: string) => {
-    const price = Math.max(0, Number(rawValue) || 0);
-    setVaccinePrices({ ...defaultVaccinePrices, ...vaccinePrices, [id]: price });
+  const updatePriceTable = async () => {
+    setPriceUpdating(true);
+    setPriceMessage('');
+    try {
+      const updatedAt = await updateVaccinePricesFromRemote();
+      setPriceUpdatedAt(updatedAt);
+      setPriceMessage('价格表已更新');
+    } catch {
+      setPriceMessage('更新失败，请检查网络后重试');
+    } finally { setPriceUpdating(false); }
   };
 
   return (
@@ -60,21 +72,12 @@ export function Settings({ logs, babies, activeBabyId, onAddBaby, onSwitchBaby, 
         <div id="data-management-title"><DataTransfer logs={logs} babies={babies} activeBabyId={activeBabyId} /></div>
       </section>
 
-      <section className="settings-section" aria-labelledby="vaccine-prices-title">
-        <div className="settings-item-heading">
+      <section className="settings-section" aria-labelledby="vaccine-data-title">
+        <div className="settings-item-heading settings-price-update">
           <span className="settings-icon" aria-hidden="true"><Activity size={18} /></span>
-          <div><h2 id="vaccine-prices-title">疫苗价格</h2><p>用于接种计划费用估算</p></div>
-          <button type="button" className="settings-icon-action" onClick={() => setVaccinePrices(defaultVaccinePrices)} aria-label="恢复默认价格"><RefreshCw size={16} /></button>
+          <div><h2 id="vaccine-data-title">疫苗价格表</h2><p>{priceMessage || (priceUpdatedAt ? `已更新：${priceUpdatedAt.slice(0, 10)}` : '使用内置价格，可从仓库更新')}</p></div>
+          <button type="button" className="settings-icon-action" disabled={priceUpdating} onClick={updatePriceTable} aria-label="更新疫苗价格表"><RefreshCw size={16} className={priceUpdating ? 'spin' : ''} /></button>
         </div>
-        <div className="vaccine-price-list">
-          {vaccinePriceOptions.map(option => (
-            <label className="vaccine-price-row" key={option.priceKey}>
-              <span>{option.name}{option.brand ? <small>{option.brand}</small> : null}</span>
-              <span className="vaccine-price-input"><b>¥</b><input type="number" min="0" step="0.01" inputMode="decimal" value={vaccinePrices[option.priceKey] ?? defaultVaccinePrices[option.priceKey] ?? 0} onChange={event => updateVaccinePrice(option.priceKey, event.target.value)} aria-label={`${option.name}${option.brand || ''}价格`} /></span>
-            </label>
-          ))}
-        </div>
-        <p className="settings-footnote">国家免疫规划疫苗默认按免费计算；自费价格因地区和品牌不同，可按实际情况修改。</p>
       </section>
 
       <section className="settings-section" aria-labelledby="sound-packs-title">

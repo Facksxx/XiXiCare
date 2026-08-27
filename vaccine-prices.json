@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "updatedAt": "2026-08-27",
+  "currency": "CNY",
+  "prices": {
+    "rota5": 303,
+    "pcv13-a": 721,
+    "pcv13-b": 621,
+    "pcv13-c": 481,
+    "pentavalent": 661,
+    "hib": 125,
+    "mencwy": 443,
+    "ev71": 211,
+    "varicella": 159,
+    "pcv23": 271,
+    "rota-oral": 118,
+    "mencwy135": 159,
+    "hpv9": 1321
+  }
+}
