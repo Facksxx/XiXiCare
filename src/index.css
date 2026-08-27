@@ -48,6 +48,7 @@
   --transition-slow: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-top: env(safe-area-inset-top, 0px);
+  --app-sticky-top: calc(var(--safe-top) + 76px);
 }
 
 [data-theme='dark'] {
@@ -2108,7 +2109,7 @@ select {
   scrollbar-width: none;
   scroll-behavior: smooth;
   position: sticky;
-  top: calc(var(--safe-top) + 85px);
+  top: var(--app-sticky-top);
   z-index: 50;
   background: var(--bg);
   padding-top: 10px;
@@ -2326,7 +2327,7 @@ select {
 
 .vaccine-sticky {
   position: sticky;
-  top: calc(var(--safe-top) + 84px);
+  top: var(--app-sticky-top);
   z-index: 55;
   display: grid;
   gap: 8px;
@@ -2369,6 +2370,8 @@ select {
 
 .vaccine-filter button { min-height: 34px; border: 0; border-radius: var(--radius-sm); background: transparent; color: var(--text-muted); font-size: 12px; font-weight: 650; }
 .vaccine-filter button.active { color: var(--sage); background: var(--bg-card); box-shadow: var(--shadow-sm); }
+.vaccine-clinic-time { display: flex; align-items: center; justify-content: center; gap: 4px; margin-top: -2px; color: var(--text-muted); font-size: 9px; line-height: 1.35; white-space: nowrap; }
+.vaccine-clinic-time svg { flex: 0 0 auto; color: var(--sage); }
 
 .vaccine-table { overflow: hidden; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--bg-card); }
 .vaccine-table > header { display: grid; grid-template-columns: 68px minmax(0, 1fr) minmax(0, 1fr) 58px; gap: 0; color: var(--text-muted); background: var(--bg-input); font-size: 9px; font-weight: 700; }
@@ -2406,6 +2409,7 @@ select {
 .vaccine-vial-row.soon .vaccine-table-status { color: var(--amber); background: var(--amber-light); }
 .vaccine-vial-row.pending .vaccine-table-status { color: var(--rose); background: var(--rose-light); }
 .vaccine-table-status:disabled { color: var(--text-muted); background: var(--bg-input); opacity: 0.5; cursor: not-allowed; }
+.vaccine-table-status.unselected { opacity: 0.72; }
 .vaccine-table-empty { padding: 30px 15px; color: var(--text-muted); font-size: 12px; text-align: center; }
 .vaccine-page-note { display: flex; align-items: flex-start; gap: 5px; padding: 0 3px; color: var(--text-muted); font-size: 9px; line-height: 1.45; }
 .vaccine-page-note svg { flex: 0 0 auto; margin-top: 1px; }
@@ -4381,6 +4385,15 @@ body.modal-open {
   min-width: 0;
 }
 
+.confirm-modal.compact { max-width: 286px !important; }
+.confirm-modal.compact .modal-header { padding: 14px 16px 4px !important; }
+.confirm-modal.compact .modal-header h3 { font-size: 15px; }
+.confirm-modal.compact .modal-close-btn { width: 30px; height: 30px; }
+.confirm-modal.compact .modal-body { padding: 6px 16px 12px !important; }
+.confirm-modal.compact .modal-body p { font-size: 12px !important; }
+.confirm-modal.compact .modal-footer { gap: 8px; padding: 0 16px 14px; border-top: 0; }
+.confirm-modal.compact .modal-footer button { min-height: 36px; padding: 8px 10px; border-radius: var(--radius-sm); font-size: 12px; }
+
 .btn-secondary {
   flex: 1;
   background: var(--bg-input);
@@ -4404,6 +4417,7 @@ body.modal-open {
 }
 
 @media screen and (max-width: 480px) {
+  :root { --app-sticky-top: calc(var(--safe-top) + 74px); }
   .record-tab-grid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }

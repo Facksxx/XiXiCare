@@ -10,6 +10,7 @@ interface ConfirmModalProps {
   cancelText?: string;
   onConfirm: () => void;
   onCancel: () => void;
+  compact?: boolean;
 }
 
 export function ConfirmModal({
@@ -20,13 +21,14 @@ export function ConfirmModal({
   confirmText = '确认',
   cancelText = '取消',
   onConfirm,
-  onCancel
+  onCancel,
+  compact = false
 }: ConfirmModalProps) {
   if (!isOpen) return null;
 
   return createPortal(
     <div className="modal-overlay" onClick={onCancel} role="presentation">
-      <div className="modal-content" role="dialog" aria-modal="true" aria-labelledby="confirm-modal-title" style={{ maxWidth: '320px' }} onClick={(e) => e.stopPropagation()}>
+      <div className={`modal-content confirm-modal${compact ? ' compact' : ''}`} role="dialog" aria-modal="true" aria-labelledby="confirm-modal-title" style={{ maxWidth: '320px' }} onClick={(e) => e.stopPropagation()}>
         <div className="modal-header" style={{ border: 'none', paddingBottom: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             {type === 'danger' && <AlertTriangle size={20} style={{ color: 'var(--rose)' }} />}

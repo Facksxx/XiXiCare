@@ -24,14 +24,20 @@ export function VaccineSchedule({ baby }: { baby: BabyInfo }) {
   const prices = getVaccinePrices();
 
   const rows = useMemo(() => vaccineSchedule.map(item => {
-    const choice = item.choices.find(option => option.id === selections[item.id]) ?? item.choices[0];
-    const done = Boolean(status[`schedule:${item.id}`] || item.legacyNames?.some(name => Object.entries(status).some(([key, value]) => value && key.endsWith(`:${name}`))));
-    const plannedDate = getPlannedVaccineDate(baby.birthday, choice.month ?? item.month);
-    const price = choice.kind === 'paid' ? prices[choice.priceKey] ?? choice.defaultPrice : 0;
-    return { item, choice, done, plannedDate, price, level: dateStatus(plannedDate, done) };
+    const statusKey = `schedule:${item.id}`;
+    const hasCurrentStatus = Object.prototype.hasOwnProperty.call(status, statusKey);
+    const legacyDone = item.legacyNames?.some(name => Object.entries(status).some(([key, value]) => value && key.endsWith(`:${name}`))) ?? false;
+    const done = hasCurrentStatus ? Boolean(status[statusKey]) : legacyDone;
+    const storedChoice = item.choices.find(option => option.id === selections[item.id]);
+    const freeChoice = item.choices.find(option => option.kind === 'free');
+    const choice = storedChoice ?? freeChoice ?? (done ? item.choices[0] : undefined);
+    const plannedDate = getPlannedVaccineDate(baby.birthday, choice?.month ?? item.month);
+    const price = choice?.kind === 'paid' ? prices[choice.priceKey] ?? choice.defaultPrice : 0;
+    const requiresStatus = Boolean(choice || freeChoice);
+    return { item, choice, done, plannedDate, price, requiresStatus, level: dateStatus(plannedDate, done) };
   }), [baby.birthday, prices, selections, status]);
 
-  const selectedRows = rows.filter(row => filter === 'all' || (filter === 'done' ? row.done : !row.done));
+  const selectedRows = rows.filter(row => filter === 'all' || (filter === 'done' ? row.done : !row.done && row.requiresStatus));
   const groupedRows = useMemo(() => Array.from(selectedRows.reduce((groups, row) => {
     const key = `${row.item.month}:${row.item.ageLabel}`;
     const group = groups.get(key) ?? { key, ageLabel: row.item.ageLabel, plannedDate: row.plannedDate, rows: [] as typeof rows };
@@ -39,7 +45,8 @@ export function VaccineSchedule({ baby }: { baby: BabyInfo }) {
     groups.set(key, group);
     return groups;
   }, new Map<string, { key: string; ageLabel: string; plannedDate: string; rows: typeof rows }>()).values()), [selectedRows]);
-  const completed = rows.filter(row => row.done).length;
+  const activeRows = rows.filter(row => row.requiresStatus || row.done);
+  const completed = activeRows.filter(row => row.done).length;
   const total = rows.reduce((sum, row) => sum + row.price, 0);
   const remaining = rows.reduce((sum, row) => sum + (row.done ? 0 : row.price), 0);
 
@@ -47,6 +54,19 @@ export function VaccineSchedule({ baby }: { baby: BabyInfo }) {
     if (done) return setResetItemId(itemId);
     if (isFuture) return;
     setStatus({ ...status, [`schedule:${itemId}`]: true });
+  };
+
+  const selectChoice = (row: typeof rows[number], optionId: string, kind: 'free' | 'paid') => {
+    const next = { ...selections };
+    if (kind === 'paid' && row.choice?.id === optionId) {
+      const freeChoice = row.item.choices.find(option => option.kind === 'free');
+      if (freeChoice) next[row.item.id] = freeChoice.id;
+      else {
+        next[row.item.id] = '';
+        if (row.done) setStatus({ ...status, [`schedule:${row.item.id}`]: false });
+      }
+    } else next[row.item.id] = optionId;
+    setSelections(next);
   };
 
   const renderChoiceCell = (row: typeof rows[number], kind: 'free' | 'paid') => {
@@ -57,8 +77,8 @@ export function VaccineSchedule({ baby }: { baby: BabyInfo }) {
       <div className="vaccine-brand-options">
         {options.map(option => {
           const optionPrice = kind === 'paid' ? prices[option.priceKey] ?? option.defaultPrice : 0;
-          const isActive = row.choice.id === option.id;
-          return <button type="button" className={isActive ? 'active' : ''} onClick={() => setSelections({ ...selections, [row.item.id]: option.id })} key={option.id}>
+          const isActive = row.choice?.id === option.id;
+          return <button type="button" aria-pressed={isActive} className={isActive ? 'active' : ''} onClick={() => selectChoice(row, option.id, kind)} key={option.id}>
             {option.brand && <b>{option.brand}</b>}
             <span>{option.brand ? `¥${optionPrice.toFixed(0)}` : (kind === 'free' ? '免费' : `¥${optionPrice.toFixed(0)}`)}</span>
           </button>;
@@ -73,7 +93,7 @@ export function VaccineSchedule({ baby }: { baby: BabyInfo }) {
       <div className="container vaccine-page">
         <div className="vaccine-sticky">
           <section className="vaccine-overview">
-            <div><span><Activity size={18} /></span><p>接种进度<strong>{completed}/{rows.length}</strong></p></div>
+            <div><span><Activity size={18} /></span><p>接种进度<strong>{completed}/{activeRows.length}</strong></p></div>
             <div><span><Activity size={18} /></span><p>方案总价<strong>¥{total.toFixed(2)}</strong></p></div>
             <div><span><Clock3 size={18} /></span><p>待支付<strong>¥{remaining.toFixed(2)}</strong></p></div>
           </section>
@@ -83,6 +103,7 @@ export function VaccineSchedule({ baby }: { baby: BabyInfo }) {
               <button type="button" role="tab" aria-selected={filter === key} className={filter === key ? 'active' : ''} onClick={() => setFilter(key)} key={key}>{label}</button>
             ))}
           </div>
+          <p className="vaccine-clinic-time"><Clock3 size={13} />接种时间:每周二至周六上午(夏令7:30-11:00;冬令8:00-11:00)</p>
         </div>
 
         <section className="vaccine-table" aria-label="儿童疫苗接种程序表">
@@ -94,9 +115,9 @@ export function VaccineSchedule({ baby }: { baby: BabyInfo }) {
                 {group.rows.map(row => <div className={`vaccine-vial-row ${row.level.key}`} key={row.item.id}>
                   <div className="vaccine-free-cell">{renderChoiceCell(row, 'free')}</div>
                   <div className="vaccine-paid-cell">{renderChoiceCell(row, 'paid')}</div>
-                  <button type="button" disabled={!row.done && row.level.key === 'future'} className="vaccine-table-status" aria-label={`${row.item.doseLabel}${row.done ? '取消已接种' : row.level.key === 'future' ? '未到月龄不可标记' : '标记已接种'}`} onClick={() => toggleStatus(row.item.id, row.done, row.level.key === 'future')}>
-                    {row.done ? <CheckCircle2 size={18} /> : <HelpCircle size={18} />}
-                    <span>{row.level.label}</span>
+                  <button type="button" disabled={!row.requiresStatus || (!row.done && row.level.key === 'future')} className={`vaccine-table-status${!row.requiresStatus ? ' unselected' : ''}`} aria-label={`${row.item.doseLabel}${!row.requiresStatus ? '未选择自费方案' : row.done ? '取消已接种' : row.level.key === 'future' ? '未到月龄不可标记' : '标记已接种'}`} onClick={() => toggleStatus(row.item.id, row.done, row.level.key === 'future')}>
+                    {row.requiresStatus && (row.done ? <CheckCircle2 size={18} /> : <HelpCircle size={18} />)}
+                    <span>{row.requiresStatus ? row.level.label : '未选择'}</span>
                   </button>
                 </div>)}
               </div>
@@ -106,7 +127,7 @@ export function VaccineSchedule({ baby }: { baby: BabyInfo }) {
         </section>
         <p className="vaccine-page-note"><Calendar size={13} /> 日期按出生日期自动推算，疫苗安排与价格请以当地接种门诊为准。</p>
       </div>
-      <ConfirmModal isOpen={Boolean(resetItemId)} title="取消接种标记" message="确定将这条记录切换为未接种吗？" type="warning" confirmText="确认切换" onCancel={() => setResetItemId(null)} onConfirm={() => {
+      <ConfirmModal compact isOpen={Boolean(resetItemId)} title="取消接种标记" message="确定切换为未接种吗？" type="warning" confirmText="确认切换" onCancel={() => setResetItemId(null)} onConfirm={() => {
         if (resetItemId) setStatus({ ...status, [`schedule:${resetItemId}`]: false });
         setResetItemId(null);
       }} />
