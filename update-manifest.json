@@ -1,11 +1,11 @@
 {
-  "version": "1.1.21",
-  "tag": "v1.1.21",
-  "htmlUrl": "https://gitee.com/Facksxx/xi-xi-care/releases/tag/v1.1.21",
-  "apkUrl": "https://gitee.com/Facksxx/xi-xi-care/releases/download/v1.1.21/XiXiCare.apk",
-  "publishedAt": "2026-08-27T13:06:55.530Z",
-  "notes": "优化疫苗表与喂养指南吸顶区域：增加实色背景间距并避免滚动内容透出；疫苗日期在窄屏改为单行年月、宽屏显示完整日期。",
-  "sha256": "ae233bbdd28c66cb32b6cc09b2815a72fc6f74a5d599cd474311ced97ad09bd4",
+  "version": "1.1.22",
+  "tag": "v1.1.22",
+  "htmlUrl": "https://gitee.com/Facksxx/xi-xi-care/releases/tag/v1.1.22",
+  "apkUrl": "https://gitee.com/Facksxx/xi-xi-care/releases/download/v1.1.22/XiXiCare.apk",
+  "publishedAt": "2026-08-27T13:16:46.416Z",
+  "notes": "疫苗表新增厂家偏好联动：选择某种疫苗的厂家后，后续剂次自动沿用同一厂家，已完成和更早剂次保持不变。",
+  "sha256": "98b01dd4b80c9112bc49f738f988c0e97681b0083737889e57d91b98dbd2c4c1",
   "history": [
     {
       "version": "1.1.14",
@@ -46,6 +46,11 @@
       "version": "1.1.21",
       "publishedAt": "2026-08-27T13:06:55.530Z",
       "notes": "优化疫苗表与喂养指南吸顶区域：增加实色背景间距并避免滚动内容透出；疫苗日期在窄屏改为单行年月、宽屏显示完整日期。"
+    },
+    {
+      "version": "1.1.22",
+      "publishedAt": "2026-08-27T13:16:46.416Z",
+      "notes": "疫苗表新增厂家偏好联动：选择某种疫苗的厂家后，后续剂次自动沿用同一厂家，已完成和更早剂次保持不变。"
     }
   ]
 }
