@@ -1,11 +1,11 @@
 {
-  "version": "1.1.20",
-  "tag": "v1.1.20",
-  "htmlUrl": "https://gitee.com/Facksxx/xi-xi-care/releases/tag/v1.1.20",
-  "apkUrl": "https://gitee.com/Facksxx/xi-xi-care/releases/download/v1.1.20/XiXiCare.apk",
-  "publishedAt": "2026-08-27T13:00:41.205Z",
-  "notes": "疫苗表支持取消自费方案并实时重算费用，未选择方案不再要求标记状态；修复乙肝第二剂等旧数据接种状态无法撤销；新增门诊接种时间提示，缩小撤销确认弹窗；修复疫苗表与喂养指南滚动吸顶间隙。",
-  "sha256": "a13baccb7ff871770a728090402c400f54a36c7bfe697d6032890cecebbee602",
+  "version": "1.1.21",
+  "tag": "v1.1.21",
+  "htmlUrl": "https://gitee.com/Facksxx/xi-xi-care/releases/tag/v1.1.21",
+  "apkUrl": "https://gitee.com/Facksxx/xi-xi-care/releases/download/v1.1.21/XiXiCare.apk",
+  "publishedAt": "2026-08-27T13:06:55.530Z",
+  "notes": "优化疫苗表与喂养指南吸顶区域：增加实色背景间距并避免滚动内容透出；疫苗日期在窄屏改为单行年月、宽屏显示完整日期。",
+  "sha256": "ae233bbdd28c66cb32b6cc09b2815a72fc6f74a5d599cd474311ced97ad09bd4",
   "history": [
     {
       "version": "1.1.14",
@@ -41,6 +41,11 @@
       "version": "1.1.20",
       "publishedAt": "2026-08-27T13:00:41.205Z",
       "notes": "疫苗表支持取消自费方案并实时重算费用，未选择方案不再要求标记状态；修复乙肝第二剂等旧数据接种状态无法撤销；新增门诊接种时间提示，缩小撤销确认弹窗；修复疫苗表与喂养指南滚动吸顶间隙。"
+    },
+    {
+      "version": "1.1.21",
+      "publishedAt": "2026-08-27T13:06:55.530Z",
+      "notes": "优化疫苗表与喂养指南吸顶区域：增加实色背景间距并避免滚动内容透出；疫苗日期在窄屏改为单行年月、宽屏显示完整日期。"
     }
   ]
 }
