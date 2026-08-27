@@ -59,16 +59,16 @@ export function VaccineSchedule({ baby }: { baby: BabyInfo }) {
   const selectChoice = (row: typeof rows[number], optionId: string, kind: 'free' | 'paid') => {
     const next = { ...selections };
     const selectedOption = row.item.choices.find(option => option.id === optionId);
-    const laterSameBrandChoices = kind === 'paid' && selectedOption?.brand
+    const sameVaccineBrandChoices = kind === 'paid' && selectedOption?.brand
       ? rows.flatMap(candidate => {
-          if (candidate.item.month <= row.item.month || candidate.done) return [];
+          if (candidate.done) return [];
           const match = candidate.item.choices.find(option => option.name === selectedOption.name && option.brand === selectedOption.brand);
           return match ? [{ itemId: candidate.item.id, choiceId: match.id }] : [];
         })
       : [];
-    const hasUnsyncedLaterDose = laterSameBrandChoices.some(candidate => selections[candidate.itemId] !== candidate.choiceId);
+    const hasUnsyncedDose = sameVaccineBrandChoices.some(candidate => selections[candidate.itemId] !== candidate.choiceId);
 
-    if (kind === 'paid' && row.choice?.id === optionId && !hasUnsyncedLaterDose) {
+    if (kind === 'paid' && row.choice?.id === optionId && !hasUnsyncedDose) {
       const freeChoice = row.item.choices.find(option => option.kind === 'free');
       if (freeChoice) next[row.item.id] = freeChoice.id;
       else {
@@ -77,7 +77,7 @@ export function VaccineSchedule({ baby }: { baby: BabyInfo }) {
       }
     } else {
       next[row.item.id] = optionId;
-      laterSameBrandChoices.forEach(candidate => { next[candidate.itemId] = candidate.choiceId; });
+      sameVaccineBrandChoices.forEach(candidate => { next[candidate.itemId] = candidate.choiceId; });
     }
     setSelections(next);
   };
