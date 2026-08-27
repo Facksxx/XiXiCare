@@ -1,11 +1,11 @@
 {
-  "version": "1.1.18",
-  "tag": "v1.1.18",
-  "htmlUrl": "https://gitee.com/Facksxx/xi-xi-care/releases/tag/v1.1.18",
-  "apkUrl": "https://gitee.com/Facksxx/xi-xi-care/releases/download/v1.1.18/XiXiCare.apk",
-  "publishedAt": "2026-08-27T08:42:56.739Z",
-  "notes": "疫苗模块拆分为独立底部 Tab；按月龄表格化展示免费与自费方案；新增已完成、待接种、即将接种、未到月龄等级；支持状态筛选与多厂家品牌选择；喂养指南页面移除重复疫苗内容",
-  "sha256": "6886da0ef91e9bce53edbc4284a4ac7e497302029806f086caa36113a11da85e",
+  "version": "1.1.19",
+  "tag": "v1.1.19",
+  "htmlUrl": "https://gitee.com/Facksxx/xi-xi-care/releases/tag/v1.1.19",
+  "apkUrl": "https://gitee.com/Facksxx/xi-xi-care/releases/download/v1.1.19/XiXiCare.apk",
+  "publishedAt": "2026-08-27T09:05:55.499Z",
+  "notes": "新增独立疫苗表：按月龄合并展示免费与自费方案，支持品牌选择、接种日期推算、未到月龄锁定及撤销确认；疫苗价格表支持在线更新；底部导航恢复传统样式。",
+  "sha256": "45e286332e1d6541b406a922fbfddf2952171c01fba76355369efab6e6b8966b",
   "history": [
     {
       "version": "1.1.14",
@@ -31,6 +31,11 @@
       "version": "1.1.18",
       "publishedAt": "2026-08-27T08:42:56.739Z",
       "notes": "疫苗模块拆分为独立底部 Tab；按月龄表格化展示免费与自费方案；新增已完成、待接种、即将接种、未到月龄等级；支持状态筛选与多厂家品牌选择；喂养指南页面移除重复疫苗内容"
+    },
+    {
+      "version": "1.1.19",
+      "publishedAt": "2026-08-27T09:05:55.499Z",
+      "notes": "新增独立疫苗表：按月龄合并展示免费与自费方案，支持品牌选择、接种日期推算、未到月龄锁定及撤销确认；疫苗价格表支持在线更新；底部导航恢复传统样式。"
     }
   ]
 }
