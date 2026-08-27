@@ -1,11 +1,11 @@
 {
-  "version": "1.1.26",
-  "tag": "v1.1.26",
-  "htmlUrl": "https://gitee.com/Facksxx/xi-xi-care/releases/tag/v1.1.26",
-  "apkUrl": "https://gitee.com/Facksxx/xi-xi-care/releases/download/v1.1.26/XiXiCare.apk",
-  "publishedAt": "2026-08-27T14:02:21.378Z",
+  "version": "1.1.27",
+  "tag": "v1.1.27",
+  "htmlUrl": "https://gitee.com/Facksxx/xi-xi-care/releases/tag/v1.1.27",
+  "apkUrl": "https://gitee.com/Facksxx/xi-xi-care/releases/download/v1.1.27/XiXiCare.apk",
+  "publishedAt": "2026-08-27T14:16:28.243Z",
   "notes": "体验优化与问题修复",
-  "sha256": "0d8d84fc249ffff735bb8559420e1d805e0abdcf3ed0ecfe2e34bc0bb5b0b9bb",
+  "sha256": "3d6a6783ef55f3a751a8344c08223491ce02a6ce058f9435c92d7096ef70da32",
   "history": [
     {
       "version": "1.1.14",
@@ -70,6 +70,11 @@
     {
       "version": "1.1.26",
       "publishedAt": "2026-08-27T14:02:21.378Z",
+      "notes": "体验优化与问题修复"
+    },
+    {
+      "version": "1.1.27",
+      "publishedAt": "2026-08-27T14:16:28.243Z",
       "notes": "体验优化与问题修复"
     }
   ]
