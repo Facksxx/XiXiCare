@@ -12,9 +12,9 @@ export interface VaccineScheduleItem {
 const free = (id: string, name: string): VaccineChoice => ({ id, priceKey: id, name, kind: 'free', defaultPrice: 0 });
 const paid = (id: string, name: string, price: number, brand?: string, priceKey = id.replace(/-\d+$/, '')): VaccineChoice => ({ id, priceKey, name, brand, kind: 'paid', defaultPrice: price });
 const pcv13 = (dose: number): VaccineChoice[] => [
-  { ...paid(`pcv13-${dose}-a`, '13价肺炎球菌疫苗', 721, 'A', 'pcv13-a'), month: dose === 3 ? 3.5 : undefined },
-  { ...paid(`pcv13-${dose}-b`, '13价肺炎球菌疫苗', 621, 'B', 'pcv13-b'), month: dose === 3 ? 5.5 : undefined },
-  { ...paid(`pcv13-${dose}-c`, '13价肺炎球菌疫苗', 481, 'C', 'pcv13-c'), month: dose === 3 ? 5.5 : undefined }
+  { ...paid(`pcv13-${dose}-a`, '13价肺炎球菌疫苗', 721, '辉瑞(进口)', 'pcv13-a'), month: dose === 3 ? 3.5 : undefined },
+  { ...paid(`pcv13-${dose}-b`, '13价肺炎球菌疫苗', 621, '沃森(国产)', 'pcv13-b'), month: dose === 3 ? 5.5 : undefined },
+  { ...paid(`pcv13-${dose}-c`, '13价肺炎球菌疫苗', 481, '民海(国产)', 'pcv13-c'), month: dose === 3 ? 5.5 : undefined }
 ];
 
 export const vaccineSchedule: VaccineScheduleItem[] = [
@@ -22,7 +22,7 @@ export const vaccineSchedule: VaccineScheduleItem[] = [
   { id: 'birth-bcg', month: 0, ageLabel: '出生时', doseLabel: '卡介苗', choices: [free('bcg-free', '卡介苗（BCG）')], legacyNames: ['卡介苗 (BCG)'] },
   { id: 'm1-hepb2', month: 1, ageLabel: '1月龄', doseLabel: '乙肝第2剂', choices: [free('hepb-2-free', '乙肝疫苗')], legacyNames: ['乙肝疫苗 (第2剂)'] },
   { id: 'm1_5-rota1', month: 1.5, ageLabel: '1.5月龄', doseLabel: '五价轮状第1剂', choices: [paid('rota5-1', '五价轮状病毒疫苗', 303)], note: '6-12周龄前完成第1剂' },
-  { id: 'm1_5-pcv1', month: 1.5, ageLabel: '1.5月龄', doseLabel: '13价肺炎第1剂', choices: pcv13(1), note: 'A/B/C代表不同厂家' },
+  { id: 'm1_5-pcv1', month: 1.5, ageLabel: '1.5月龄', doseLabel: '13价肺炎第1剂', choices: pcv13(1), note: '同类型未接种剂次将同步厂家' },
   { id: 'm2-polio1', month: 2, ageLabel: '2月龄', doseLabel: '脊灰第1剂', choices: [free('polio-1-free', '脊灰灭活疫苗')], legacyNames: ['脊灰灭活疫苗 (第1剂)'] },
   { id: 'm2-dtap1', month: 2, ageLabel: '2月龄', doseLabel: '百白破第1剂', choices: [free('dtap-1-free', '百白破疫苗'), paid('pentavalent-1', '进口五联疫苗', 661)], note: '五联包含脊灰、百白破与Hib，可减少针次', legacyNames: ['百白破疫苗 (第1剂)'] },
   { id: 'm2-hib1', month: 2, ageLabel: '2月龄', doseLabel: 'Hib第1剂', choices: [paid('hib-1', 'Hib疫苗', 125)] },
