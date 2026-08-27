@@ -1,11 +1,11 @@
 {
-  "version": "1.1.22",
-  "tag": "v1.1.22",
-  "htmlUrl": "https://gitee.com/Facksxx/xi-xi-care/releases/tag/v1.1.22",
-  "apkUrl": "https://gitee.com/Facksxx/xi-xi-care/releases/download/v1.1.22/XiXiCare.apk",
-  "publishedAt": "2026-08-27T13:16:46.416Z",
-  "notes": "疫苗表新增厂家偏好联动：选择某种疫苗的厂家后，后续剂次自动沿用同一厂家，已完成和更早剂次保持不变。",
-  "sha256": "98b01dd4b80c9112bc49f738f988c0e97681b0083737889e57d91b98dbd2c4c1",
+  "version": "1.1.23",
+  "tag": "v1.1.23",
+  "htmlUrl": "https://gitee.com/Facksxx/xi-xi-care/releases/tag/v1.1.23",
+  "apkUrl": "https://gitee.com/Facksxx/xi-xi-care/releases/download/v1.1.23/XiXiCare.apk",
+  "publishedAt": "2026-08-27T13:24:25.015Z",
+  "notes": "修复13价肺炎疫苗首剂厂家已选中时无法同步后续剂次；厂家同步跳过已完成记录；统一疫苗表和喂养指南未滚动、滚动后的8px顶部背景间距。",
+  "sha256": "af457cdd314a19e2511a51892d080be5022048f9c73627ce083dbc593d379102",
   "history": [
     {
       "version": "1.1.14",
@@ -51,6 +51,11 @@
       "version": "1.1.22",
       "publishedAt": "2026-08-27T13:16:46.416Z",
       "notes": "疫苗表新增厂家偏好联动：选择某种疫苗的厂家后，后续剂次自动沿用同一厂家，已完成和更早剂次保持不变。"
+    },
+    {
+      "version": "1.1.23",
+      "publishedAt": "2026-08-27T13:24:25.015Z",
+      "notes": "修复13价肺炎疫苗首剂厂家已选中时无法同步后续剂次；厂家同步跳过已完成记录；统一疫苗表和喂养指南未滚动、滚动后的8px顶部背景间距。"
     }
   ]
 }
