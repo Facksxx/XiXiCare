@@ -1,11 +1,11 @@
 {
-  "version": "1.1.30",
-  "tag": "v1.1.30",
-  "htmlUrl": "https://gitee.com/Facksxx/xi-xi-care/releases/tag/v1.1.30",
-  "apkUrl": "https://gitee.com/Facksxx/xi-xi-care/releases/download/v1.1.30/XiXiCare.apk",
-  "publishedAt": "2026-08-27T17:21:49.987Z",
-  "notes": "修复检查更新失效，版本清单与疫苗价格表改为稳定动态读取；疫苗价格更新按钮右对齐并增加按压、加载和成功反馈；云存档上传与拉取改为全局后台任务，退出设置页面后仍会持续并保留任务状态。",
-  "sha256": "e5e794b023ebccfa539cd8cc2cffd071217602228beff37fa2df39cb4f98310a",
+  "version": "1.1.31",
+  "tag": "v1.1.31",
+  "htmlUrl": "https://gitee.com/Facksxx/xi-xi-care/releases/tag/v1.1.31",
+  "apkUrl": "https://gitee.com/Facksxx/xi-xi-care/releases/download/v1.1.31/XiXiCare.apk",
+  "publishedAt": "2026-08-27T17:35:36.736Z",
+  "notes": "修复真实数据云存档上传失败；存档新增gzip压缩与Gitee分片镜像；使用Cloudflare KV加速上传、拉取和多设备同步；更新检查缓存60秒、疫苗价格表缓存30分钟，减少Gitee接口延迟。",
+  "sha256": "0d5b739b33daa0ef368c9a2d983dc2dc6a2530e684b4c5224f993dea30f9a6d9",
   "history": [
     {
       "version": "1.1.14",
@@ -91,6 +91,11 @@
       "version": "1.1.30",
       "publishedAt": "2026-08-27T17:21:49.987Z",
       "notes": "修复检查更新失效，版本清单与疫苗价格表改为稳定动态读取；疫苗价格更新按钮右对齐并增加按压、加载和成功反馈；云存档上传与拉取改为全局后台任务，退出设置页面后仍会持续并保留任务状态。"
+    },
+    {
+      "version": "1.1.31",
+      "publishedAt": "2026-08-27T17:35:36.736Z",
+      "notes": "修复真实数据云存档上传失败；存档新增gzip压缩与Gitee分片镜像；使用Cloudflare KV加速上传、拉取和多设备同步；更新检查缓存60秒、疫苗价格表缓存30分钟，减少Gitee接口延迟。"
     }
   ]
 }
