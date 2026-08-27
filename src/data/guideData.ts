@@ -12,8 +12,8 @@ export const guideData: GuideAgeStage[] = [
     vaccineGuide: {
       title: '新生儿期疫苗',
       vaccines: [
-        { name: '乙肝疫苗 (第1剂)', age: '出生时', note: '出生后24小时内接种' },
-        { name: '卡介苗 (BCG)', age: '出生时', note: '预防结核病' }
+        { name: '乙肝疫苗 (第1剂)', age: '出生时', scheduleMonth: 0, note: '出生后24小时内接种' },
+        { name: '卡介苗 (BCG)', age: '出生时', scheduleMonth: 0, note: '预防结核病' }
       ]
     },
     milestones: {
@@ -33,9 +33,9 @@ export const guideData: GuideAgeStage[] = [
     vaccineGuide: {
       title: '1-3个月疫苗',
       vaccines: [
-        { name: '乙肝疫苗 (第2剂)', age: '1个月时', note: '与第1剂间隔≥28天' },
-        { name: '脊灰灭活疫苗 (第1剂)', age: '2个月时' },
-        { name: '百白破疫苗 (第1剂)', age: '3个月时' }
+        { name: '乙肝疫苗 (第2剂)', age: '1个月时', scheduleMonth: 1, note: '与第1剂间隔≥28天' },
+        { name: '脊灰灭活疫苗 (第1剂)', age: '2个月时', scheduleMonth: 2 },
+        { name: '百白破疫苗 (第1剂)', age: '3个月时', scheduleMonth: 3 }
       ]
     },
     milestones: {
@@ -55,9 +55,9 @@ export const guideData: GuideAgeStage[] = [
     vaccineGuide: {
       title: '3-6个月疫苗',
       vaccines: [
-        { name: '脊灰灭活疫苗 (第2剂)', age: '4个月时' },
-        { name: '百白破疫苗 (第2剂)', age: '5个月时' },
-        { name: '乙肝疫苗 (第3剂)', age: '6个月时', note: '完成乙肝免疫' }
+        { name: '脊灰灭活疫苗 (第2剂)', age: '4个月时', scheduleMonth: 4 },
+        { name: '百白破疫苗 (第2剂)', age: '5个月时', scheduleMonth: 5 },
+        { name: '乙肝疫苗 (第3剂)', age: '6个月时', scheduleMonth: 6, note: '完成乙肝免疫' }
       ]
     },
     milestones: {
@@ -77,9 +77,9 @@ export const guideData: GuideAgeStage[] = [
     vaccineGuide: {
       title: '6-8个月疫苗',
       vaccines: [
-        { name: '百白破疫苗 (第3剂)', age: '6个月时' },
-        { name: '麻腮风疫苗 (第1剂)', age: '8个月时', note: '预防麻疹、腮腺炎、风疹' },
-        { name: '乙脑减毒活疫苗 (第1剂)', age: '8个月时', note: '夏秋季流行前接种' }
+        { name: '百白破疫苗 (第3剂)', age: '6个月时', scheduleMonth: 6 },
+        { name: '麻腮风疫苗 (第1剂)', age: '8个月时', scheduleMonth: 8, note: '预防麻疹、腮腺炎、风疹' },
+        { name: '乙脑减毒活疫苗 (第1剂)', age: '8个月时', scheduleMonth: 8, note: '夏秋季流行前接种' }
       ]
     },
     solidsGuide: {
@@ -105,8 +105,8 @@ export const guideData: GuideAgeStage[] = [
     vaccineGuide: {
       title: '8-12个月疫苗',
       vaccines: [
-        { name: '麻腮风疫苗 (第2剂)', age: '12个月时', note: '与第1剂间隔≥1年' },
-        { name: '水痘疫苗 (第1剂)', age: '1岁时', note: '预防水痘' }
+        { name: '麻腮风疫苗 (第2剂)', age: '12个月时', scheduleMonth: 12, note: '与第1剂间隔≥1年' },
+        { name: '水痘疫苗 (第1剂)', age: '1岁时', scheduleMonth: 12, note: '预防水痘' }
       ]
     },
     solidsGuide: {
@@ -132,8 +132,8 @@ export const guideData: GuideAgeStage[] = [
     vaccineGuide: {
       title: '12-18个月疫苗',
       vaccines: [
-        { name: '水痘疫苗 (第2剂)', age: '18个月时', note: '与第1剂间隔≥3年' },
-        { name: '甲肝疫苗 (第1剂)', age: '18个月时', note: '预防甲型肝炎' }
+        { name: '水痘疫苗 (第2剂)', age: '18个月时', scheduleMonth: 18, note: '具体间隔以接种门诊安排为准' },
+        { name: '甲肝疫苗 (第1剂)', age: '18个月时', scheduleMonth: 18, note: '预防甲型肝炎' }
       ]
     },
     solidsGuide: {
@@ -159,8 +159,8 @@ export const guideData: GuideAgeStage[] = [
     vaccineGuide: {
       title: '18-24个月疫苗',
       vaccines: [
-        { name: '甲肝疫苗 (第2剂)', age: '18-24个月', note: '与第1剂间隔6个月' },
-        { name: '流脑疫苗', age: '2岁时', note: '预防流行性脑膜炎' }
+        { name: '甲肝疫苗 (第2剂)', age: '24个月时', scheduleMonth: 24, note: '与第1剂间隔6个月' },
+        { name: '流脑疫苗', age: '2岁时', scheduleMonth: 24, note: '预防流行性脑膜炎' }
       ]
     },
     solidsGuide: {
@@ -186,8 +186,8 @@ export const guideData: GuideAgeStage[] = [
     vaccineGuide: {
       title: '2-3岁疫苗',
       vaccines: [
-        { name: '乙脑减毒活疫苗 (第2剂)', age: '2岁时', note: '与第1剂间隔1年以上' },
-        { name: '流感疫苗', age: '每年接种', note: '每年秋季接种，预防季节性流感' }
+        { name: '乙脑减毒活疫苗 (第2剂)', age: '2岁时', scheduleMonth: 24, note: '与第1剂间隔1年以上' },
+        { name: '流感疫苗', age: '每年接种', scheduleMonth: 24, note: '后续日期请按接种门诊安排' }
       ]
     },
     solidsGuide: {

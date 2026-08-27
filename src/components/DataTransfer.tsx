@@ -8,6 +8,7 @@ import { guideData } from '../data/guideData';
 import { createXlsxWorkbook, parseXlsxWorkbook } from '../utils/xlsx';
 import { ConfirmModal } from './ConfirmModal';
 import { normalizeActivityLog, normalizeActivityLogs } from '../utils/logSchema';
+import { getPlannedVaccineDate, getVaccinePrices, VACCINE_PRICE_STORAGE_KEY } from '../utils/vaccines';
 
 interface DataTransferProps {
   logs: ActivityLog[];
@@ -99,6 +100,7 @@ const logToRow = (log: ActivityLog) => {
 };
 
 const buildCompleteWorkbook = (logs: ActivityLog[], babies: BabyInfo[], now: Date) => {
+  const vaccinePrices = getVaccinePrices();
   const rows = normalizeActivityLogs(logs).sort((a, b) => b.timestamp.localeCompare(a.timestamp)).map(log => {
     const source = logToRow(log);
     const row: Record<string, string | number | boolean> = {};
@@ -113,6 +115,8 @@ const buildCompleteWorkbook = (logs: ActivityLog[], babies: BabyInfo[], now: Dat
       '年龄阶段': stage.ageRange,
       '疫苗名称': vaccine.name,
       '建议接种时间': vaccine.age,
+      '预计接种日期': getPlannedVaccineDate(baby.birthday, vaccine.scheduleMonth),
+      '预计价格(元)': vaccinePrices[vaccine.name] || 0,
       '接种状态': vaccines[`${stage.id}:${vaccine.name}`] ? '已接种' : '未接种',
       '接种说明': vaccine.note ?? ''
     })));
@@ -136,6 +140,8 @@ const buildCompleteWorkbook = (logs: ActivityLog[], babies: BabyInfo[], now: Dat
     { '设置项': '声音循环方式', '当前值': localStorage.getItem('babycare_white_noise_loop') ?? '' },
     { '设置项': '声音音量', '当前值': localStorage.getItem('babycare_white_noise_volume') ?? '' },
     { '设置项': '自定义音乐信息', '当前值': localStorage.getItem('babycare_custom_audio') ?? '[]' },
+    { '设置项': '疫苗价格', '当前值': localStorage.getItem(VACCINE_PRICE_STORAGE_KEY) ?? '{}' },
+    { '设置项': '各宝宝喂养指南阶段', '当前值': JSON.stringify(Object.fromEntries(babies.map(baby => [baby.id, readStoredValue(`babycare_guide_stage_${baby.id}`, '1')]))) },
     { '设置项': '各宝宝喂养偏好', '当前值': JSON.stringify(Object.fromEntries(babies.map(baby => [baby.id, {
       feedingType: readStoredValue(`babycare_last_feeding_type_${baby.id}`, 'breast'),
       bottleVolume: readStoredValue(`babycare_last_bottle_volume_${baby.id}`, 120),
@@ -148,7 +154,7 @@ const buildCompleteWorkbook = (logs: ActivityLog[], babies: BabyInfo[], now: Dat
   return createXlsxWorkbook([
     { name: '宝宝列表', headers: ['宝宝ID', '宝宝名字', '出生日期', '头像状态'], rows: babies.map(baby => ({ '宝宝ID': baby.id, '宝宝名字': baby.name, '出生日期': baby.birthday, '头像状态': baby.avatar ? '已设置（图片不写入表格）' : '未设置' })) },
     { name: '全部记录', headers: TABLE_HEADERS.map(header => header.label), rows },
-    { name: '疫苗接种记录', headers: ['宝宝ID', '宝宝名字', '年龄阶段', '疫苗名称', '建议接种时间', '接种状态', '接种说明'], rows: vaccineRows },
+    { name: '疫苗接种记录', headers: ['宝宝ID', '宝宝名字', '年龄阶段', '疫苗名称', '建议接种时间', '预计接种日期', '预计价格(元)', '接种状态', '接种说明'], rows: vaccineRows },
     { name: '过敏排查记录', headers: ['宝宝ID', '宝宝名字', '年龄阶段', '过敏原/食物', '排查状态'], rows: allergenRows },
     { name: '宝宝与程序设置', headers: ['设置项', '当前值'], rows: settingRows }
   ]);
@@ -373,7 +379,8 @@ export function DataTransfer({ logs, babies, activeBabyId }: DataTransferProps) 
                 ['睡眠声音', 'babycare_white_noise_track'],
                 ['声音循环方式', 'babycare_white_noise_loop'],
                 ['声音音量', 'babycare_white_noise_volume'],
-                ['自定义音乐信息', 'babycare_custom_audio']
+                ['自定义音乐信息', 'babycare_custom_audio'],
+                ['疫苗价格', VACCINE_PRICE_STORAGE_KEY]
               ];
               storedSettingKeys.forEach(([label, key]) => {
                 const value = importedSettings.get(label);
@@ -391,6 +398,17 @@ export function DataTransfer({ logs, babies, activeBabyId }: DataTransferProps) 
                   });
                 } catch {
                   // Older backups do not contain per-baby feeding preferences.
+                }
+              }
+              const guideStages = importedSettings.get('各宝宝喂养指南阶段');
+              if (guideStages) {
+                try {
+                  const stages = JSON.parse(guideStages) as Record<string, string>;
+                  Object.entries(stages).forEach(([babyId, stageId]) => {
+                    if (guideData.some(stage => stage.id === stageId)) localStorage.setItem(`babycare_guide_stage_${mapId(babyId)}`, JSON.stringify(stageId));
+                  });
+                } catch {
+                  // Backups before guide stage persistence do not contain this setting.
                 }
               }
             }

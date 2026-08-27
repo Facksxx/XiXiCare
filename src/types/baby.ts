@@ -77,7 +77,7 @@ export interface GuideAgeStage {
   };
   vaccineGuide?: {
     title: string;
-    vaccines: { name: string; age: string; note?: string }[];
+    vaccines: { name: string; age: string; scheduleMonth: number; note?: string }[];
   };
   milestones: {
     grossMotor: string[]; // 大动作

@@ -542,7 +542,7 @@ export default function App() {
         />
       );
     }
-    if (tab === 'guide') return <Guide key={`guide-${baby.id}`} babyId={baby.id} />;
+    if (tab === 'guide') return <Guide key={`guide-${baby.id}`} baby={baby} />;
     if (tab === 'stats') return <Stats logs={activeLogs} birthday={baby.birthday} />;
     return <Records logs={activeLogs} onEditLog={handleEditLogFromRecords} onDeleteLog={handleDeleteLog} />;
   };

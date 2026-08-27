@@ -1,10 +1,12 @@
-import { ChevronDown, Edit2, Music2, Plus, Trash2, Users } from 'lucide-react';
+import { Activity, ChevronDown, Edit2, Music2, Plus, RefreshCw, Trash2, Users } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
 import type { RemoteRelease } from '../utils/version';
 import type { ActivityLog, BabyInfo } from '../types/baby';
 import { DataTransfer } from './DataTransfer';
 import { UpdateChecker } from './UpdateChecker';
 import { SoundPackManager } from './SoundPackManager';
+import { useLocalStorage } from '../hooks/useLocalStorage';
+import { defaultVaccinePrices, VACCINE_PRICE_STORAGE_KEY, vaccineNames, type VaccinePrices } from '../utils/vaccines';
 
 interface SettingsProps {
   logs: ActivityLog[];
@@ -20,6 +22,13 @@ interface SettingsProps {
 }
 
 export function Settings({ logs, babies, activeBabyId, onAddBaby, onSwitchBaby, onEditBaby, onDeleteBaby, detectedRelease, onReleaseChange, onBack }: SettingsProps) {
+  const [vaccinePrices, setVaccinePrices] = useLocalStorage<VaccinePrices>(VACCINE_PRICE_STORAGE_KEY, defaultVaccinePrices);
+
+  const updateVaccinePrice = (name: string, rawValue: string) => {
+    const price = Math.max(0, Number(rawValue) || 0);
+    setVaccinePrices({ ...defaultVaccinePrices, ...vaccinePrices, [name]: price });
+  };
+
   return (
     <div className="container settings-page fade-in">
       <div className="settings-heading">
@@ -49,6 +58,23 @@ export function Settings({ logs, babies, activeBabyId, onAddBaby, onSwitchBaby, 
 
       <section className="settings-section" aria-labelledby="data-management-title">
         <div id="data-management-title"><DataTransfer logs={logs} babies={babies} activeBabyId={activeBabyId} /></div>
+      </section>
+
+      <section className="settings-section" aria-labelledby="vaccine-prices-title">
+        <div className="settings-item-heading">
+          <span className="settings-icon" aria-hidden="true"><Activity size={18} /></span>
+          <div><h2 id="vaccine-prices-title">疫苗价格</h2><p>用于接种计划费用估算</p></div>
+          <button type="button" className="settings-icon-action" onClick={() => setVaccinePrices(defaultVaccinePrices)} aria-label="恢复默认价格"><RefreshCw size={16} /></button>
+        </div>
+        <div className="vaccine-price-list">
+          {vaccineNames.map(name => (
+            <label className="vaccine-price-row" key={name}>
+              <span>{name}</span>
+              <span className="vaccine-price-input"><b>¥</b><input type="number" min="0" step="0.01" inputMode="decimal" value={vaccinePrices[name] ?? defaultVaccinePrices[name] ?? 0} onChange={event => updateVaccinePrice(name, event.target.value)} aria-label={`${name}价格`} /></span>
+            </label>
+          ))}
+        </div>
+        <p className="settings-footnote">国家免疫规划疫苗默认按免费计算；自费价格因地区和品牌不同，可按实际情况修改。</p>
       </section>
 
       <section className="settings-section" aria-labelledby="sound-packs-title">

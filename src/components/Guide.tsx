@@ -1,7 +1,9 @@
 import { useState, useRef, useCallback } from 'react';
 import { guideData } from '../data/guideData';
 import { useLocalStorage } from '../hooks/useLocalStorage';
-import { Utensils, Award, CheckCircle2, AlertTriangle, HelpCircle, Sparkles } from 'lucide-react';
+import type { BabyInfo } from '../types/baby';
+import { getPlannedVaccineDate, getVaccinePrices } from '../utils/vaccines';
+import { Utensils, Award, CheckCircle2, AlertTriangle, HelpCircle, Sparkles, Calendar, Activity } from 'lucide-react';
 
 interface AllergenStatus {
   [key: string]: 'untested' | 'safe' | 'allergic';
@@ -11,8 +13,25 @@ interface VaccineStatus {
   [key: string]: boolean;
 }
 
-export function Guide({ babyId }: { babyId: string }) {
-  const [activeStageId, setActiveStageId] = useState('1');
+const getStageForBirthday = (birthday: string) => {
+  const born = new Date(`${birthday}T00:00:00`);
+  if (Number.isNaN(born.getTime())) return '1';
+  const now = new Date();
+  let months = (now.getFullYear() - born.getFullYear()) * 12 + now.getMonth() - born.getMonth();
+  if (now.getDate() < born.getDate()) months -= 1;
+  if (months < 1) return '1';
+  if (months < 3) return '2';
+  if (months < 6) return '3';
+  if (months < 8) return '4';
+  if (months < 12) return '5';
+  if (months < 18) return '6';
+  if (months < 24) return '7';
+  return '8';
+};
+
+export function Guide({ baby }: { baby: BabyInfo }) {
+  const babyId = baby.id;
+  const [activeStageId, setActiveStageId] = useLocalStorage(`babycare_guide_stage_${babyId}`, getStageForBirthday(baby.birthday));
   const [allergenStatus, setAllergenStatus] = useLocalStorage<AllergenStatus>(`babycare_allergens_${babyId}`, {});
   const [vaccineStatus, setVaccineStatus] = useLocalStorage<VaccineStatus>(`babycare_vaccines_${babyId}`, {});
   const scrollerRef = useRef<HTMLDivElement>(null);
@@ -21,6 +40,10 @@ export function Guide({ babyId }: { babyId: string }) {
   const [scrollLeft, setScrollLeft] = useState(0);
 
   const activeStage = guideData.find((stage) => stage.id === activeStageId) || guideData[0];
+  const vaccinePrices = getVaccinePrices();
+  const allVaccines = guideData.flatMap(stage => (stage.vaccineGuide?.vaccines ?? []).map(vaccine => ({ ...vaccine, stageId: stage.id })));
+  const estimatedTotal = allVaccines.reduce((sum, vaccine) => sum + (vaccinePrices[vaccine.name] || 0), 0);
+  const completedTotal = allVaccines.reduce((sum, vaccine) => sum + (vaccineStatus[`${vaccine.stageId}:${vaccine.name}`] ? vaccinePrices[vaccine.name] || 0 : 0), 0);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     if (!scrollerRef.current) return;
@@ -203,10 +226,16 @@ export function Guide({ babyId }: { babyId: string }) {
             <Sparkles size={18} className="text-[var(--rose)]" />
             {activeStage.vaccineGuide.title}
           </h3>
+          <div className="vaccine-summary">
+            <span><Calendar size={15} /><small>按出生日期推算</small><strong>{baby.birthday}</strong></span>
+            <span><Activity size={15} /><small>预计总费用</small><strong>¥{estimatedTotal.toFixed(2)}</strong></span>
+          </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             {activeStage.vaccineGuide.vaccines.map((v) => {
               const vaccineKey = `${activeStage.id}:${v.name}`;
               const isDone = Boolean(vaccineStatus[vaccineKey]);
+              const plannedDate = getPlannedVaccineDate(baby.birthday, v.scheduleMonth);
+              const price = vaccinePrices[v.name] || 0;
               return (
                 <button
                   type="button"
@@ -223,6 +252,7 @@ export function Guide({ babyId }: { babyId: string }) {
                       <span className="vaccine-name">{v.name}</span>
                       <span className="vaccine-age">{v.age}</span>
                     </span>
+                    <span className="vaccine-plan">预计 {plannedDate} · {price > 0 ? `¥${price.toFixed(2)}` : '免费'}</span>
                     {v.note && <span className="vaccine-note">{v.note}</span>}
                   </span>
                   <span className="vaccine-status">{isDone ? '已接种' : '未接种'}</span>
@@ -231,7 +261,7 @@ export function Guide({ babyId }: { babyId: string }) {
             })}
           </div>
           <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '10px', fontStyle: 'italic' }}>
-            * 以上疫苗接种时间仅供参考，具体请遵循当地疾控中心或儿科医生的建议。
+            * 已接种估算 ¥{completedTotal.toFixed(2)}，剩余估算 ¥{Math.max(0, estimatedTotal - completedTotal).toFixed(2)}。日期与价格仅供计划参考，请以当地接种门诊为准。
           </p>
         </div>
       )}
