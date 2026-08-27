@@ -2,15 +2,10 @@ import { useState, useRef, useCallback } from 'react';
 import { guideData } from '../data/guideData';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import type { BabyInfo } from '../types/baby';
-import { getPlannedVaccineDate, getScheduleForStage, getVaccinePrices, vaccineSchedule, VACCINE_SELECTION_STORAGE_PREFIX } from '../utils/vaccines';
-import { Utensils, Award, CheckCircle2, AlertTriangle, HelpCircle, Sparkles, Calendar, Activity } from 'lucide-react';
+import { Utensils, Award, CheckCircle2, AlertTriangle, HelpCircle } from 'lucide-react';
 
 interface AllergenStatus {
   [key: string]: 'untested' | 'safe' | 'allergic';
-}
-
-interface VaccineStatus {
-  [key: string]: boolean;
 }
 
 const getStageForBirthday = (birthday: string) => {
@@ -33,29 +28,12 @@ export function Guide({ baby }: { baby: BabyInfo }) {
   const babyId = baby.id;
   const [activeStageId, setActiveStageId] = useLocalStorage(`babycare_guide_stage_${babyId}`, getStageForBirthday(baby.birthday));
   const [allergenStatus, setAllergenStatus] = useLocalStorage<AllergenStatus>(`babycare_allergens_${babyId}`, {});
-  const [vaccineStatus, setVaccineStatus] = useLocalStorage<VaccineStatus>(`babycare_vaccines_${babyId}`, {});
-  const [vaccineSelections, setVaccineSelections] = useLocalStorage<Record<string, string>>(`${VACCINE_SELECTION_STORAGE_PREFIX}${babyId}`, {});
   const scrollerRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [startX, setStartX] = useState(0);
   const [scrollLeft, setScrollLeft] = useState(0);
 
   const activeStage = guideData.find((stage) => stage.id === activeStageId) || guideData[0];
-  const vaccinePrices = getVaccinePrices();
-  const stageVaccines = getScheduleForStage(activeStageId);
-  const selectedChoice = (item: (typeof vaccineSchedule)[number]) => item.choices.find(choice => choice.id === vaccineSelections[item.id]) ?? item.choices[0];
-  const isVaccineDone = (item: (typeof vaccineSchedule)[number]) => Boolean(
-    vaccineStatus[`schedule:${item.id}`] || item.legacyNames?.some(name => Object.entries(vaccineStatus).some(([key, done]) => done && key.endsWith(`:${name}`)))
-  );
-  const estimatedTotal = vaccineSchedule.reduce((sum, item) => {
-    const choice = selectedChoice(item);
-    return sum + (choice.kind === 'paid' ? vaccinePrices[choice.priceKey] ?? choice.defaultPrice : 0);
-  }, 0);
-  const completedTotal = vaccineSchedule.reduce((sum, item) => {
-    if (!isVaccineDone(item)) return sum;
-    const choice = selectedChoice(item);
-    return sum + (choice.kind === 'paid' ? vaccinePrices[choice.priceKey] ?? choice.defaultPrice : 0);
-  }, 0);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     if (!scrollerRef.current) return;
@@ -115,13 +93,6 @@ export function Guide({ baby }: { baby: BabyInfo }) {
           </span>
         );
     }
-  };
-
-  const toggleVaccine = (vaccineKey: string) => {
-    setVaccineStatus({
-      ...vaccineStatus,
-      [vaccineKey]: !vaccineStatus[vaccineKey]
-    });
   };
 
   return (
@@ -228,59 +199,6 @@ export function Guide({ baby }: { baby: BabyInfo }) {
             <p className="font-semibold text-[var(--text-heading)] mb-1" style={{ fontSize: '12px' }}>添加小贴士:</p>
             <p className="text-[var(--text)]">{activeStage.solidsGuide.tips}</p>
           </div>
-        </div>
-      )}
-
-      {/* Vaccine Guide */}
-      {stageVaccines.length > 0 && (
-        <div className="card">
-          <h3 className="card-title">
-            <Sparkles size={18} className="text-[var(--rose)]" />
-            疫苗接种计划
-          </h3>
-          <div className="vaccine-summary">
-            <span><Calendar size={15} /><small>按出生日期推算</small><strong>{baby.birthday}</strong></span>
-            <span><Activity size={15} /><small>预计总费用</small><strong>¥{estimatedTotal.toFixed(2)}</strong></span>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            {stageVaccines.map((item) => {
-              const vaccineKey = `schedule:${item.id}`;
-              const isDone = isVaccineDone(item);
-              const choice = selectedChoice(item);
-              const plannedDate = getPlannedVaccineDate(baby.birthday, choice.month ?? item.month);
-              const price = choice.kind === 'paid' ? vaccinePrices[choice.priceKey] ?? choice.defaultPrice : 0;
-              return (
-                <div
-                  key={vaccineKey}
-                  className={`vaccine-row ${isDone ? 'completed' : ''}`}
-                >
-                  <button type="button" className="vaccine-check" aria-label={isDone ? '标记为未接种' : '标记为已接种'} aria-pressed={isDone} onClick={() => toggleVaccine(vaccineKey)}>
-                    {isDone ? <CheckCircle2 size={15} /> : <Sparkles size={12} />}
-                  </button>
-                  <span className="vaccine-content">
-                    <span className="vaccine-title-row">
-                      <span className="vaccine-name">{item.doseLabel}</span>
-                      <span className="vaccine-age">{item.ageLabel}</span>
-                    </span>
-                    <span className="vaccine-plan">预计 {plannedDate} · {price > 0 ? `¥${price.toFixed(2)}` : '免费'}</span>
-                    <span className="vaccine-choice-list">
-                      {item.choices.map(option => {
-                        const optionPrice = option.kind === 'paid' ? vaccinePrices[option.priceKey] ?? option.defaultPrice : 0;
-                        return <button type="button" key={option.id} className={choice.id === option.id ? 'active' : ''} onClick={() => setVaccineSelections({ ...vaccineSelections, [item.id]: option.id })}>
-                          <b>{option.brand || (option.kind === 'free' ? '免费方案' : option.name)}</b><small>{option.brand ? option.name : ''}{option.kind === 'paid' ? ` · ¥${optionPrice.toFixed(2)}` : ''}</small>
-                        </button>;
-                      })}
-                    </span>
-                    {item.note && <span className="vaccine-note">{item.note}</span>}
-                  </span>
-                  <span className="vaccine-status">{isDone ? '已接种' : '未接种'}</span>
-                </div>
-              );
-            })}
-          </div>
-          <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '10px', fontStyle: 'italic' }}>
-            * 已接种估算 ¥{completedTotal.toFixed(2)}，剩余估算 ¥{Math.max(0, estimatedTotal - completedTotal).toFixed(2)}。日期与价格仅供计划参考，请以当地接种门诊为准。
-          </p>
         </div>
       )}
 

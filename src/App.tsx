@@ -7,6 +7,7 @@ import { normalizeActivityLogs } from './utils/logSchema';
 
 import { Dashboard } from './components/Dashboard';
 import { Guide } from './components/Guide';
+import { VaccineSchedule } from './components/VaccineSchedule';
 import { Stats } from './components/Stats';
 import { Records } from './components/Records';
 import { Settings as SettingsPage } from './components/Settings';
@@ -16,13 +17,13 @@ import { DateTimePicker } from './components/DateTimePicker';
 import { fetchLatestRelease, isNewer, type RemoteRelease } from './utils/version';
 import { BackNavigation } from './plugins/backNavigation';
 import { Capacitor } from '@capacitor/core';
-import { Sun, Moon, Calendar, BookOpen, BarChart2, Edit2, Check, Sparkles, Settings, Music2, ChevronDown, Plus } from 'lucide-react';
+import { Sun, Moon, Calendar, BookOpen, BarChart2, Edit2, Check, Sparkles, Settings, Music2, ChevronDown, Plus, Activity } from 'lucide-react';
 import type { Icon } from 'lucide-react';
 import './index.css';
 
-type AppTab = 'dashboard' | 'records' | 'guide' | 'stats';
+type AppTab = 'dashboard' | 'records' | 'guide' | 'vaccine' | 'stats';
 type SwipePreview = { tab: AppTab; side: -1 | 1 };
-const APP_TABS: AppTab[] = ['dashboard', 'records', 'guide', 'stats'];
+const APP_TABS: AppTab[] = ['dashboard', 'records', 'guide', 'vaccine', 'stats'];
 const UPDATE_CHECK_INTERVAL = 24 * 60 * 60 * 1000;
 
 function NavIcon({ icon: IconComponent, active }: { icon: Icon; active: boolean }) {
@@ -544,6 +545,7 @@ export default function App() {
       );
     }
     if (tab === 'guide') return <Guide key={`guide-${baby.id}`} baby={baby} />;
+    if (tab === 'vaccine') return <VaccineSchedule key={`vaccine-${baby.id}`} baby={baby} />;
     if (tab === 'stats') return <Stats logs={activeLogs} birthday={baby.birthday} />;
     return <Records logs={activeLogs} onEditLog={handleEditLogFromRecords} onDeleteLog={handleDeleteLog} />;
   };
@@ -670,7 +672,7 @@ export default function App() {
             />
           </span>
         </span>
-        <button 
+        <button
           type="button"
           onClick={() => animateToTab('dashboard')}
           className={`nav-tab-item ${activeTab === 'dashboard' ? 'active' : ''}`}
@@ -697,7 +699,16 @@ export default function App() {
           <NavIcon icon={BookOpen} active={activeTab === 'guide'} />
           <span>喂养指南</span>
         </button>
-        <button 
+        <button
+          type="button"
+          onClick={() => animateToTab('vaccine')}
+          className={`nav-tab-item ${activeTab === 'vaccine' ? 'active' : ''}`}
+          aria-current={activeTab === 'vaccine' ? 'page' : undefined}
+        >
+          <NavIcon icon={Activity} active={activeTab === 'vaccine'} />
+          <span>疫苗表</span>
+        </button>
+        <button
           type="button"
           onClick={() => animateToTab('stats')}
           className={`nav-tab-item ${activeTab === 'stats' ? 'active' : ''}`}

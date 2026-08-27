@@ -325,7 +325,7 @@ select {
   background: color-mix(in srgb, var(--bg-card) 84%, transparent);
   border-top: 1px solid rgba(255, 255, 255, 0.68);
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   justify-content: center;
   align-items: center;
   padding-right: var(--nav-side-space);
@@ -354,7 +354,7 @@ select {
   position: absolute;
   inset-block: 0;
   left: 0;
-  width: 25%;
+  width: 20%;
   padding: 3px 5px;
   transform: translate3d(calc(var(--nav-index) * 100%), 0, 0);
   transition: transform 460ms cubic-bezier(0.2, 0.82, 0.2, 1);
@@ -2482,6 +2482,86 @@ select {
 
 @media (max-width: 520px) {
   .vaccine-price-list { grid-template-columns: 1fr; }
+}
+
+.vaccine-page { display: grid; gap: 12px; }
+
+.vaccine-overview {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.vaccine-overview > div {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-card);
+}
+
+.vaccine-overview > div > span { width: 30px; height: 30px; display: grid; place-items: center; flex: 0 0 30px; border-radius: 9px; color: var(--sage); background: var(--sage-light); }
+.vaccine-overview p { min-width: 0; display: grid; gap: 2px; color: var(--text-muted); font-size: 9px; }
+.vaccine-overview strong { color: var(--text-heading); font-size: 13px; white-space: nowrap; }
+
+.vaccine-filter {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-input);
+}
+
+.vaccine-filter button { min-height: 34px; border: 0; border-radius: var(--radius-sm); background: transparent; color: var(--text-muted); font-size: 12px; font-weight: 650; }
+.vaccine-filter button.active { color: var(--sage); background: var(--bg-card); box-shadow: var(--shadow-sm); }
+
+.vaccine-table { overflow: hidden; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--bg-card); }
+.vaccine-table > header { display: grid; grid-template-columns: 82px minmax(0, 1fr) 64px; gap: 8px; padding: 9px 11px; color: var(--text-muted); background: var(--bg-input); font-size: 10px; font-weight: 700; }
+.vaccine-table > header span:last-child { text-align: center; }
+
+.vaccine-table-row {
+  display: grid;
+  grid-template-columns: 82px minmax(0, 1fr) 64px;
+  gap: 8px;
+  align-items: start;
+  padding: 11px;
+  border-top: 1px solid var(--border);
+}
+
+.vaccine-table-row:first-of-type { border-top: 0; }
+.vaccine-table-age { display: grid; gap: 3px; padding-top: 2px; }
+.vaccine-table-age strong { color: var(--text-heading); font-size: 11px; }
+.vaccine-table-age small { color: var(--text-muted); font-size: 9px; line-height: 1.3; }
+.vaccine-table-main { min-width: 0; display: grid; gap: 5px; }
+.vaccine-table-main h3 { color: var(--text-heading); font-size: 13px; line-height: 1.3; }
+.vaccine-table-main > p { color: var(--text-muted); font-size: 9px; line-height: 1.4; }
+
+.vaccine-kind-labels { display: flex; flex-wrap: wrap; gap: 4px; }
+.vaccine-kind-labels span { padding: 2px 5px; border-radius: 5px; font-size: 8px; font-weight: 700; }
+.vaccine-kind-labels .free { color: var(--sage); background: var(--sage-light); }
+.vaccine-kind-labels .paid { color: var(--amber); background: var(--amber-light); }
+
+.vaccine-table-status { width: 64px; min-height: 48px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; border: 0; border-radius: var(--radius-sm); color: var(--text-muted); background: var(--bg-input); }
+.vaccine-table-status span { font-size: 9px; font-weight: 700; }
+.vaccine-table-row.done .vaccine-table-status { color: var(--sage); background: var(--sage-light); }
+.vaccine-table-row.soon .vaccine-table-status { color: var(--amber); background: var(--amber-light); }
+.vaccine-table-row.pending .vaccine-table-status { color: var(--rose); background: var(--rose-light); }
+.vaccine-table-empty { padding: 30px 15px; color: var(--text-muted); font-size: 12px; text-align: center; }
+.vaccine-page-note { display: flex; align-items: flex-start; gap: 5px; padding: 0 3px; color: var(--text-muted); font-size: 9px; line-height: 1.45; }
+.vaccine-page-note svg { flex: 0 0 auto; margin-top: 1px; }
+
+@media (max-width: 420px) {
+  .vaccine-overview > div { padding: 8px 7px; gap: 5px; }
+  .vaccine-overview > div > span { width: 26px; height: 26px; flex-basis: 26px; }
+  .vaccine-overview > div > span svg { width: 15px; }
+  .vaccine-table > header,
+  .vaccine-table-row { grid-template-columns: 64px minmax(0, 1fr) 56px; gap: 6px; padding-inline: 8px; }
+  .vaccine-table-status { width: 56px; }
+  .vaccine-choice-list small { max-width: 130px; }
 }
 
 .bullet-list {
