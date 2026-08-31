@@ -1,6 +1,7 @@
 const CLOUD_CONFIG_PREFIX = 'babycare_cloud_archive_';
 const SYNC_META_KEY = 'babycare_sync_meta';
 export const CLOUD_ARCHIVE_MUTATION_EVENT = 'xixicare:archive-mutation';
+export const CLOUD_ARCHIVE_APPLIED_EVENT = 'xixicare:archive-applied';
 const ARCHIVE_API_URL = (import.meta.env.VITE_CLOUD_ARCHIVE_API_URL as string | undefined)?.replace(/\/$/, '') ?? '';
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
@@ -183,6 +184,9 @@ export const applyArchiveSnapshot = (snapshot: ArchiveSnapshot) => {
   Object.keys(localStorage).filter(key => key.startsWith('babycare_')).forEach(key => localStorage.removeItem(key));
   Object.entries(snapshot.values).forEach(([key, value]) => localStorage.setItem(key, value));
   preserved.forEach((value, key) => localStorage.setItem(key, value));
+  window.dispatchEvent(new CustomEvent(CLOUD_ARCHIVE_APPLIED_EVENT, {
+    detail: { keys: Object.keys(snapshot.values) }
+  }));
 };
 
 export const encryptArchiveSnapshot = async (snapshot: ArchiveSnapshot, code: string, birthday: string): Promise<CloudArchiveEnvelope> => {

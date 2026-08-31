@@ -111,7 +111,6 @@ export const runCloudArchiveAutoSync = async () => {
     if (changedLocally) applyArchiveSnapshot(snapshot);
     if (localStorage.getItem('babycare_cloud_archive_pending') === pendingToken) localStorage.removeItem('babycare_cloud_archive_pending');
     markSynced('自动同步完成', snapshot.updatedAt);
-    if (changedLocally) window.setTimeout(() => window.location.reload(), 300);
   } catch (error) {
     localStorage.setItem('babycare_cloud_archive_pending', '1');
     fail(error, '自动同步失败，联网后重试');
