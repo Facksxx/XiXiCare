@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Activity, ChevronDown, Database, Edit2, Music2, Plus, RefreshCw, Trash2, Users } from 'lucide-react';
+import { Activity, AlertTriangle, Check, ChevronDown, Database, Edit2, Music2, Plus, RefreshCw, Trash2, Users } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
 import type { RemoteRelease } from '../utils/version';
 import type { ActivityLog, BabyInfo } from '../types/baby';
@@ -8,6 +8,8 @@ import { UpdateChecker } from './UpdateChecker';
 import { SoundPackManager } from './SoundPackManager';
 import { CloudArchiveManager } from './CloudArchiveManager';
 import { updateVaccinePricesFromRemote, VACCINE_PRICE_UPDATED_AT_KEY } from '../utils/vaccines';
+import { isCloudArchiveAutoSyncEnabled, setCloudArchiveAutoSyncEnabled } from '../utils/cloudArchive';
+import { runCloudArchiveAutoSync } from '../utils/cloudArchiveTask';
 
 interface SettingsProps {
   logs: ActivityLog[];
@@ -24,7 +26,8 @@ interface SettingsProps {
 
 export function Settings({ logs, babies, activeBabyId, onAddBaby, onSwitchBaby, onEditBaby, onDeleteBaby, detectedRelease, onReleaseChange, onBack }: SettingsProps) {
   const [priceUpdating, setPriceUpdating] = useState(false);
-  const [priceMessage, setPriceMessage] = useState('');
+  const [toast, setToast] = useState<{ message: string; error: boolean } | null>(null);
+  const [autoSyncEnabled, setAutoSyncEnabled] = useState(isCloudArchiveAutoSyncEnabled);
   const [priceUpdatedAt, setPriceUpdatedAt] = useState(() => {
     try { return JSON.parse(localStorage.getItem(VACCINE_PRICE_UPDATED_AT_KEY) || 'null') as string | null; }
     catch { return null; }
@@ -32,14 +35,21 @@ export function Settings({ logs, babies, activeBabyId, onAddBaby, onSwitchBaby, 
 
   const updatePriceTable = async () => {
     setPriceUpdating(true);
-    setPriceMessage('');
     try {
       const updatedAt = await updateVaccinePricesFromRemote();
       setPriceUpdatedAt(updatedAt);
-      setPriceMessage('价格表已更新');
+      setToast({ message: '疫苗价格表已更新', error: false });
     } catch {
-      setPriceMessage('更新失败，请检查网络后重试');
+      setToast({ message: '更新失败，请检查网络后重试', error: true });
     } finally { setPriceUpdating(false); }
+    window.setTimeout(() => setToast(null), 2500);
+  };
+
+  const toggleAutoSync = () => {
+    const enabled = !autoSyncEnabled;
+    setCloudArchiveAutoSyncEnabled(enabled);
+    setAutoSyncEnabled(enabled);
+    if (enabled) void runCloudArchiveAutoSync();
   };
 
   return (
@@ -76,7 +86,8 @@ export function Settings({ logs, babies, activeBabyId, onAddBaby, onSwitchBaby, 
       <section className="settings-section" aria-labelledby="cloud-archive-title">
         <div className="settings-item-heading">
           <span className="settings-icon" aria-hidden="true"><Database size={18} /></span>
-          <div><h2 id="cloud-archive-title">云存档</h2><p>加密备份并在多个设备间同步</p></div>
+          <div className="settings-heading-copy"><h2 id="cloud-archive-title">云存档</h2><p>{autoSyncEnabled ? '自动同步已开启' : '自动同步已关闭，仅支持手动操作'}</p></div>
+          <button type="button" className={`settings-switch${autoSyncEnabled ? ' active' : ''}`} role="switch" aria-checked={autoSyncEnabled} aria-label="自动同步云存档" onClick={toggleAutoSync}><span /></button>
         </div>
         <CloudArchiveManager babies={babies} activeBabyId={activeBabyId} />
       </section>
@@ -84,7 +95,7 @@ export function Settings({ logs, babies, activeBabyId, onAddBaby, onSwitchBaby, 
       <section className="settings-section" aria-labelledby="vaccine-data-title">
         <div className="settings-item-heading settings-price-update">
           <span className="settings-icon" aria-hidden="true"><Activity size={18} /></span>
-          <div><h2 id="vaccine-data-title">疫苗价格表</h2><p>{priceMessage || (priceUpdatedAt ? `已更新：${priceUpdatedAt.slice(0, 10)}` : '使用内置价格，可从仓库更新')}</p></div>
+          <div><h2 id="vaccine-data-title">疫苗价格表</h2><p>{priceUpdatedAt ? `已更新：${priceUpdatedAt.slice(0, 10)}` : '使用内置价格，可从仓库更新'}</p></div>
           <button type="button" className="settings-icon-action" disabled={priceUpdating} onClick={updatePriceTable} aria-label="更新疫苗价格表"><RefreshCw size={16} className={priceUpdating ? 'spin' : ''} /></button>
         </div>
       </section>
@@ -100,6 +111,7 @@ export function Settings({ logs, babies, activeBabyId, onAddBaby, onSwitchBaby, 
       {Capacitor.getPlatform() !== 'ios' && <section className="settings-section" aria-labelledby="about-title">
         <div id="about-title"><UpdateChecker detectedRelease={detectedRelease} onReleaseChange={onReleaseChange} /></div>
       </section>}
+      {toast && <div className={`toast ${toast.error ? 'toast-error' : 'toast-success'}`}>{toast.error ? <AlertTriangle size={16} /> : <Check size={16} />}<span>{toast.message}</span></div>}
     </div>
   );
 }

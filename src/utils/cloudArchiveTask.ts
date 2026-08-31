@@ -8,6 +8,7 @@ import {
   encryptArchiveSnapshot,
   fetchCloudArchive,
   fetchCloudArchiveMeta,
+  isCloudArchiveAutoSyncEnabled,
   mergeArchiveSnapshots,
   saveCloudArchive,
   validateArchiveIdentity
@@ -59,6 +60,12 @@ export const subscribeCloudArchiveTask = (listener: () => void) => {
 };
 export const isCloudArchiveTaskBusy = () => state.phase === 'uploading' || state.phase === 'downloading';
 
+const stopAutoSyncIfDisabled = () => {
+  if (isCloudArchiveAutoSyncEnabled()) return false;
+  setState({ phase: 'idle', message: '自动同步已关闭', syncedAt: state.syncedAt });
+  return true;
+};
+
 export const runCloudArchiveUpload = async (code: string, birthday: string) => {
   if (isCloudArchiveTaskBusy()) return;
   rememberIdentity(code, birthday);
@@ -78,7 +85,7 @@ export const runCloudArchiveUpload = async (code: string, birthday: string) => {
 };
 
 export const runCloudArchiveAutoSync = async () => {
-  if (isCloudArchiveTaskBusy() || !navigator.onLine) return;
+  if (!isCloudArchiveAutoSyncEnabled() || isCloudArchiveTaskBusy() || !navigator.onLine) return;
   const code = localStorage.getItem(CLOUD_ARCHIVE_CODE_KEY) ?? '';
   const birthday = localStorage.getItem(CLOUD_ARCHIVE_BIRTHDAY_KEY) ?? '';
   if (!code || !birthday) return;
@@ -88,6 +95,7 @@ export const runCloudArchiveAutoSync = async () => {
     const local = captureArchiveSnapshot();
     const localEnvelope = await encryptArchiveSnapshot(local, code, birthday);
     let meta = await fetchCloudArchiveMeta(code, birthday);
+    if (stopAutoSyncIfDisabled()) return;
     if (meta && meta.digest === localEnvelope.digest) {
       if (localStorage.getItem('babycare_cloud_archive_pending') === pendingToken) localStorage.removeItem('babycare_cloud_archive_pending');
       markSynced('已是最新存档', meta.updatedAt);
@@ -96,14 +104,17 @@ export const runCloudArchiveAutoSync = async () => {
     let snapshot = local;
     if (meta) {
       const remoteEnvelope = await fetchCloudArchive(code, birthday);
+      if (stopAutoSyncIfDisabled()) return;
       if (remoteEnvelope) snapshot = mergeArchiveSnapshots(await decryptArchiveSnapshot(remoteEnvelope, code, birthday), local);
     }
+    if (stopAutoSyncIfDisabled()) return;
     try {
       await saveCloudArchive(code, birthday, await encryptArchiveSnapshot(snapshot, code, birthday), meta?.revision ?? 0);
     } catch (error) {
       if (!(error instanceof Error) || error.message !== 'CLOUD_ARCHIVE_CONFLICT') throw error;
       meta = await fetchCloudArchiveMeta(code, birthday);
       const latestEnvelope = await fetchCloudArchive(code, birthday);
+      if (stopAutoSyncIfDisabled()) return;
       snapshot = latestEnvelope ? mergeArchiveSnapshots(await decryptArchiveSnapshot(latestEnvelope, code, birthday), local) : local;
       await saveCloudArchive(code, birthday, await encryptArchiveSnapshot(snapshot, code, birthday), meta?.revision ?? 0);
     }

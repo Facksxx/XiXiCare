@@ -195,7 +195,12 @@ export function Dashboard({ babyId, onAddLog, onUpdateLog, editingLog: externalE
       } else if (feedingType === 'bottle') {
         metadata.bottle = { volumeMl: bottleVolume, fluidType: bottleType };
       } else if (feedingType === 'solids') {
-        metadata.solids = { foodName: solidsName || '婴儿米粉', amount: solidsAmount, reaction: solidsReaction };
+        const foodName = solidsName.trim();
+        if (!foodName) {
+          setAlertModal({ show: true, message: '请填写辅食名称' });
+          return;
+        }
+        metadata.solids = { foodName, amount: solidsAmount.trim(), reaction: solidsReaction };
       }
     } else if (activeTab === 'sleep') {
       const duration = sleepTimer ? timerElapsedMinutes : sleepDurationMinutes;

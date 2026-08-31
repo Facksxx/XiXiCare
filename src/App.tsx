@@ -19,7 +19,7 @@ import { BackNavigation } from './plugins/backNavigation';
 import { Capacitor } from '@capacitor/core';
 import { Sun, Moon, Calendar, BookOpen, BarChart2, Edit2, Check, Sparkles, Settings, Music2, ChevronDown, Plus, Syringe } from 'lucide-react';
 import type { Icon } from 'lucide-react';
-import { CLOUD_ARCHIVE_MUTATION_EVENT } from './utils/cloudArchive';
+import { CLOUD_ARCHIVE_MUTATION_EVENT, isCloudArchiveAutoSyncEnabled } from './utils/cloudArchive';
 import { runCloudArchiveAutoSync } from './utils/cloudArchiveTask';
 import './index.css';
 
@@ -79,8 +79,9 @@ export default function App() {
 
   useEffect(() => {
     let debounce: number | undefined;
-    const syncNow = () => { if (!document.hidden) void runCloudArchiveAutoSync(); };
+    const syncNow = () => { if (!document.hidden && isCloudArchiveAutoSyncEnabled()) void runCloudArchiveAutoSync(); };
     const schedule = () => {
+      if (!isCloudArchiveAutoSyncEnabled()) return;
       localStorage.setItem('babycare_cloud_archive_pending', String(Date.now()));
       window.clearTimeout(debounce);
       debounce = window.setTimeout(syncNow, CLOUD_UPLOAD_DEBOUNCE);

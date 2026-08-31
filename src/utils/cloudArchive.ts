@@ -2,9 +2,17 @@ const CLOUD_CONFIG_PREFIX = 'babycare_cloud_archive_';
 const SYNC_META_KEY = 'babycare_sync_meta';
 export const CLOUD_ARCHIVE_MUTATION_EVENT = 'xixicare:archive-mutation';
 export const CLOUD_ARCHIVE_APPLIED_EVENT = 'xixicare:archive-applied';
+export const CLOUD_ARCHIVE_AUTO_SYNC_KEY = `${CLOUD_CONFIG_PREFIX}auto_sync_enabled`;
 const ARCHIVE_API_URL = (import.meta.env.VITE_CLOUD_ARCHIVE_API_URL as string | undefined)?.replace(/\/$/, '') ?? '';
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
+
+export const isCloudArchiveAutoSyncEnabled = () => localStorage.getItem(CLOUD_ARCHIVE_AUTO_SYNC_KEY) === 'true';
+
+export const setCloudArchiveAutoSyncEnabled = (enabled: boolean) => {
+  localStorage.setItem(CLOUD_ARCHIVE_AUTO_SYNC_KEY, String(enabled));
+  if (!enabled) localStorage.removeItem('babycare_cloud_archive_pending');
+};
 
 export interface CloudArchiveEnvelope {
   version: 1 | 2;

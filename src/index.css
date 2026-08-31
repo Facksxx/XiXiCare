@@ -1229,6 +1229,34 @@ select {
   margin-top: 1px;
 }
 
+.settings-heading-copy { min-width: 0; flex: 1; }
+
+.settings-switch {
+  position: relative;
+  width: 42px;
+  height: 24px;
+  flex: 0 0 42px;
+  padding: 2px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--border);
+  cursor: pointer;
+  transition: background-color 180ms ease;
+}
+
+.settings-switch span {
+  display: block;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--bg-card);
+  box-shadow: 0 1px 4px rgba(74, 69, 64, 0.22);
+  transition: transform 180ms ease;
+}
+
+.settings-switch.active { background: var(--sage); }
+.settings-switch.active span { transform: translateX(18px); }
+
 .settings-baby-heading > div {
   min-width: 0;
   flex: 1;
