@@ -1,0 +1,19 @@
+{
+  "bsonType": "object",
+  "required": ["fileId", "updatedAt", "serverUpdatedAt", "revision"],
+  "permission": {
+    "read": false,
+    "create": false,
+    "update": false,
+    "delete": false
+  },
+  "properties": {
+    "_id": { "description": "6位存档码与生日的组合" },
+    "fileId": { "bsonType": "string" },
+    "updatedAt": { "bsonType": "string" },
+    "serverUpdatedAt": { "bsonType": "string" },
+    "byteLength": { "bsonType": "int" },
+    "digest": { "bsonType": "string" },
+    "revision": { "bsonType": "int" }
+  }
+}

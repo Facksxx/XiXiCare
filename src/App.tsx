@@ -19,12 +19,16 @@ import { BackNavigation } from './plugins/backNavigation';
 import { Capacitor } from '@capacitor/core';
 import { Sun, Moon, Calendar, BookOpen, BarChart2, Edit2, Check, Sparkles, Settings, Music2, ChevronDown, Plus, Syringe } from 'lucide-react';
 import type { Icon } from 'lucide-react';
+import { CLOUD_ARCHIVE_MUTATION_EVENT } from './utils/cloudArchive';
+import { runCloudArchiveAutoSync } from './utils/cloudArchiveTask';
 import './index.css';
 
 type AppTab = 'dashboard' | 'records' | 'guide' | 'vaccine' | 'stats';
 type SwipePreview = { tab: AppTab; side: -1 | 1 };
 const APP_TABS: AppTab[] = ['dashboard', 'records', 'guide', 'vaccine', 'stats'];
 const UPDATE_CHECK_INTERVAL = 24 * 60 * 60 * 1000;
+const CLOUD_CHECK_INTERVAL = 5 * 60 * 1000;
+const CLOUD_UPLOAD_DEBOUNCE = 2_000;
 
 function NavIcon({ icon: IconComponent, active }: { icon: Icon; active: boolean }) {
   return (
@@ -72,6 +76,29 @@ export default function App() {
   const [isWhiteNoisePlaying, setIsWhiteNoisePlaying] = useState(false);
   const [detectedRelease, setDetectedRelease] = useState<RemoteRelease | null>(null);
   const lastUpdateCheckRef = useRef(0);
+
+  useEffect(() => {
+    let debounce: number | undefined;
+    const syncNow = () => { if (!document.hidden) void runCloudArchiveAutoSync(); };
+    const schedule = () => {
+      localStorage.setItem('babycare_cloud_archive_pending', String(Date.now()));
+      window.clearTimeout(debounce);
+      debounce = window.setTimeout(syncNow, CLOUD_UPLOAD_DEBOUNCE);
+    };
+    const handleVisibility = () => { if (!document.hidden) syncNow(); };
+    syncNow();
+    const interval = window.setInterval(syncNow, CLOUD_CHECK_INTERVAL);
+    window.addEventListener(CLOUD_ARCHIVE_MUTATION_EVENT, schedule);
+    window.addEventListener('online', syncNow);
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => {
+      window.clearTimeout(debounce);
+      window.clearInterval(interval);
+      window.removeEventListener(CLOUD_ARCHIVE_MUTATION_EVENT, schedule);
+      window.removeEventListener('online', syncNow);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;

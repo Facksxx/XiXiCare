@@ -1,0 +1,11 @@
+{
+  "name": "xixi-sync",
+  "version": "1.0.0",
+  "main": "index.js",
+  "cloudfunction-config": {
+    "memorySize": 512,
+    "timeout": 30,
+    "path": "/xixi-sync",
+    "runtime": "Nodejs18"
+  }
+}

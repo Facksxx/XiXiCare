@@ -1,22 +1,63 @@
 const CLOUD_CONFIG_PREFIX = 'babycare_cloud_archive_';
+const SYNC_META_KEY = 'babycare_sync_meta';
+export const CLOUD_ARCHIVE_MUTATION_EVENT = 'xixicare:archive-mutation';
 const ARCHIVE_API_URL = (import.meta.env.VITE_CLOUD_ARCHIVE_API_URL as string | undefined)?.replace(/\/$/, '') ?? '';
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 
 export interface CloudArchiveEnvelope {
-  version: 1;
+  version: 1 | 2;
   updatedAt: string;
+  digest?: string;
+  baseRevision?: number;
   compression?: 'gzip';
   salt: string;
   iv: string;
   ciphertext: string;
 }
 
-interface ArchiveSnapshot {
+export interface ArchiveSnapshot {
   version: 1;
   updatedAt: string;
   values: Record<string, string>;
 }
+
+interface SyncMeta {
+  keys: Record<string, string>;
+  records: Record<string, Record<string, string>>;
+  tombstones: Record<string, Record<string, string>>;
+}
+
+const emptySyncMeta = (): SyncMeta => ({ keys: {}, records: {}, tombstones: {} });
+const readSyncMeta = (values?: Record<string, string>): SyncMeta => {
+  try { return JSON.parse(values?.[SYNC_META_KEY] ?? localStorage.getItem(SYNC_META_KEY) ?? '') as SyncMeta; }
+  catch { return emptySyncMeta(); }
+};
+
+export const recordArchiveMutation = (key: string, previousValue: unknown, nextValue: unknown) => {
+  if (!key.startsWith('babycare_') || key.startsWith(CLOUD_CONFIG_PREFIX) || key === SYNC_META_KEY) return;
+  const now = new Date().toISOString();
+  const meta = readSyncMeta();
+  meta.keys[key] = now;
+  if (Array.isArray(previousValue) && Array.isArray(nextValue)) {
+    const before = new Map(previousValue.filter(item => item && typeof item === 'object' && 'id' in item).map(item => [String(item.id), item]));
+    const after = new Map(nextValue.filter(item => item && typeof item === 'object' && 'id' in item).map(item => [String(item.id), item]));
+    meta.records[key] ||= {};
+    meta.tombstones[key] ||= {};
+    after.forEach((item, id) => {
+      if (JSON.stringify(before.get(id)) !== JSON.stringify(item)) meta.records[key][id] = now;
+      delete meta.tombstones[key][id];
+    });
+    before.forEach((_item, id) => {
+      if (!after.has(id)) {
+        meta.tombstones[key][id] = now;
+        delete meta.records[key][id];
+      }
+    });
+  }
+  localStorage.setItem(SYNC_META_KEY, JSON.stringify(meta));
+  window.dispatchEvent(new CustomEvent(CLOUD_ARCHIVE_MUTATION_EVENT, { detail: { key } }));
+};
 
 const bytesToBase64 = (bytes: Uint8Array) => {
   let binary = '';
@@ -27,6 +68,8 @@ const bytesToBase64 = (bytes: Uint8Array) => {
 };
 
 const base64ToBytes = (value: string) => Uint8Array.from(atob(value), character => character.charCodeAt(0));
+
+const sha256 = async (value: Uint8Array) => bytesToBase64(new Uint8Array(await crypto.subtle.digest('SHA-256', value as BufferSource)));
 
 const compressBytes = async (bytes: Uint8Array) => {
   if (typeof CompressionStream === 'undefined') return { bytes, compression: undefined } as const;
@@ -75,14 +118,26 @@ export const captureArchiveSnapshot = (): ArchiveSnapshot => {
   return { version: 1, updatedAt: new Date().toISOString(), values };
 };
 
-const mergeJsonArrayById = (remoteValue: string, localValue: string) => {
+const mergeJsonArrayById = (key: string, remoteValue: string, localValue: string, remoteMeta: SyncMeta, localMeta: SyncMeta) => {
   try {
     const remote = JSON.parse(remoteValue) as Array<{ id?: string }>;
     const local = JSON.parse(localValue) as Array<{ id?: string }>;
     if (!Array.isArray(remote) || !Array.isArray(local)) return localValue;
+    const remoteItems = new Map(remote.map((item, index) => [item.id || `remote-${index}`, item]));
+    const localItems = new Map(local.map((item, index) => [item.id || `local-${index}`, item]));
+    const ids = new Set([...remoteItems.keys(), ...localItems.keys(), ...Object.keys(remoteMeta.tombstones[key] || {}), ...Object.keys(localMeta.tombstones[key] || {})]);
     const merged = new Map<string, { id?: string }>();
-    remote.forEach((item, index) => merged.set(item.id || `remote-${index}`, item));
-    local.forEach((item, index) => merged.set(item.id || `local-${index}`, item));
+    ids.forEach(id => {
+      const remoteTime = remoteMeta.records[key]?.[id] || remoteMeta.keys[key] || '';
+      const localTime = localMeta.records[key]?.[id] || localMeta.keys[key] || '';
+      const remoteDeleted = remoteMeta.tombstones[key]?.[id] || '';
+      const localDeleted = localMeta.tombstones[key]?.[id] || '';
+      const newestDelete = remoteDeleted > localDeleted ? remoteDeleted : localDeleted;
+      const newestEdit = remoteTime > localTime ? remoteTime : localTime;
+      if (newestDelete && newestDelete >= newestEdit) return;
+      const item = remoteTime > localTime ? remoteItems.get(id) : localItems.get(id) ?? remoteItems.get(id);
+      if (item) merged.set(id, item);
+    });
     return JSON.stringify(Array.from(merged.values()));
   } catch { return localValue; }
 };
@@ -98,13 +153,24 @@ const mergeJsonObjects = (remoteValue: string, localValue: string) => {
 
 export const mergeArchiveSnapshots = (remote: ArchiveSnapshot, local: ArchiveSnapshot): ArchiveSnapshot => {
   const values = { ...remote.values, ...local.values };
+  const remoteMeta = readSyncMeta(remote.values);
+  const localMeta = readSyncMeta(local.values);
   ['babycare_babies', 'babycare_logs'].forEach(key => {
-    if (remote.values[key] && local.values[key]) values[key] = mergeJsonArrayById(remote.values[key], local.values[key]);
+    if (remote.values[key] && local.values[key]) values[key] = mergeJsonArrayById(key, remote.values[key], local.values[key], remoteMeta, localMeta);
   });
   Object.keys(values).forEach(key => {
     if (!remote.values[key] || !local.values[key]) return;
     if (/^babycare_(vaccines|vaccine_selections|allergens)_/.test(key)) values[key] = mergeJsonObjects(remote.values[key], local.values[key]);
   });
+  const mergedMeta = emptySyncMeta();
+  for (const source of [remoteMeta, localMeta]) {
+    Object.entries(source.keys || {}).forEach(([key, time]) => { if (time > (mergedMeta.keys[key] || '')) mergedMeta.keys[key] = time; });
+    for (const bucket of ['records', 'tombstones'] as const) Object.entries(source[bucket] || {}).forEach(([key, entries]) => {
+      mergedMeta[bucket][key] ||= {};
+      Object.entries(entries).forEach(([id, time]) => { if (time > (mergedMeta[bucket][key][id] || '')) mergedMeta[bucket][key][id] = time; });
+    });
+  }
+  values[SYNC_META_KEY] = JSON.stringify(mergedMeta);
   return { version: 1, updatedAt: new Date().toISOString(), values };
 };
 
@@ -124,9 +190,11 @@ export const encryptArchiveSnapshot = async (snapshot: ArchiveSnapshot, code: st
   const salt = crypto.getRandomValues(new Uint8Array(16));
   const iv = crypto.getRandomValues(new Uint8Array(12));
   const key = await deriveKey(code, birthday, salt);
-  const compressed = await compressBytes(encoder.encode(JSON.stringify(snapshot)));
+  const plaintext = encoder.encode(JSON.stringify(snapshot));
+  const compressed = await compressBytes(plaintext);
   const ciphertext = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, compressed.bytes as BufferSource);
-  return { version: 1, updatedAt: snapshot.updatedAt, compression: compressed.compression, salt: bytesToBase64(salt), iv: bytesToBase64(iv), ciphertext: bytesToBase64(new Uint8Array(ciphertext)) };
+  const contentDigest = await sha256(encoder.encode(JSON.stringify(snapshot.values)));
+  return { version: 2, updatedAt: snapshot.updatedAt, digest: contentDigest, compression: compressed.compression, salt: bytesToBase64(salt), iv: bytesToBase64(iv), ciphertext: bytesToBase64(new Uint8Array(ciphertext)) };
 };
 
 export const decryptArchiveSnapshot = async (envelope: CloudArchiveEnvelope, code: string, birthday: string): Promise<ArchiveSnapshot> => {
@@ -146,6 +214,19 @@ const requireApiUrl = () => {
   return ARCHIVE_API_URL;
 };
 
+export interface CloudArchiveMeta {
+  revision: number;
+  digest: string;
+  updatedAt: string;
+}
+
+export const fetchCloudArchiveMeta = async (code: string, birthday: string): Promise<CloudArchiveMeta | null> => {
+  const response = await fetch(`${requireApiUrl()}/archive/${getArchiveId(code, birthday)}/meta`, { cache: 'no-store' });
+  if (response.status === 404) return null;
+  if (!response.ok) throw new Error(`校验云存档失败（${response.status}）`);
+  return response.json() as Promise<CloudArchiveMeta>;
+};
+
 export const fetchCloudArchive = async (code: string, birthday: string): Promise<CloudArchiveEnvelope | null> => {
   const response = await fetch(`${requireApiUrl()}/archive/${getArchiveId(code, birthday)}`, { cache: 'no-store' });
   if (response.status === 404) return null;
@@ -156,12 +237,14 @@ export const fetchCloudArchive = async (code: string, birthday: string): Promise
   return response.json() as Promise<CloudArchiveEnvelope>;
 };
 
-export const saveCloudArchive = async (code: string, birthday: string, envelope: CloudArchiveEnvelope) => {
+export const saveCloudArchive = async (code: string, birthday: string, envelope: CloudArchiveEnvelope, baseRevision?: number) => {
+  if (baseRevision !== undefined) envelope.baseRevision = baseRevision;
   const response = await fetch(`${requireApiUrl()}/archive/${getArchiveId(code, birthday)}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(envelope)
   });
+  if (response.status === 409) throw new Error('CLOUD_ARCHIVE_CONFLICT');
   if (!response.ok) {
     const payload = await response.json().catch(() => null) as { error?: string } | null;
     throw new Error(payload?.error || `上传云存档失败（${response.status}）`);

@@ -7,6 +7,7 @@ import {
   decryptArchiveSnapshot,
   encryptArchiveSnapshot,
   fetchCloudArchive,
+  fetchCloudArchiveMeta,
   mergeArchiveSnapshots,
   saveCloudArchive,
   validateArchiveIdentity
@@ -64,14 +65,56 @@ export const runCloudArchiveUpload = async (code: string, birthday: string) => {
   setState({ phase: 'uploading', message: '正在后台上传存档…', syncedAt: state.syncedAt });
   try {
     const local = captureArchiveSnapshot();
-    const remoteEnvelope = await fetchCloudArchive(code, birthday);
+    const meta = await fetchCloudArchiveMeta(code, birthday);
+    const remoteEnvelope = meta ? await fetchCloudArchive(code, birthday) : null;
     const snapshot = remoteEnvelope
       ? mergeArchiveSnapshots(await decryptArchiveSnapshot(remoteEnvelope, code, birthday), local)
       : local;
-    await saveCloudArchive(code, birthday, await encryptArchiveSnapshot(snapshot, code, birthday));
+    await saveCloudArchive(code, birthday, await encryptArchiveSnapshot(snapshot, code, birthday), meta?.revision ?? 0);
     markSynced(remoteEnvelope ? '已合并并上传最新存档' : '云存档已创建', snapshot.updatedAt);
   } catch (error) {
     fail(error, '上传失败，请稍后重试');
+  }
+};
+
+export const runCloudArchiveAutoSync = async () => {
+  if (isCloudArchiveTaskBusy() || !navigator.onLine) return;
+  const code = localStorage.getItem(CLOUD_ARCHIVE_CODE_KEY) ?? '';
+  const birthday = localStorage.getItem(CLOUD_ARCHIVE_BIRTHDAY_KEY) ?? '';
+  if (!code || !birthday) return;
+  const pendingToken = localStorage.getItem('babycare_cloud_archive_pending');
+  setState({ phase: 'uploading', message: '正在自动同步…', syncedAt: state.syncedAt });
+  try {
+    const local = captureArchiveSnapshot();
+    const localEnvelope = await encryptArchiveSnapshot(local, code, birthday);
+    let meta = await fetchCloudArchiveMeta(code, birthday);
+    if (meta && meta.digest === localEnvelope.digest) {
+      if (localStorage.getItem('babycare_cloud_archive_pending') === pendingToken) localStorage.removeItem('babycare_cloud_archive_pending');
+      markSynced('已是最新存档', meta.updatedAt);
+      return;
+    }
+    let snapshot = local;
+    if (meta) {
+      const remoteEnvelope = await fetchCloudArchive(code, birthday);
+      if (remoteEnvelope) snapshot = mergeArchiveSnapshots(await decryptArchiveSnapshot(remoteEnvelope, code, birthday), local);
+    }
+    try {
+      await saveCloudArchive(code, birthday, await encryptArchiveSnapshot(snapshot, code, birthday), meta?.revision ?? 0);
+    } catch (error) {
+      if (!(error instanceof Error) || error.message !== 'CLOUD_ARCHIVE_CONFLICT') throw error;
+      meta = await fetchCloudArchiveMeta(code, birthday);
+      const latestEnvelope = await fetchCloudArchive(code, birthday);
+      snapshot = latestEnvelope ? mergeArchiveSnapshots(await decryptArchiveSnapshot(latestEnvelope, code, birthday), local) : local;
+      await saveCloudArchive(code, birthday, await encryptArchiveSnapshot(snapshot, code, birthday), meta?.revision ?? 0);
+    }
+    const changedLocally = JSON.stringify(snapshot.values) !== JSON.stringify(local.values);
+    if (changedLocally) applyArchiveSnapshot(snapshot);
+    if (localStorage.getItem('babycare_cloud_archive_pending') === pendingToken) localStorage.removeItem('babycare_cloud_archive_pending');
+    markSynced('自动同步完成', snapshot.updatedAt);
+    if (changedLocally) window.setTimeout(() => window.location.reload(), 300);
+  } catch (error) {
+    localStorage.setItem('babycare_cloud_archive_pending', '1');
+    fail(error, '自动同步失败，联网后重试');
   }
 };
 
