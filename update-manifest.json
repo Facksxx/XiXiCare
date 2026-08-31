@@ -1,11 +1,11 @@
 {
-  "version": "1.1.32",
-  "tag": "v1.1.32",
-  "htmlUrl": "https://gitee.com/Facksxx/xi-xi-care/releases/tag/v1.1.32",
-  "apkUrl": "https://gitee.com/Facksxx/xi-xi-care/releases/download/v1.1.32/XiXiCare.apk",
-  "publishedAt": "2026-08-27T17:42:55.210Z",
-  "notes": "更新检查和疫苗价格表恢复为Gitee发行仓库直连优先；Cloudflare调整为备用通道；备用网络请求增加5秒超时，避免慢线路长时间阻塞。",
-  "sha256": "215cec5fe5e31b1d9051fb7ae0821ac142712fffaf81c484075049c4c2753b29",
+  "version": "1.1.33",
+  "tag": "v1.1.33",
+  "htmlUrl": "https://gitee.com/Facksxx/xi-xi-care/releases/tag/v1.1.33",
+  "apkUrl": "https://gitee.com/Facksxx/xi-xi-care/releases/download/v1.1.33/XiXiCare.apk",
+  "publishedAt": "2026-08-31T08:28:50.989Z",
+  "notes": "切换至 uniCloud 支付宝云国内同步；新增启动、回前台、记录修改、网络恢复时自动双向同步；支持2秒合并上传、5分钟版本校验、离线重试、内容摘要、修订冲突保护和删除墓碑。",
+  "sha256": "00f0730e380d8e964151829b6b15439a06446e6ecb8363017760b310da79d678",
   "history": [
     {
       "version": "1.1.14",
@@ -101,6 +101,11 @@
       "version": "1.1.32",
       "publishedAt": "2026-08-27T17:42:55.210Z",
       "notes": "更新检查和疫苗价格表恢复为Gitee发行仓库直连优先；Cloudflare调整为备用通道；备用网络请求增加5秒超时，避免慢线路长时间阻塞。"
+    },
+    {
+      "version": "1.1.33",
+      "publishedAt": "2026-08-31T08:28:50.989Z",
+      "notes": "切换至 uniCloud 支付宝云国内同步；新增启动、回前台、记录修改、网络恢复时自动双向同步；支持2秒合并上传、5分钟版本校验、离线重试、内容摘要、修订冲突保护和删除墓碑。"
     }
   ]
 }
