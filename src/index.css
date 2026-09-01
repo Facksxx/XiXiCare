@@ -97,6 +97,12 @@
   -webkit-tap-highlight-color: transparent;
 }
 
+.theme-switching *,
+.theme-switching *::before,
+.theme-switching *::after {
+  transition: none !important;
+}
+
 body {
   font-family: var(--font-sans);
   color: var(--text);

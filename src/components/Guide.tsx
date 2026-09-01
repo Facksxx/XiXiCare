@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { guideData } from '../data/guideData';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import type { BabyInfo } from '../types/baby';
@@ -34,6 +34,18 @@ export function Guide({ baby }: { baby: BabyInfo }) {
   const [scrollLeft, setScrollLeft] = useState(0);
 
   const activeStage = guideData.find((stage) => stage.id === activeStageId) || guideData[0];
+
+  useEffect(() => {
+    const scroller = scrollerRef.current;
+    const activeButton = scroller?.querySelector<HTMLElement>(`[data-stage-id="${activeStageId}"]`);
+    if (!scroller || !activeButton) return;
+    const visibleLeft = scroller.scrollLeft;
+    const visibleRight = visibleLeft + scroller.clientWidth;
+    const buttonLeft = activeButton.offsetLeft;
+    const buttonRight = buttonLeft + activeButton.offsetWidth;
+    if (buttonLeft < visibleLeft) scroller.scrollLeft = buttonLeft;
+    else if (buttonRight > visibleRight) scroller.scrollLeft = buttonRight - scroller.clientWidth;
+  }, [activeStageId]);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     if (!scrollerRef.current) return;
@@ -110,6 +122,7 @@ export function Guide({ baby }: { baby: BabyInfo }) {
         {guideData.map((stage) => (
           <button
             key={stage.id}
+            data-stage-id={stage.id}
             className={`guide-pill ${activeStageId === stage.id ? 'active' : ''}`}
             onClick={() => setActiveStageId(stage.id)}
           >

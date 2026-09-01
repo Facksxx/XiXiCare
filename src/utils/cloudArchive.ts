@@ -226,6 +226,17 @@ const requireApiUrl = () => {
   return ARCHIVE_API_URL;
 };
 
+const fetchArchiveRequest = async (input: RequestInfo | URL, init?: RequestInit) => {
+  try {
+    return await fetch(input, init);
+  } catch (error) {
+    if (error instanceof TypeError || (error instanceof Error && /failed to fetch|network/i.test(error.message))) {
+      throw new Error('无法连接云存档服务，请检查网络后重试');
+    }
+    throw error;
+  }
+};
+
 export interface CloudArchiveMeta {
   revision: number;
   digest: string;
@@ -233,14 +244,14 @@ export interface CloudArchiveMeta {
 }
 
 export const fetchCloudArchiveMeta = async (code: string, birthday: string): Promise<CloudArchiveMeta | null> => {
-  const response = await fetch(`${requireApiUrl()}/archive/${getArchiveId(code, birthday)}/meta`, { cache: 'no-store' });
+  const response = await fetchArchiveRequest(`${requireApiUrl()}/archive/${getArchiveId(code, birthday)}/meta`, { cache: 'no-store' });
   if (response.status === 404) return null;
   if (!response.ok) throw new Error(`校验云存档失败（${response.status}）`);
   return response.json() as Promise<CloudArchiveMeta>;
 };
 
 export const fetchCloudArchive = async (code: string, birthday: string): Promise<CloudArchiveEnvelope | null> => {
-  const response = await fetch(`${requireApiUrl()}/archive/${getArchiveId(code, birthday)}`, { cache: 'no-store' });
+  const response = await fetchArchiveRequest(`${requireApiUrl()}/archive/${getArchiveId(code, birthday)}`, { cache: 'no-store' });
   if (response.status === 404) return null;
   if (!response.ok) {
     const payload = await response.json().catch(() => null) as { error?: string } | null;
@@ -251,7 +262,7 @@ export const fetchCloudArchive = async (code: string, birthday: string): Promise
 
 export const saveCloudArchive = async (code: string, birthday: string, envelope: CloudArchiveEnvelope, baseRevision?: number) => {
   if (baseRevision !== undefined) envelope.baseRevision = baseRevision;
-  const response = await fetch(`${requireApiUrl()}/archive/${getArchiveId(code, birthday)}`, {
+  const response = await fetchArchiveRequest(`${requireApiUrl()}/archive/${getArchiveId(code, birthday)}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(envelope)
