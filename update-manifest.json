@@ -1,11 +1,11 @@
 {
-  "version": "1.1.36",
-  "tag": "v1.1.36",
-  "htmlUrl": "https://gitee.com/Facksxx/xi-xi-care/releases/tag/v1.1.36",
-  "apkUrl": "https://gitee.com/Facksxx/xi-xi-care/releases/download/v1.1.36/XiXiCare.apk",
-  "publishedAt": "2026-09-01T01:04:21.835Z",
-  "notes": "优化黑白模式切换速度；云存档网络错误改为清晰中文提示；喂养指南月龄标签保持在可视区域且仅做最小定位",
-  "sha256": "559759e4f897f9008c9abc07d5a8eb0ddbe389b01b28591820df1d80bffe495b",
+  "version": "1.1.37",
+  "tag": "v1.1.37",
+  "htmlUrl": "https://gitee.com/Facksxx/xi-xi-care/releases/tag/v1.1.37",
+  "apkUrl": "https://gitee.com/Facksxx/xi-xi-care/releases/download/v1.1.37/XiXiCare.apk",
+  "publishedAt": "2026-09-01T01:41:15.335Z",
+  "notes": "修复黑白模式切换时成长统计图表数字和颜色更新迟缓的问题",
+  "sha256": "b83613c30b5a2f6894f85c651c799d8f90c7b3fd2dd8bedc106cc4dc70313f56",
   "history": [
     {
       "version": "1.1.14",
@@ -121,6 +121,11 @@
       "version": "1.1.36",
       "publishedAt": "2026-09-01T01:04:21.835Z",
       "notes": "优化黑白模式切换速度；云存档网络错误改为清晰中文提示；喂养指南月龄标签保持在可视区域且仅做最小定位"
+    },
+    {
+      "version": "1.1.37",
+      "publishedAt": "2026-09-01T01:41:15.335Z",
+      "notes": "修复黑白模式切换时成长统计图表数字和颜色更新迟缓的问题"
     }
   ]
 }
