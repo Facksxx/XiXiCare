@@ -388,8 +388,10 @@ export default function App() {
   }, [theme]);
 
   const toggleTheme = () => {
+    const nextTheme = theme === 'light' ? 'dark' : 'light';
     document.documentElement.classList.add('theme-switching');
-    setTheme(theme === 'light' ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', nextTheme);
+    setTheme(nextTheme);
     window.requestAnimationFrame(() => window.requestAnimationFrame(() => {
       document.documentElement.classList.remove('theme-switching');
     }));

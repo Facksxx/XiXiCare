@@ -90,11 +90,8 @@ function EChart({ option }: { option: EChartsOption }) {
     chart.setOption(option, { notMerge: true });
     const observer = new ResizeObserver(() => chart.resize());
     observer.observe(containerRef.current);
-    const themeObserver = new MutationObserver(() => chart.setOption(option, { notMerge: true }));
-    themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
     return () => {
       observer.disconnect();
-      themeObserver.disconnect();
       chart.dispose();
     };
   }, [option]);
@@ -103,7 +100,8 @@ function EChart({ option }: { option: EChartsOption }) {
 }
 
 const axisBase = (labels: string[]) => ({
-  animationDuration: 350,
+  animationDuration: 0,
+  animationDurationUpdate: 0,
   grid: { left: 14, right: 14, top: 52, bottom: 8, containLabel: true },
   tooltip: {
     trigger: 'axis' as const,
