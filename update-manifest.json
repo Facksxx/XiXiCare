@@ -1,11 +1,11 @@
 {
-  "version": "1.1.35",
-  "tag": "v1.1.35",
-  "htmlUrl": "https://gitee.com/Facksxx/xi-xi-care/releases/tag/v1.1.35",
-  "apkUrl": "https://gitee.com/Facksxx/xi-xi-care/releases/download/v1.1.35/XiXiCare.apk",
-  "publishedAt": "2026-08-31T09:08:45.181Z",
-  "notes": "修复辅食名称为空时被记录为婴儿米粉；新增默认关闭的云存档自动同步开关；疫苗价格表更新改用 Toast 提示；更新 README 云存档说明",
-  "sha256": "0c217867a9bf93cecab2a55d5f5226a63acc0190837637c210e42aa3c3e173d7",
+  "version": "1.1.36",
+  "tag": "v1.1.36",
+  "htmlUrl": "https://gitee.com/Facksxx/xi-xi-care/releases/tag/v1.1.36",
+  "apkUrl": "https://gitee.com/Facksxx/xi-xi-care/releases/download/v1.1.36/XiXiCare.apk",
+  "publishedAt": "2026-09-01T01:04:21.835Z",
+  "notes": "优化黑白模式切换速度；云存档网络错误改为清晰中文提示；喂养指南月龄标签保持在可视区域且仅做最小定位",
+  "sha256": "559759e4f897f9008c9abc07d5a8eb0ddbe389b01b28591820df1d80bffe495b",
   "history": [
     {
       "version": "1.1.14",
@@ -116,6 +116,11 @@
       "version": "1.1.35",
       "publishedAt": "2026-08-31T09:08:45.181Z",
       "notes": "修复辅食名称为空时被记录为婴儿米粉；新增默认关闭的云存档自动同步开关；疫苗价格表更新改用 Toast 提示；更新 README 云存档说明"
+    },
+    {
+      "version": "1.1.36",
+      "publishedAt": "2026-09-01T01:04:21.835Z",
+      "notes": "优化黑白模式切换速度；云存档网络错误改为清晰中文提示；喂养指南月龄标签保持在可视区域且仅做最小定位"
     }
   ]
 }
