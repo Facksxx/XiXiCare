@@ -1,11 +1,11 @@
 {
-  "version": "1.2.0",
-  "tag": "v1.2.0",
-  "htmlUrl": "https://gitee.com/Facksxx/xi-xi-care/releases/tag/v1.2.0",
-  "apkUrl": "https://gitee.com/Facksxx/xi-xi-care/releases/download/v1.2.0/XiXiCare.apk",
-  "publishedAt": "2026-09-02T00:39:35.822Z",
-  "notes": "修复黑白模式偶尔自动切回；主题偏好改为仅本机保存，不再受云存档覆盖；更新检查失败后自动重试，网络恢复时重新检查，并新增版本更新弹窗提醒",
-  "sha256": "f013af3a38e7b5dfc2375686a87c5494ab354f05361387d09d906183dc0276e6",
+  "version": "1.2.1",
+  "tag": "v1.2.1",
+  "htmlUrl": "https://gitee.com/Facksxx/xi-xi-care/releases/tag/v1.2.1",
+  "apkUrl": "https://gitee.com/Facksxx/xi-xi-care/releases/download/v1.2.1/XiXiCare.apk",
+  "publishedAt": "2026-09-02T00:45:51.700Z",
+  "notes": "修复 Android 检查更新失败：使用原生网络请求绕过 Gitee 跨域限制，延长请求超时，并将底层英文异常改为清晰中文提示",
+  "sha256": "934eda8e8fc1ea4d18fbd442abf2c1b7b5016cffadb02fc92de6a21a22819f70",
   "history": [
     {
       "version": "1.1.14",
@@ -131,6 +131,11 @@
       "version": "1.2.0",
       "publishedAt": "2026-09-02T00:39:35.822Z",
       "notes": "修复黑白模式偶尔自动切回；主题偏好改为仅本机保存，不再受云存档覆盖；更新检查失败后自动重试，网络恢复时重新检查，并新增版本更新弹窗提醒"
+    },
+    {
+      "version": "1.2.1",
+      "publishedAt": "2026-09-02T00:45:51.700Z",
+      "notes": "修复 Android 检查更新失败：使用原生网络请求绕过 Gitee 跨域限制，延长请求超时，并将底层英文异常改为清晰中文提示"
     }
   ]
 }
