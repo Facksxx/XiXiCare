@@ -1,5 +1,6 @@
 const CLOUD_CONFIG_PREFIX = 'babycare_cloud_archive_';
 const SYNC_META_KEY = 'babycare_sync_meta';
+const LOCAL_ONLY_ARCHIVE_KEYS = new Set(['babycare_theme']);
 export const CLOUD_ARCHIVE_MUTATION_EVENT = 'xixicare:archive-mutation';
 export const CLOUD_ARCHIVE_APPLIED_EVENT = 'xixicare:archive-applied';
 export const CLOUD_ARCHIVE_AUTO_SYNC_KEY = `${CLOUD_CONFIG_PREFIX}auto_sync_enabled`;
@@ -44,7 +45,7 @@ const readSyncMeta = (values?: Record<string, string>): SyncMeta => {
 };
 
 export const recordArchiveMutation = (key: string, previousValue: unknown, nextValue: unknown) => {
-  if (!key.startsWith('babycare_') || key.startsWith(CLOUD_CONFIG_PREFIX) || key === SYNC_META_KEY) return;
+  if (!key.startsWith('babycare_') || key.startsWith(CLOUD_CONFIG_PREFIX) || key === SYNC_META_KEY || LOCAL_ONLY_ARCHIVE_KEYS.has(key)) return;
   const now = new Date().toISOString();
   const meta = readSyncMeta();
   meta.keys[key] = now;
@@ -120,7 +121,7 @@ export const captureArchiveSnapshot = (): ArchiveSnapshot => {
   const values: Record<string, string> = {};
   for (let index = 0; index < localStorage.length; index += 1) {
     const key = localStorage.key(index);
-    if (!key?.startsWith('babycare_') || key.startsWith(CLOUD_CONFIG_PREFIX)) continue;
+    if (!key?.startsWith('babycare_') || key.startsWith(CLOUD_CONFIG_PREFIX) || LOCAL_ONLY_ARCHIVE_KEYS.has(key)) continue;
     const value = localStorage.getItem(key);
     if (value !== null) values[key] = value;
   }
@@ -171,6 +172,7 @@ export const mergeArchiveSnapshots = (remote: ArchiveSnapshot, local: ArchiveSna
     if (!remote.values[key] || !local.values[key]) return;
     if (/^babycare_(vaccines|vaccine_selections|allergens)_/.test(key)) values[key] = mergeJsonObjects(remote.values[key], local.values[key]);
   });
+  LOCAL_ONLY_ARCHIVE_KEYS.forEach(key => delete values[key]);
   const mergedMeta = emptySyncMeta();
   for (const source of [remoteMeta, localMeta]) {
     Object.entries(source.keys || {}).forEach(([key, time]) => { if (time > (mergedMeta.keys[key] || '')) mergedMeta.keys[key] = time; });
@@ -187,10 +189,10 @@ export const applyArchiveSnapshot = (snapshot: ArchiveSnapshot) => {
   const preserved = new Map<string, string>();
   for (let index = 0; index < localStorage.length; index += 1) {
     const key = localStorage.key(index);
-    if (key?.startsWith(CLOUD_CONFIG_PREFIX)) preserved.set(key, localStorage.getItem(key) ?? '');
+    if (key?.startsWith(CLOUD_CONFIG_PREFIX) || (key && LOCAL_ONLY_ARCHIVE_KEYS.has(key))) preserved.set(key, localStorage.getItem(key) ?? '');
   }
-  Object.keys(localStorage).filter(key => key.startsWith('babycare_')).forEach(key => localStorage.removeItem(key));
-  Object.entries(snapshot.values).forEach(([key, value]) => localStorage.setItem(key, value));
+  Object.keys(localStorage).filter(key => key.startsWith('babycare_') && !LOCAL_ONLY_ARCHIVE_KEYS.has(key)).forEach(key => localStorage.removeItem(key));
+  Object.entries(snapshot.values).filter(([key]) => !LOCAL_ONLY_ARCHIVE_KEYS.has(key)).forEach(([key, value]) => localStorage.setItem(key, value));
   preserved.forEach((value, key) => localStorage.setItem(key, value));
   window.dispatchEvent(new CustomEvent(CLOUD_ARCHIVE_APPLIED_EVENT, {
     detail: { keys: Object.keys(snapshot.values) }

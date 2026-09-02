@@ -75,6 +75,7 @@ export default function App() {
   const [showBabySwitcher, setShowBabySwitcher] = useState(false);
   const [isWhiteNoisePlaying, setIsWhiteNoisePlaying] = useState(false);
   const [detectedRelease, setDetectedRelease] = useState<RemoteRelease | null>(null);
+  const [showUpdatePrompt, setShowUpdatePrompt] = useState(false);
   const lastUpdateCheckRef = useRef(0);
 
   useEffect(() => {
@@ -105,12 +106,16 @@ export default function App() {
     let cancelled = false;
     const checkForUpdate = async () => {
       if (Capacitor.getPlatform() === 'ios') return;
-      lastUpdateCheckRef.current = Date.now();
       try {
         const release = await fetchLatestRelease();
-        if (!cancelled) setDetectedRelease(release.version && isNewer(release.version) ? release : null);
+        lastUpdateCheckRef.current = Date.now();
+        if (!cancelled) {
+          const nextRelease = release.version && isNewer(release.version) ? release : null;
+          setDetectedRelease(nextRelease);
+          if (nextRelease) setShowUpdatePrompt(true);
+        }
       } catch {
-        // Startup checks stay silent; users can retry from Settings.
+        // Keep the last-success timestamp unchanged so foreground/online checks can retry.
       }
     };
     const checkIfDue = () => {
@@ -118,12 +123,16 @@ export default function App() {
       if (Date.now() - lastUpdateCheckRef.current >= UPDATE_CHECK_INTERVAL) void checkForUpdate();
     };
     void checkForUpdate();
+    const startupRetry = window.setTimeout(checkIfDue, 10_000);
     const interval = window.setInterval(checkIfDue, UPDATE_CHECK_INTERVAL);
     document.addEventListener('visibilitychange', checkIfDue);
+    window.addEventListener('online', checkIfDue);
     return () => {
       cancelled = true;
+      window.clearTimeout(startupRetry);
       window.clearInterval(interval);
       document.removeEventListener('visibilitychange', checkIfDue);
+      window.removeEventListener('online', checkIfDue);
     };
   }, []);
 
@@ -744,6 +753,18 @@ export default function App() {
         isOpen={showWhiteNoise}
         onClose={() => setShowWhiteNoise(false)}
         onPlaybackChange={setIsWhiteNoisePlaying}
+      />
+
+      <ConfirmModal
+        compact
+        isOpen={Boolean(detectedRelease && showUpdatePrompt && !showSettings)}
+        title="发现新版本"
+        message={detectedRelease ? `XiXiCare v${detectedRelease.version} 已发布，是否前往设置查看并更新？` : ''}
+        type="info"
+        confirmText="查看更新"
+        cancelText="稍后再说"
+        onConfirm={() => { setShowUpdatePrompt(false); openSettings(); }}
+        onCancel={() => setShowUpdatePrompt(false)}
       />
 
       {showBabySwitcher && (

@@ -6,6 +6,7 @@ import { dirname, join } from 'node:path';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const noBump = process.argv.includes('--no-bump');
+const requestedVersion = process.env.RELEASE_VERSION?.trim();
 const packagePath = join(root, 'package.json');
 const gradlePath = join(root, 'android/app/build.gradle');
 const manifestPath = join(root, 'update-manifest.json');
@@ -16,7 +17,7 @@ const run = (command, args, options = {}) => {
   if (result.status !== 0) process.exit(result.status ?? 1);
 };
 
-if (!noBump) run('npm', ['version', 'patch', '--no-git-tag-version']);
+if (!noBump) run('npm', ['version', requestedVersion || 'patch', '--no-git-tag-version']);
 
 const packageJson = JSON.parse(readFileSync(packagePath, 'utf8'));
 const version = packageJson.version;
