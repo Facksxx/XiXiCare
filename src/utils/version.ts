@@ -1,5 +1,7 @@
 // 应用版本与更新检查工具
 // 版本号通过 Vite `define` 从 package.json 注入（见 vite.config.ts）
+import { Capacitor, CapacitorHttp } from '@capacitor/core';
+
 export const APP_VERSION: string = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '0.0.0';
 
 export const RELEASE_REPO = 'Facksxx/xi-xi-care';
@@ -10,7 +12,16 @@ export const UPDATE_MANIFEST_URLS = [
   'https://xixicare-cloud-sync.xixicare-facksxx.workers.dev/public/update-manifest.json'
 ];
 
-const FETCH_TIMEOUT_MS = 5_000;
+const FETCH_TIMEOUT_MS = 12_000;
+
+const describeUpdateError = (error: unknown) => {
+  if (error instanceof DOMException && error.name === 'AbortError') return '检查更新超时，请确认网络连接后重试';
+  if (error instanceof Error && /abort|timeout/i.test(error.message)) return '检查更新超时，请确认网络连接后重试';
+  if (error instanceof TypeError || (error instanceof Error && /failed to fetch|network/i.test(error.message))) {
+    return '无法连接更新服务器，请检查网络后重试';
+  }
+  return '更新服务器暂时不可用，请稍后重试';
+};
 
 export interface RemoteRelease {
   /** 不带前缀 v 的版本号，例如 "1.0.3" */
@@ -28,6 +39,36 @@ export interface RemoteRelease {
   /** 从当前版本到最新版之间的逐版本更新说明 */
   history: Array<{ version: string; publishedAt: string; notes: string }>;
 }
+
+const requestUpdateManifest = async (url: string): Promise<RemoteRelease> => {
+  const separator = url.includes('?') ? '&' : '?';
+  const requestUrl = `${url}${separator}t=${Date.now()}`;
+  if (Capacitor.isNativePlatform()) {
+    const response = await CapacitorHttp.get({
+      url: requestUrl,
+      headers: { Accept: 'application/json' },
+      connectTimeout: FETCH_TIMEOUT_MS,
+      readTimeout: FETCH_TIMEOUT_MS,
+      responseType: 'json'
+    });
+    if (response.status < 200 || response.status >= 300) throw new Error(`HTTP ${response.status}`);
+    return (typeof response.data === 'string' ? JSON.parse(response.data) : response.data) as RemoteRelease;
+  }
+
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  try {
+    const response = await fetch(requestUrl, {
+      headers: { Accept: 'application/json' },
+      cache: 'no-store',
+      signal: controller.signal
+    });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    return await response.json() as RemoteRelease;
+  } finally {
+    window.clearTimeout(timeout);
+  }
+};
 
 /** 解析形如 "1.2.3" 或 "v1.2.3" 的版本号为数字数组 */
 const parseVersion = (raw: string): number[] => {
@@ -63,17 +104,8 @@ export const isNewer = (remote: string, current: string = APP_VERSION): boolean 
 export const fetchLatestRelease = async (): Promise<RemoteRelease> => {
   let lastError: unknown;
   for (const url of UPDATE_MANIFEST_URLS) {
-    const controller = new AbortController();
-    const timeout = window.setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
     try {
-      const separator = url.includes('?') ? '&' : '?';
-      const response = await fetch(`${url}${separator}t=${Date.now()}`, {
-        headers: { Accept: 'application/json' },
-        cache: 'no-store',
-        signal: controller.signal
-      });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const release = (await response.json()) as RemoteRelease;
+      const release = await requestUpdateManifest(url);
       if (!release.version || !release.tag || !release.apkUrl) throw new Error('更新清单内容不完整');
       const fullHistory = Array.isArray(release.history) ? release.history : [];
       return {
@@ -85,10 +117,7 @@ export const fetchLatestRelease = async (): Promise<RemoteRelease> => {
       };
     } catch (error) {
       lastError = error;
-    } finally {
-      window.clearTimeout(timeout);
     }
   }
-  const detail = lastError instanceof Error ? `：${lastError.message}` : '';
-  throw new Error(`获取更新信息失败${detail}`);
+  throw new Error(describeUpdateError(lastError));
 };
