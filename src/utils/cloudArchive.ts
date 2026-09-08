@@ -105,10 +105,24 @@ const deriveKey = async (code: string, birthday: string, salt: Uint8Array) => {
   );
 };
 
-export const createArchiveCode = () => String(crypto.getRandomValues(new Uint32Array(1))[0] % 1_000_000).padStart(6, '0');
+const ARCHIVE_CODE_LETTERS = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+const ARCHIVE_CODE_DIGITS = '23456789';
+const ARCHIVE_CODE_CHARACTERS = `${ARCHIVE_CODE_LETTERS}${ARCHIVE_CODE_DIGITS}`;
+
+const randomCharacter = (characters: string) => characters[crypto.getRandomValues(new Uint32Array(1))[0] % characters.length];
+
+export const createArchiveCode = () => {
+  const characters = [randomCharacter(ARCHIVE_CODE_LETTERS), randomCharacter(ARCHIVE_CODE_DIGITS)];
+  while (characters.length < 6) characters.push(randomCharacter(ARCHIVE_CODE_CHARACTERS));
+  for (let index = characters.length - 1; index > 0; index--) {
+    const swapIndex = crypto.getRandomValues(new Uint32Array(1))[0] % (index + 1);
+    [characters[index], characters[swapIndex]] = [characters[swapIndex], characters[index]];
+  }
+  return characters.join('');
+};
 
 export const validateArchiveIdentity = (code: string, birthday: string) => {
-  if (!/^\d{6}$/.test(code)) throw new Error('请输入6位数字存档码');
+  if (!/^[A-Z0-9]{6}$/.test(code)) throw new Error('请输入6位数字或大写字母存档码');
   if (!/^\d{4}-\d{2}-\d{2}$/.test(birthday) || Number.isNaN(new Date(`${birthday}T00:00:00`).getTime())) throw new Error('请选择正确的宝宝生日');
 };
 

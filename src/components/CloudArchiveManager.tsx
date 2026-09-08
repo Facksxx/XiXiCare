@@ -45,7 +45,7 @@ export function CloudArchiveManager({ babies, activeBabyId }: { babies: BabyInfo
 
   return <>
     <div className="cloud-archive-form">
-      <label><span>6位存档码</span><div className="cloud-code-input"><input inputMode="numeric" maxLength={6} value={code} onChange={event => setCode(event.target.value.replace(/\D/g, '').slice(0, 6))} placeholder="请输入6位数字" /><button type="button" onClick={() => setCode(createArchiveCode())} aria-label="随机生成存档码"><Dice5 size={17} /></button></div></label>
+      <label><span>6位存档码</span><div className="cloud-code-input"><input inputMode="text" autoCapitalize="characters" autoCorrect="off" spellCheck={false} maxLength={6} value={code} onChange={event => setCode(event.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6))} placeholder="数字或大写字母" /><button type="button" onClick={() => setCode(createArchiveCode())} aria-label="随机生成存档码"><Dice5 size={17} /></button></div></label>
       <label><span>验证生日</span><input type="date" value={birthday} onChange={event => setBirthday(event.target.value)} /></label>
       <div className="cloud-archive-actions">
         <button type="button" className={task.phase === 'success' ? 'success' : ''} disabled={busy} onClick={upload}>{task.phase === 'uploading' ? <LoaderCircle className="spin" size={17} /> : <CloudUpload size={17} />}<span>{task.phase === 'uploading' ? '后台上传中' : '上传存档'}</span></button>
