@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:initialLayout="@layout/formula_widget"
+    android:initialKeyguardLayout="@layout/formula_widget"
+    android:previewLayout="@layout/formula_widget"
+    android:previewImage="@drawable/formula_widget_preview"
+    android:description="@string/native_formula_widget_description"
+    android:targetCellWidth="4"
+    android:targetCellHeight="2"
+    android:minWidth="280dp"
+    android:minHeight="120dp"
+    android:resizeMode="horizontal"
+    android:updatePeriodMillis="43200000"
+    android:widgetCategory="home_screen" />

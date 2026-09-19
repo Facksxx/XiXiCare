@@ -34,12 +34,16 @@
                 android:resource="@xml/file_paths"></meta-data>
         </provider>
         <service android:name=".BackgroundAudioService" android:exported="false" android:foregroundServiceType="mediaPlayback" />
-        <receiver android:name=".FormulaWidgetProvider" android:exported="true" android:label="@string/formula_widget_name">
+        <receiver android:name=".FormulaWidgetProvider" android:exported="true" android:label="@string/vivo_formula_widget_name">
             <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
             <meta-data android:name="vivo_widget" android:value="true" />
             <meta-data android:name="vivoWidgetVersion" android:value="2" />
             <meta-data android:name="vivo.widget.description" android:resource="@string/formula_widget_description" />
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/formula_widget_info" />
+        </receiver>
+        <receiver android:name=".NativeFormulaWidgetProvider" android:exported="true" android:label="@string/native_formula_widget_name">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/native_formula_widget_info" />
         </receiver>
     </application>
 

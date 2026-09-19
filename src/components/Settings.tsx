@@ -36,10 +36,10 @@ export function Settings({ logs, babies, activeBabyId, onAddBaby, onSwitchBaby, 
     if (enabled) void runCloudArchiveAutoSync();
   };
 
-  const addDesktopWidget = async () => {
-    setWidgetMessage('正在打开桌面添加界面…');
+  const addDesktopWidget = async (kind: 'native' | 'vivo') => {
+    setWidgetMessage(`正在添加${kind === 'vivo' ? 'vivo 原子组件' : 'Android 桌面组件'}…`);
     try {
-      const result = await WidgetCharts.requestPinWidget();
+      const result = await WidgetCharts.requestPinWidget({ kind });
       setWidgetMessage(result.requested
         ? '已发起添加，请在系统界面确认'
         : result.supported ? '暂时无法发起添加，请稍后重试' : '当前桌面不支持应用内添加，请在桌面组件库中添加');
@@ -99,8 +99,11 @@ export function Settings({ logs, babies, activeBabyId, onAddBaby, onSwitchBaby, 
       {Capacitor.getPlatform() === 'android' && <section className="settings-section" aria-labelledby="desktop-widget-title">
         <div className="settings-item-heading settings-widget-row">
           <span className="settings-icon" aria-hidden="true"><Plus size={18} /></span>
-          <div className="settings-heading-copy"><h2 id="desktop-widget-title">桌面数据组件</h2><p>4×2 近7天趋势图</p></div>
-          <button type="button" className="settings-widget-add" onClick={() => void addDesktopWidget()}>添加到桌面</button>
+          <div className="settings-heading-copy"><h2 id="desktop-widget-title">桌面数据组件</h2><p>原生组件与 vivo 原子组件独立提供</p></div>
+        </div>
+        <div className="settings-widget-actions">
+          <button type="button" className="settings-widget-add" onClick={() => void addDesktopWidget('native')}><strong>Android 桌面组件</strong><span>标准 4×2 组件</span></button>
+          <button type="button" className="settings-widget-add" onClick={() => void addDesktopWidget('vivo')}><strong>vivo 原子组件</strong><span>OriginOS 4×2 组件</span></button>
         </div>
         {widgetMessage && <p className="settings-widget-message" role="status">{widgetMessage}</p>}
       </section>}

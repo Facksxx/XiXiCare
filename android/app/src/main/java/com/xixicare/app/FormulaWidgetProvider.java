@@ -40,8 +40,8 @@ public class FormulaWidgetProvider extends AppWidgetProvider {
         Context appContext = context.getApplicationContext();
         RENDERER.execute(() -> {
             AppWidgetManager manager = AppWidgetManager.getInstance(appContext);
-            int[] ids = manager.getAppWidgetIds(new ComponentName(appContext, FormulaWidgetProvider.class));
-            render(appContext, manager, ids);
+            render(appContext, manager, manager.getAppWidgetIds(new ComponentName(appContext, FormulaWidgetProvider.class)));
+            render(appContext, manager, manager.getAppWidgetIds(new ComponentName(appContext, NativeFormulaWidgetProvider.class)));
         });
     }
 

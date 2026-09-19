@@ -29,6 +29,7 @@ public class WidgetChartsPlugin extends Plugin {
 
     @PluginMethod
     public void requestPinWidget(PluginCall call) {
+        String kind = call.getString("kind", "native");
         JSObject result = new JSObject();
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
             result.put("supported", false);
@@ -40,7 +41,10 @@ public class WidgetChartsPlugin extends Plugin {
         boolean supported = manager != null && manager.isRequestPinAppWidgetSupported();
         boolean requested = false;
         if (supported) {
-            ComponentName provider = new ComponentName(getContext(), FormulaWidgetProvider.class);
+            Class<?> providerClass = "vivo".equals(kind)
+                ? FormulaWidgetProvider.class
+                : NativeFormulaWidgetProvider.class;
+            ComponentName provider = new ComponentName(getContext(), providerClass);
             requested = manager.requestPinAppWidget(provider, null, null);
         }
         result.put("supported", supported);

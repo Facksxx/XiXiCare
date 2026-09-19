@@ -4960,8 +4960,8 @@ body.modal-open {
 }
 
 .settings-widget-add {
-  min-height: 38px;
-  padding: 0 14px;
+  min-height: 54px;
+  padding: 8px 12px;
   border: 1px solid var(--segment-active-border);
   border-radius: var(--radius-sm);
   background: var(--segment-active-bg);
@@ -4971,6 +4971,26 @@ body.modal-open {
   font-weight: 650;
   cursor: pointer;
   transition: transform var(--transition-fast), border-color var(--transition-fast);
+  text-align: left;
+}
+
+.settings-widget-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.settings-widget-add strong,
+.settings-widget-add span {
+  display: block;
+}
+
+.settings-widget-add span {
+  margin-top: 2px;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 500;
 }
 
 .settings-widget-add:active {
@@ -4978,7 +4998,7 @@ body.modal-open {
 }
 
 .settings-widget-message {
-  margin: 10px 0 0 44px;
+  margin: 10px 0 0;
   color: var(--text-muted);
   font-size: 12px;
   line-height: 1.5;

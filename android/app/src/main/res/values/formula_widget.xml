@@ -1,8 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="formula_widget_name">XIXI CARE · 数据趋势</string>
+    <string name="vivo_formula_widget_name">XIXI CARE · vivo原子趋势</string>
+    <string name="native_formula_widget_name">XIXI CARE · Android桌面趋势</string>
     <string name="formula_widget_description">查看宝宝近7天的喂养与作息趋势</string>
     <string name="formula_widget_chart_description">近7天趋势图，点击进入应用</string>
+    <string name="native_formula_widget_description">Android桌面组件：查看宝宝近7天趋势</string>
     <color name="formula_widget_background">#FFF9F3</color>
     <color name="formula_widget_text">#302B27</color>
     <color name="formula_widget_muted">#736C65</color>
