@@ -1,11 +1,11 @@
 {
-  "version": "1.3.7",
-  "tag": "v1.3.7",
-  "htmlUrl": "https://gitee.com/Facksxx/xi-xi-care/releases/tag/v1.3.7",
-  "apkUrl": "https://gitee.com/Facksxx/xi-xi-care/releases/download/v1.3.7/XiXiCare.apk",
-  "publishedAt": "2026-09-19T14:21:19.908Z",
-  "notes": "按白卡设计规范重做七日趋势桌面组件：校准字体、字号、字重与间距；新增记一笔直达对应记录类型；补齐睡眠时长配色；隐藏 vivo 组件及设置页组件入口。",
-  "sha256": "9b6189b10a3531c40480220c52d9ea3cd1a6ed53300d515b611a232a012c1f1d",
+  "version": "1.3.8",
+  "tag": "v1.3.8",
+  "htmlUrl": "https://gitee.com/Facksxx/xi-xi-care/releases/tag/v1.3.8",
+  "apkUrl": "https://gitee.com/Facksxx/xi-xi-care/releases/download/v1.3.8/XiXiCare.apk",
+  "publishedAt": "2026-09-19T14:30:29.766Z",
+  "notes": "紧急修复部分 vivo/OriginOS 桌面添加七日趋势组件后显示空白：移除高风险嵌套 RemoteViews 容器，并将垂直布局压缩到 4×2 安全高度；保留白卡字体、颜色与记一笔功能。",
+  "sha256": "a71ec7ae15e676800e90b94a5234e6c0cc28aa3e09d20d6acdf306f7db7c038a",
   "history": [
     {
       "version": "1.1.14",
@@ -181,6 +181,11 @@
       "version": "1.3.7",
       "publishedAt": "2026-09-19T14:21:19.908Z",
       "notes": "按白卡设计规范重做七日趋势桌面组件：校准字体、字号、字重与间距；新增记一笔直达对应记录类型；补齐睡眠时长配色；隐藏 vivo 组件及设置页组件入口。"
+    },
+    {
+      "version": "1.3.8",
+      "publishedAt": "2026-09-19T14:30:29.766Z",
+      "notes": "紧急修复部分 vivo/OriginOS 桌面添加七日趋势组件后显示空白：移除高风险嵌套 RemoteViews 容器，并将垂直布局压缩到 4×2 安全高度；保留白卡字体、颜色与记一笔功能。"
     }
   ]
 }

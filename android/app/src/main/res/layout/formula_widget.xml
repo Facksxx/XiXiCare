@@ -3,38 +3,33 @@
     android:id="@+id/formula_widget_root"
     android:layout_width="match_parent" android:layout_height="match_parent"
     android:orientation="vertical" android:paddingStart="18dp" android:paddingEnd="18dp"
-    android:paddingTop="18dp" android:paddingBottom="14dp"
+    android:paddingTop="10dp" android:paddingBottom="8dp"
     android:background="@drawable/formula_widget_background">
-    <LinearLayout android:layout_width="match_parent" android:layout_height="32dp"
+    <LinearLayout android:layout_width="match_parent" android:layout_height="30dp"
         android:orientation="horizontal" android:gravity="center_vertical">
-        <LinearLayout android:layout_width="0dp" android:layout_height="28dp" android:layout_weight="1"
-            android:orientation="horizontal" android:gravity="center_vertical" android:baselineAligned="true">
-            <TextView android:id="@+id/chart_type_button" android:layout_width="wrap_content"
-                android:layout_height="wrap_content" android:gravity="center_vertical"
-                android:text="瓶喂奶量" android:textColor="@color/formula_widget_text"
-                android:textSize="15sp" android:fontFamily="sans-serif-medium" android:singleLine="true" />
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                android:layout_marginStart="8dp" android:gravity="center_vertical"
-                android:text="近7天" android:textColor="@color/formula_widget_muted"
-                android:textSize="12sp" android:fontFamily="sans-serif" android:singleLine="true" />
-        </LinearLayout>
-        <FrameLayout android:id="@+id/chart_switch_button" android:layout_width="32dp"
-            android:layout_height="32dp" android:foregroundGravity="center" android:contentDescription="切换">
-            <ImageView android:layout_width="28dp" android:layout_height="28dp"
-                android:layout_gravity="center" android:padding="7dp"
-                android:src="@drawable/ic_widget_switch"
-                android:background="@drawable/formula_widget_switch_background" />
-        </FrameLayout>
+        <TextView android:id="@+id/chart_type_button" android:layout_width="wrap_content"
+            android:layout_height="30dp" android:gravity="center_vertical"
+            android:text="瓶喂奶量" android:textColor="@color/formula_widget_text"
+            android:textSize="15sp" android:fontFamily="sans-serif-medium" android:singleLine="true" />
+        <TextView android:layout_width="0dp" android:layout_height="30dp" android:layout_weight="1"
+            android:layout_marginStart="8dp" android:gravity="center_vertical"
+            android:text="近7天" android:textColor="@color/formula_widget_muted"
+            android:textSize="12sp" android:fontFamily="sans-serif" android:singleLine="true" />
+        <ImageView android:id="@+id/chart_switch_button" android:layout_width="30dp"
+            android:layout_height="30dp" android:padding="8dp"
+            android:src="@drawable/ic_widget_switch"
+            android:background="@drawable/formula_widget_switch_background"
+            android:contentDescription="切换" />
     </LinearLayout>
     <ImageView android:id="@+id/chart_image" android:layout_width="match_parent"
         android:layout_height="0dp" android:layout_weight="1"
-        android:layout_marginTop="12dp"
+        android:layout_marginTop="4dp"
         android:contentDescription="@string/formula_widget_chart_description"
         android:scaleType="fitCenter" />
     <View android:layout_width="match_parent" android:layout_height="1dp"
-        android:layout_marginTop="12dp" android:background="@color/formula_widget_border" />
+        android:layout_marginTop="4dp" android:background="@color/formula_widget_border" />
     <LinearLayout android:layout_width="match_parent" android:layout_height="24dp"
-        android:layout_marginTop="10dp"
+        android:layout_marginTop="6dp"
         android:orientation="horizontal" android:gravity="center_vertical">
         <TextView android:id="@+id/chart_summary" android:layout_width="0dp"
             android:layout_height="24dp" android:layout_weight="1" android:gravity="center_vertical"
