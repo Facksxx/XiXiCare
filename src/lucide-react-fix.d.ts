@@ -58,6 +58,7 @@ declare module 'lucide-react' {
   export const RefreshCw: Icon;
   export const ChevronDown: Icon;
   export const Users: Icon;
+  export const ShieldCheck: Icon;
   export const Syringe: Icon;
   export const CloudDownload: Icon;
   export const CloudUpload: Icon;

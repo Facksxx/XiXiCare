@@ -12,6 +12,8 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(BackgroundAudioPlugin.class);
         registerPlugin(SoundDownloadPlugin.class);
         registerPlugin(BackNavigationPlugin.class);
+        registerPlugin(WidgetChartsPlugin.class);
+        registerPlugin(PrivacyActionsPlugin.class);
         super.onCreate(savedInstanceState);
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
             @Override public void handleOnBackPressed() {
@@ -22,4 +24,5 @@ public class MainActivity extends BridgeActivity {
             }
         });
     }
+
 }

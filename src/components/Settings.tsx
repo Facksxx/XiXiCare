@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Activity, AlertTriangle, Check, ChevronDown, Database, Edit2, Music2, Plus, RefreshCw, Trash2, Users } from 'lucide-react';
+import { ChevronDown, Database, Edit2, Music2, Plus, ShieldCheck, Trash2, Users } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
 import type { RemoteRelease } from '../utils/version';
 import type { ActivityLog, BabyInfo } from '../types/baby';
@@ -7,9 +7,9 @@ import { DataTransfer } from './DataTransfer';
 import { UpdateChecker } from './UpdateChecker';
 import { SoundPackManager } from './SoundPackManager';
 import { CloudArchiveManager } from './CloudArchiveManager';
-import { updateVaccinePricesFromRemote, VACCINE_PRICE_UPDATED_AT_KEY } from '../utils/vaccines';
 import { isCloudArchiveAutoSyncEnabled, setCloudArchiveAutoSyncEnabled } from '../utils/cloudArchive';
 import { runCloudArchiveAutoSync } from '../utils/cloudArchiveTask';
+import { openPrivacyPolicy } from '../privacy';
 
 interface SettingsProps {
   logs: ActivityLog[];
@@ -25,25 +25,7 @@ interface SettingsProps {
 }
 
 export function Settings({ logs, babies, activeBabyId, onAddBaby, onSwitchBaby, onEditBaby, onDeleteBaby, detectedRelease, onReleaseChange, onBack }: SettingsProps) {
-  const [priceUpdating, setPriceUpdating] = useState(false);
-  const [toast, setToast] = useState<{ message: string; error: boolean } | null>(null);
   const [autoSyncEnabled, setAutoSyncEnabled] = useState(isCloudArchiveAutoSyncEnabled);
-  const [priceUpdatedAt, setPriceUpdatedAt] = useState(() => {
-    try { return JSON.parse(localStorage.getItem(VACCINE_PRICE_UPDATED_AT_KEY) || 'null') as string | null; }
-    catch { return null; }
-  });
-
-  const updatePriceTable = async () => {
-    setPriceUpdating(true);
-    try {
-      const updatedAt = await updateVaccinePricesFromRemote();
-      setPriceUpdatedAt(updatedAt);
-      setToast({ message: '疫苗价格表已更新', error: false });
-    } catch {
-      setToast({ message: '更新失败，请检查网络后重试', error: true });
-    } finally { setPriceUpdating(false); }
-    window.setTimeout(() => setToast(null), 2500);
-  };
 
   const toggleAutoSync = () => {
     const enabled = !autoSyncEnabled;
@@ -92,14 +74,6 @@ export function Settings({ logs, babies, activeBabyId, onAddBaby, onSwitchBaby, 
         <CloudArchiveManager babies={babies} activeBabyId={activeBabyId} />
       </section>
 
-      <section className="settings-section" aria-labelledby="vaccine-data-title">
-        <div className="settings-item-heading settings-price-update">
-          <span className="settings-icon" aria-hidden="true"><Activity size={18} /></span>
-          <div><h2 id="vaccine-data-title">疫苗价格表</h2><p>{priceUpdatedAt ? `已更新：${priceUpdatedAt.slice(0, 10)}` : '使用内置价格，可从仓库更新'}</p></div>
-          <button type="button" className="settings-icon-action" disabled={priceUpdating} onClick={updatePriceTable} aria-label="更新疫苗价格表"><RefreshCw size={16} className={priceUpdating ? 'spin' : ''} /></button>
-        </div>
-      </section>
-
       <section className="settings-section" aria-labelledby="sound-packs-title">
         <div className="settings-item-heading">
           <span className="settings-icon" aria-hidden="true"><Music2 size={18} /></span>
@@ -111,7 +85,14 @@ export function Settings({ logs, babies, activeBabyId, onAddBaby, onSwitchBaby, 
       {Capacitor.getPlatform() !== 'ios' && <section className="settings-section" aria-labelledby="about-title">
         <div id="about-title"><UpdateChecker detectedRelease={detectedRelease} onReleaseChange={onReleaseChange} /></div>
       </section>}
-      {toast && <div className={`toast ${toast.error ? 'toast-error' : 'toast-success'}`}>{toast.error ? <AlertTriangle size={16} /> : <Check size={16} />}<span>{toast.message}</span></div>}
+      <section className="settings-section" aria-labelledby="privacy-settings-title">
+        <div className="settings-item-heading settings-privacy-row">
+          <span className="settings-icon" aria-hidden="true"><ShieldCheck size={18} /></span>
+          <h2 id="privacy-settings-title">隐私政策</h2>
+          <button type="button" className="settings-privacy-link" onClick={() => void openPrivacyPolicy().catch(() => window.alert('隐私政策暂时无法打开，请检查网络后重试。'))}>查看</button>
+        </div>
+      </section>
+
     </div>
   );
 }

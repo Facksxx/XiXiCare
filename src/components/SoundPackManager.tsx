@@ -1,12 +1,21 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Check, Download, Music2, Trash2, X } from 'lucide-react';
-import { cancelSoundPackDownload, createSoundPackDownloadTask, deleteSoundPack, downloadSoundPack, getInstalledSoundPacks, SOUND_PACKS, type SoundCategory, type SoundPackDownloadTask } from '../utils/soundPacks';
+import { CLOUD_ARCHIVE_APPLIED_EVENT } from '../utils/cloudArchive';
+import { cancelSoundPackDownload, createSoundPackDownloadTask, deleteSoundPack, downloadSoundPack, reconcileInstalledSoundPacks, SOUND_PACKS, type SoundCategory, type SoundPackDownloadTask } from '../utils/soundPacks';
 
 export function SoundPackManager() {
-  const [installed, setInstalled] = useState<SoundCategory[]>(getInstalledSoundPacks);
+  const [installed, setInstalled] = useState<SoundCategory[]>([]);
   const tasks = useRef<Partial<Record<SoundCategory, SoundPackDownloadTask>>>({});
   const [progress, setProgress] = useState<Partial<Record<SoundCategory, number>>>({});
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    let active = true;
+    const refresh = () => { void reconcileInstalledSoundPacks().then(ids => { if (active) setInstalled(ids); }); };
+    refresh();
+    window.addEventListener(CLOUD_ARCHIVE_APPLIED_EVENT, refresh);
+    return () => { active = false; window.removeEventListener(CLOUD_ARCHIVE_APPLIED_EVENT, refresh); };
+  }, []);
 
   const install = async (packId: SoundCategory) => {
     if (tasks.current[packId]) return;
@@ -16,7 +25,7 @@ export function SoundPackManager() {
     setProgress(current => ({ ...current, [packId]: 0 })); setError('');
     try {
       await downloadSoundPack(pack, task, (done, total) => setProgress(current => ({ ...current, [packId]: Math.round(done / total * 100) })));
-      setInstalled(getInstalledSoundPacks());
+      setInstalled(await reconcileInstalledSoundPacks());
     } catch {
       if (!task.cancelled) setError(`${pack.name}下载中断，请重新下载`);
     } finally {
@@ -32,7 +41,7 @@ export function SoundPackManager() {
 
   const remove = async (packId: SoundCategory) => {
     await deleteSoundPack(packId);
-    setInstalled(getInstalledSoundPacks());
+    setInstalled(await reconcileInstalledSoundPacks());
   };
 
   return <div className="sound-pack-manager">

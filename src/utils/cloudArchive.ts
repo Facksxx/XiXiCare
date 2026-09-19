@@ -1,6 +1,11 @@
 const CLOUD_CONFIG_PREFIX = 'babycare_cloud_archive_';
 const SYNC_META_KEY = 'babycare_sync_meta';
-const LOCAL_ONLY_ARCHIVE_KEYS = new Set(['babycare_theme']);
+const LOCAL_ONLY_ARCHIVE_KEYS = new Set([
+  'babycare_theme',
+  'babycare_installed_sound_packs',
+  'babycare_sound_pack_versions',
+  'babycare_custom_audio'
+]);
 export const CLOUD_ARCHIVE_MUTATION_EVENT = 'xixicare:archive-mutation';
 export const CLOUD_ARCHIVE_APPLIED_EVENT = 'xixicare:archive-applied';
 export const CLOUD_ARCHIVE_AUTO_SYNC_KEY = `${CLOUD_CONFIG_PREFIX}auto_sync_enabled`;

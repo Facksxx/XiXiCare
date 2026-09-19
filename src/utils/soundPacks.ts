@@ -55,9 +55,30 @@ export const getInstalledSoundPacks = (): SoundCategory[] => {
   try {
     const installed = JSON.parse(localStorage.getItem(INSTALLED_KEY) ?? '[]') as SoundCategory[];
     const versions = JSON.parse(localStorage.getItem(PACK_VERSIONS_KEY) ?? '{}') as Partial<Record<SoundCategory, number>>;
-    return installed.filter(id => id === 'music' || versions[id] === PACK_VERSIONS[id]);
+    if (!Array.isArray(installed)) return [];
+    return installed.filter(id => (id === 'music' || id === 'ambient') && versions[id] === PACK_VERSIONS[id]);
   }
   catch { return []; }
+};
+
+// Download markers are device-local. A cloud restore or an interrupted download may
+// leave old markers behind, so verify every track before advertising a pack as ready.
+export const reconcileInstalledSoundPacks = async (): Promise<SoundCategory[]> => {
+  const installed = getInstalledSoundPacks();
+  const checked = await Promise.all(installed.map(async id => {
+    const pack = SOUND_PACKS.find(item => item.id === id);
+    if (!pack) return null;
+    const files = await Promise.all(pack.tracks.map(async track => {
+      try {
+        const result = await Filesystem.stat({ path: soundTrackPath(id, track.file), directory: Directory.Data });
+        return result.type === 'file' && result.size > 0;
+      } catch { return false; }
+    }));
+    return files.every(Boolean) ? id : null;
+  }));
+  const valid = checked.filter((id): id is SoundCategory => id !== null);
+  if (valid.length !== installed.length) setInstalled(valid);
+  return valid;
 };
 
 const setInstalled = (ids: SoundCategory[]) => {

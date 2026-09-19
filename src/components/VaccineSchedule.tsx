@@ -1,8 +1,8 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Activity, Calendar, CheckCircle2, Clock3, HelpCircle } from 'lucide-react';
 import type { BabyInfo } from '../types/baby';
 import { useLocalStorage } from '../hooks/useLocalStorage';
-import { getPlannedVaccineDate, getVaccinePrices, vaccineSchedule, VACCINE_SELECTION_STORAGE_PREFIX } from '../utils/vaccines';
+import { getPlannedVaccineDate, getVaccinePrices, vaccineSchedule, VACCINE_PRICE_UPDATED_EVENT, VACCINE_SELECTION_STORAGE_PREFIX } from '../utils/vaccines';
 import { ConfirmModal } from './ConfirmModal';
 
 type StatusFilter = 'all' | 'pending' | 'done';
@@ -21,7 +21,12 @@ export function VaccineSchedule({ baby }: { baby: BabyInfo }) {
   const [resetItemId, setResetItemId] = useState<string | null>(null);
   const [status, setStatus] = useLocalStorage<VaccineStatus>(`babycare_vaccines_${baby.id}`, {});
   const [selections, setSelections] = useLocalStorage<Record<string, string>>(`${VACCINE_SELECTION_STORAGE_PREFIX}${baby.id}`, {});
-  const prices = getVaccinePrices();
+  const [prices, setPrices] = useState(getVaccinePrices);
+  useEffect(() => {
+    const refresh = () => setPrices(getVaccinePrices());
+    window.addEventListener(VACCINE_PRICE_UPDATED_EVENT, refresh);
+    return () => window.removeEventListener(VACCINE_PRICE_UPDATED_EVENT, refresh);
+  }, []);
 
   const completedItems = useMemo(() => new Map(vaccineSchedule.map(item => {
     const statusKey = `schedule:${item.id}`;

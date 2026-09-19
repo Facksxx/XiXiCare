@@ -30,7 +30,7 @@ import {
 } from 'lucide-react';
 import type { Icon } from 'lucide-react';
 import { useLocalStorage } from '../hooks/useLocalStorage';
-import { getInstalledSoundPacks, resolveSoundTrackUrl, SOUND_PACK_EVENT, SOUND_PACKS, type SoundIconName } from '../utils/soundPacks';
+import { reconcileInstalledSoundPacks, resolveSoundTrackUrl, SOUND_PACK_EVENT, SOUND_PACKS, type SoundIconName } from '../utils/soundPacks';
 import { BackgroundAudio } from '../plugins/backgroundAudio';
 
 type TrackCategory = 'ambient' | 'music';
@@ -145,6 +145,8 @@ export function WhiteNoisePlayer({ isOpen, onClose, onPlaybackChange }: WhiteNoi
       const entries = await Promise.all(customTracks.map(async (track) => {
         try {
           if (Capacitor.isNativePlatform()) {
+            const stat = await Filesystem.stat({ path: track.path, directory: Directory.Data });
+            if (stat.type !== 'file' || stat.size <= 0) throw new Error('本地音频文件不存在');
             const result = await Filesystem.getUri({ path: track.path, directory: Directory.Data });
             nativeEntries.push([track.id, result.uri] as const);
             return [track.id, Capacitor.convertFileSrc(result.uri)] as const;
@@ -174,7 +176,7 @@ export function WhiteNoisePlayer({ isOpen, onClose, onPlaybackChange }: WhiteNoi
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
-      const installed = getInstalledSoundPacks();
+      const installed = await reconcileInstalledSoundPacks();
       const tracks = (await Promise.all(SOUND_PACKS.filter(pack => installed.includes(pack.id)).flatMap(pack =>
         pack.tracks.map(async track => {
           const source = await resolveSoundTrackUrl(pack.id, track.file);
@@ -194,7 +196,7 @@ export function WhiteNoisePlayer({ isOpen, onClose, onPlaybackChange }: WhiteNoi
 
   const allTracks = useMemo<PlayerTrack[]>(() => [
     ...packTracks,
-    ...customTracks.map((track) => ({
+    ...customTracks.filter(track => Boolean(customSources[track.id])).map((track) => ({
       ...track,
       src: customSources[track.id] ?? '',
       nativeSrc: customNativeSources[track.id],
@@ -488,7 +490,7 @@ export function WhiteNoisePlayer({ isOpen, onClose, onPlaybackChange }: WhiteNoi
 
   const activeLoop = LOOP_OPTIONS.find((option) => option.value === loopMode) ?? LOOP_OPTIONS[0];
   const visibleBuiltinTracks = packTracks.filter((track) => track.category === browseCategory);
-  const visibleCustomTracks = customTracks.filter((track) => (track.category ?? 'music') === browseCategory);
+  const visibleCustomTracks = customTracks.filter((track) => Boolean(customSources[track.id]) && (track.category ?? 'music') === browseCategory);
   const handleLayerTouchStart = (event: React.TouchEvent<HTMLDivElement>) => {
     if (event.touches.length !== 1) return;
     const touch = event.touches[0];

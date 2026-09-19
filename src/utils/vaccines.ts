@@ -67,6 +67,7 @@ export const vaccineSchedule: VaccineScheduleItem[] = [
 
 export const VACCINE_PRICE_STORAGE_KEY = 'babycare_vaccine_prices_v2';
 export const VACCINE_PRICE_UPDATED_AT_KEY = 'babycare_vaccine_prices_updated_at';
+export const VACCINE_PRICE_UPDATED_EVENT = 'babycare:vaccine-prices-updated';
 export const VACCINE_SELECTION_STORAGE_PREFIX = 'babycare_vaccine_selections_';
 export const vaccinePriceOptions = Array.from(new Map(vaccineSchedule.flatMap(item => item.choices).filter(choice => choice.kind === 'paid').map(choice => [choice.priceKey, choice])).values());
 export const defaultVaccinePrices: VaccinePrices = Object.fromEntries(vaccinePriceOptions.map(choice => [choice.priceKey, choice.defaultPrice]));
@@ -96,6 +97,7 @@ export async function updateVaccinePricesFromRemote() {
       localStorage.setItem(VACCINE_PRICE_STORAGE_KEY, JSON.stringify({ ...defaultVaccinePrices, ...prices }));
       const updatedAt = payload.updatedAt || new Date().toISOString();
       localStorage.setItem(VACCINE_PRICE_UPDATED_AT_KEY, JSON.stringify(updatedAt));
+      window.dispatchEvent(new Event(VACCINE_PRICE_UPDATED_EVENT));
       return updatedAt;
     } catch (error) { lastError = error; }
     finally { window.clearTimeout(timeout); }

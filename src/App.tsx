@@ -16,11 +16,16 @@ import { ConfirmModal } from './components/ConfirmModal';
 import { DateTimePicker } from './components/DateTimePicker';
 import { fetchLatestRelease, isNewer, type RemoteRelease } from './utils/version';
 import { BackNavigation } from './plugins/backNavigation';
+import { WidgetCharts } from './plugins/widgetCharts';
+import { PrivacyConsent } from './components/PrivacyConsent';
+import { PRIVACY_CONSENT_KEY } from './privacy';
+import { buildWidgetChartSnapshot } from './utils/widgetChartSnapshot';
 import { Capacitor } from '@capacitor/core';
 import { Sun, Moon, Calendar, BookOpen, BarChart2, Edit2, Check, Sparkles, Settings, Music2, ChevronDown, Plus, Syringe } from 'lucide-react';
 import type { Icon } from 'lucide-react';
 import { CLOUD_ARCHIVE_MUTATION_EVENT, isCloudArchiveAutoSyncEnabled } from './utils/cloudArchive';
 import { runCloudArchiveAutoSync } from './utils/cloudArchiveTask';
+import { updateVaccinePricesFromRemote } from './utils/vaccines';
 import './index.css';
 
 type AppTab = 'dashboard' | 'records' | 'guide' | 'vaccine' | 'stats';
@@ -29,6 +34,7 @@ const APP_TABS: AppTab[] = ['dashboard', 'records', 'guide', 'vaccine', 'stats']
 const UPDATE_CHECK_INTERVAL = 24 * 60 * 60 * 1000;
 const CLOUD_CHECK_INTERVAL = 5 * 60 * 1000;
 const CLOUD_UPLOAD_DEBOUNCE = 2_000;
+const VACCINE_PRICE_CHECK_KEY = 'babycare_vaccine_prices_checked_at';
 
 function NavIcon({ icon: IconComponent, active }: { icon: Icon; active: boolean }) {
   return (
@@ -67,6 +73,11 @@ const readInitialBabies = (): BabyInfo[] => {
 const createBabyId = () => `baby-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 
 export default function App() {
+  const [agreed, setAgreed] = useState(() => localStorage.getItem(PRIVACY_CONSENT_KEY) === 'agreed');
+  return agreed ? <AppContent /> : <PrivacyConsent onAgree={() => setAgreed(true)} />;
+}
+
+function AppContent() {
   // Navigation tabs: 'dashboard' | 'guide' | 'stats' | 'records'
   const [activeTab, setActiveTab] = useState<AppTab>('dashboard');
   const [swipePreview, setSwipePreview] = useState<SwipePreview | null>(null);
@@ -77,6 +88,26 @@ export default function App() {
   const [detectedRelease, setDetectedRelease] = useState<RemoteRelease | null>(null);
   const [showUpdatePrompt, setShowUpdatePrompt] = useState(false);
   const lastUpdateCheckRef = useRef(0);
+
+  useEffect(() => {
+    let running = false;
+    const refreshIfDue = async () => {
+      if (document.hidden || running || Date.now() - Number(localStorage.getItem(VACCINE_PRICE_CHECK_KEY) || 0) < UPDATE_CHECK_INTERVAL) return;
+      running = true;
+      try {
+        await updateVaccinePricesFromRemote();
+        localStorage.setItem(VACCINE_PRICE_CHECK_KEY, String(Date.now()));
+      } catch { /* Keep bundled prices and retry on the next foreground/online event. */ }
+      finally { running = false; }
+    };
+    void refreshIfDue();
+    document.addEventListener('visibilitychange', refreshIfDue);
+    window.addEventListener('online', refreshIfDue);
+    return () => {
+      document.removeEventListener('visibilitychange', refreshIfDue);
+      window.removeEventListener('online', refreshIfDue);
+    };
+  }, []);
 
   useEffect(() => {
     let debounce: number | undefined;
@@ -177,6 +208,11 @@ export default function App() {
   const [activeBabyId, setActiveBabyId] = useLocalStorage<string>('babycare_active_baby_id', babies[0]?.id ?? '');
   const baby = babies.find((item) => item.id === activeBabyId) ?? babies[0] ?? { id: '', name: '', birthday: '' };
   const activeLogs = logs.filter((log) => log.babyId === baby.id);
+
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+    void WidgetCharts.updateSnapshot({ daily: JSON.stringify(buildWidgetChartSnapshot(logs, baby.id)) });
+  }, [logs, baby.id]);
   const isFirstSetup = babies.length === 0;
 
   // Edit baby info modal state
@@ -192,16 +228,35 @@ export default function App() {
   const swipeTimerRef = useRef<number | null>(null);
   const swipeStartRef = useRef<{ x: number; y: number; time: number; blocked: boolean; horizontal: boolean } | null>(null);
   const settingsSwipeRef = useRef<{ x: number; y: number } | null>(null);
+  const backOverlayRef = useRef({ showSettings, showWhiteNoise });
+  backOverlayRef.current = { showSettings, showWhiteNoise };
   const legacyBabyInfo = JSON.stringify(baby);
 
   useEffect(() => {
     if (Capacitor.getPlatform() !== 'android') return;
-    const intercepting = showSettings || showWhiteNoise;
-    void BackNavigation.setIntercepting({ enabled: intercepting });
+    let disposed = false;
     let remove: (() => Promise<void>) | undefined;
-    const handleBack = () => showWhiteNoise ? setShowWhiteNoise(false) : closeSettings();
-    void BackNavigation.addListener('backPressed', handleBack).then(handle => { remove = () => handle.remove(); });
-    return () => { void remove?.(); };
+    void BackNavigation.addListener('backPressed', () => {
+      const overlay = backOverlayRef.current;
+      if (overlay.showWhiteNoise) setShowWhiteNoise(false);
+      else if (overlay.showSettings) {
+        if (window.history.state?.xixicareSettings) window.history.back();
+        else setShowSettings(false);
+      }
+    }).then(handle => {
+      if (disposed) void handle.remove();
+      else remove = () => handle.remove();
+    });
+    return () => {
+      disposed = true;
+      void remove?.();
+      void BackNavigation.setIntercepting({ enabled: false });
+    };
+  }, []);
+
+  useEffect(() => {
+    if (Capacitor.getPlatform() !== 'android') return;
+    void BackNavigation.setIntercepting({ enabled: showSettings || showWhiteNoise });
   }, [showSettings, showWhiteNoise]);
 
   const clearSwipeStyles = () => {
@@ -410,6 +465,7 @@ export default function App() {
   const handleAddLog = (newLog: ActivityLog) => {
     setLogs(current => [newLog, ...current]);
   };
+
 
   // Delete a log
   const handleDeleteLog = (id: string) => {
