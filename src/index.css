@@ -3376,6 +3376,10 @@ select {
   font-weight: 650;
 }
 
+.stats-card[id] {
+  scroll-margin-top: calc(var(--app-sticky-top) + 12px);
+}
+
 .stats-segmented {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -4949,4 +4953,33 @@ body.modal-open {
   font-size: 13px;
   line-height: 1.2;
   text-decoration: none;
+}
+
+.settings-widget-row {
+  align-items: center;
+}
+
+.settings-widget-add {
+  min-height: 38px;
+  padding: 0 14px;
+  border: 1px solid var(--segment-active-border);
+  border-radius: var(--radius-sm);
+  background: var(--segment-active-bg);
+  color: var(--segment-active-color);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 650;
+  cursor: pointer;
+  transition: transform var(--transition-fast), border-color var(--transition-fast);
+}
+
+.settings-widget-add:active {
+  transform: scale(0.98);
+}
+
+.settings-widget-message {
+  margin: 10px 0 0 44px;
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.5;
 }

@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
     android:initialLayout="@layout/formula_widget"
+    android:initialKeyguardLayout="@layout/formula_widget"
     android:previewLayout="@layout/formula_widget"
     android:previewImage="@drawable/formula_widget_preview"
     android:description="@string/formula_widget_description"

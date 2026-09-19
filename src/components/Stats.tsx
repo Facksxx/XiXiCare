@@ -15,6 +15,7 @@ echarts.use([EChartsBar, EChartsLine, GridComponent, TooltipComponent, CanvasRen
 interface StatsProps {
   logs: ActivityLog[];
   birthday: string;
+  widgetLaunch?: { chartType: string; token: number } | null;
 }
 
 interface DailyStat {
@@ -156,6 +157,7 @@ function EmptyChart({ text }: { text: string }) {
 }
 
 function SoftChartCard({
+  id,
   title,
   subtitle,
   icon,
@@ -163,6 +165,7 @@ function SoftChartCard({
   children,
   legend
 }: {
+  id?: string;
   title: string;
   subtitle: string;
   icon: ReactNode;
@@ -171,7 +174,7 @@ function SoftChartCard({
   legend?: ReactNode;
 }) {
   return (
-    <section className="stats-card">
+    <section className="stats-card" id={id}>
       <div className="stats-card-header">
         <div className={`stats-card-icon ${tone}`}>{icon}</div>
         <div>
@@ -260,7 +263,14 @@ function GrowthChart({ buckets }: { buckets: BucketStat[] }) {
   return <LineChart buckets={growthBuckets} valueKey="weight" color={cssColor('--rose', '#d88f8f')} unit="kg" />;
 }
 
-export function Stats({ logs }: StatsProps) {
+export function Stats({ logs, widgetLaunch }: StatsProps) {
+  useEffect(() => {
+    if (!widgetLaunch) return;
+    const frame = window.requestAnimationFrame(() => {
+      document.getElementById(`stats-chart-${widgetLaunch.chartType}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [widgetLaunch]);
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const startDate = addDays(today, -6);
@@ -386,6 +396,7 @@ export function Stats({ logs }: StatsProps) {
       </SoftChartCard>
 
       <SoftChartCard
+        id="stats-chart-milk"
         title="瓶喂奶量"
         subtitle="每日，单位 ml/天"
         icon={<Milk size={17} />}
@@ -401,6 +412,7 @@ export function Stats({ logs }: StatsProps) {
       </SoftChartCard>
 
       <SoftChartCard
+        id="stats-chart-sleep"
         title="睡眠时长"
         subtitle="每日，单位 小时/天"
         icon={<Moon size={17} />}
@@ -410,6 +422,7 @@ export function Stats({ logs }: StatsProps) {
       </SoftChartCard>
 
       <SoftChartCard
+        id="stats-chart-interval"
         title="喂养间隔"
         subtitle="每日，单位 小时"
         icon={<Clock3 size={18} />}

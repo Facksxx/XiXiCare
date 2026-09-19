@@ -10,6 +10,7 @@ import { CloudArchiveManager } from './CloudArchiveManager';
 import { isCloudArchiveAutoSyncEnabled, setCloudArchiveAutoSyncEnabled } from '../utils/cloudArchive';
 import { runCloudArchiveAutoSync } from '../utils/cloudArchiveTask';
 import { openPrivacyPolicy } from '../privacy';
+import { WidgetCharts } from '../plugins/widgetCharts';
 
 interface SettingsProps {
   logs: ActivityLog[];
@@ -26,12 +27,25 @@ interface SettingsProps {
 
 export function Settings({ logs, babies, activeBabyId, onAddBaby, onSwitchBaby, onEditBaby, onDeleteBaby, detectedRelease, onReleaseChange, onBack }: SettingsProps) {
   const [autoSyncEnabled, setAutoSyncEnabled] = useState(isCloudArchiveAutoSyncEnabled);
+  const [widgetMessage, setWidgetMessage] = useState('');
 
   const toggleAutoSync = () => {
     const enabled = !autoSyncEnabled;
     setCloudArchiveAutoSyncEnabled(enabled);
     setAutoSyncEnabled(enabled);
     if (enabled) void runCloudArchiveAutoSync();
+  };
+
+  const addDesktopWidget = async () => {
+    setWidgetMessage('正在打开桌面添加界面…');
+    try {
+      const result = await WidgetCharts.requestPinWidget();
+      setWidgetMessage(result.requested
+        ? '已发起添加，请在系统界面确认'
+        : result.supported ? '暂时无法发起添加，请稍后重试' : '当前桌面不支持应用内添加，请在桌面组件库中添加');
+    } catch {
+      setWidgetMessage('添加入口暂时不可用，请在桌面组件库中添加');
+    }
   };
 
   return (
@@ -81,6 +95,15 @@ export function Settings({ logs, babies, activeBabyId, onAddBaby, onSwitchBaby, 
         </div>
         <SoundPackManager />
       </section>
+
+      {Capacitor.getPlatform() === 'android' && <section className="settings-section" aria-labelledby="desktop-widget-title">
+        <div className="settings-item-heading settings-widget-row">
+          <span className="settings-icon" aria-hidden="true"><Plus size={18} /></span>
+          <div className="settings-heading-copy"><h2 id="desktop-widget-title">桌面数据组件</h2><p>4×2 近7天趋势图</p></div>
+          <button type="button" className="settings-widget-add" onClick={() => void addDesktopWidget()}>添加到桌面</button>
+        </div>
+        {widgetMessage && <p className="settings-widget-message" role="status">{widgetMessage}</p>}
+      </section>}
 
       {Capacitor.getPlatform() !== 'ios' && <section className="settings-section" aria-labelledby="about-title">
         <div id="about-title"><UpdateChecker detectedRelease={detectedRelease} onReleaseChange={onReleaseChange} /></div>

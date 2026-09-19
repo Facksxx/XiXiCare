@@ -6,4 +6,6 @@
     <color name="formula_widget_background">#FFF9F3</color>
     <color name="formula_widget_text">#302B27</color>
     <color name="formula_widget_muted">#736C65</color>
+    <color name="formula_widget_switch_background">#E9DDD1</color>
+    <color name="formula_widget_switch_text">#493F37</color>
 </resources>

@@ -87,7 +87,31 @@ function AppContent() {
   const [isWhiteNoisePlaying, setIsWhiteNoisePlaying] = useState(false);
   const [detectedRelease, setDetectedRelease] = useState<RemoteRelease | null>(null);
   const [showUpdatePrompt, setShowUpdatePrompt] = useState(false);
+  const [widgetChartLaunch, setWidgetChartLaunch] = useState<{ chartType: string; token: number } | null>(null);
   const lastUpdateCheckRef = useRef(0);
+
+  useEffect(() => {
+    if (Capacitor.getPlatform() !== 'android') return;
+    const openStats = (chartType = 'milk') => {
+      setShowWhiteNoise(false);
+      setShowSettings(false);
+      setActiveTab('stats');
+      setWidgetChartLaunch({ chartType, token: Date.now() });
+    };
+    const handleWidgetOpen = (event: Event) => {
+      const rawDetail = (event as CustomEvent<{ chartType?: string } | string>).detail;
+      let detail: { chartType?: string } = {};
+      try { detail = typeof rawDetail === 'string' ? JSON.parse(rawDetail) : (rawDetail ?? {}); }
+      catch { /* Fall back to the milk chart if a launcher drops the extra. */ }
+      openStats(detail?.chartType || 'milk');
+      void WidgetCharts.consumeLaunchTarget().catch(() => undefined);
+    };
+    window.addEventListener('xixicareWidgetOpen', handleWidgetOpen);
+    void WidgetCharts.consumeLaunchTarget().then(({ target, chartType }) => {
+      if (target === 'stats') openStats(chartType || 'milk');
+    }).catch(() => undefined);
+    return () => window.removeEventListener('xixicareWidgetOpen', handleWidgetOpen);
+  }, []);
 
   useEffect(() => {
     let running = false;
@@ -643,7 +667,7 @@ function AppContent() {
     }
     if (tab === 'guide') return <Guide key={`guide-${baby.id}`} baby={baby} />;
     if (tab === 'vaccine') return <VaccineSchedule key={`vaccine-${baby.id}`} baby={baby} />;
-    if (tab === 'stats') return <Stats logs={activeLogs} birthday={baby.birthday} />;
+    if (tab === 'stats') return <Stats logs={activeLogs} birthday={baby.birthday} widgetLaunch={widgetChartLaunch} />;
     return <Records logs={activeLogs} onEditLog={handleEditLogFromRecords} onDeleteLog={handleDeleteLog} />;
   };
 
