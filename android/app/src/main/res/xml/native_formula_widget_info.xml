@@ -4,7 +4,6 @@
     android:initialKeyguardLayout="@layout/formula_widget"
     android:previewLayout="@layout/formula_widget"
     android:previewImage="@drawable/formula_widget_preview"
-    android:description="@string/native_formula_widget_description"
     android:targetCellWidth="4"
     android:targetCellHeight="2"
     android:minWidth="280dp"

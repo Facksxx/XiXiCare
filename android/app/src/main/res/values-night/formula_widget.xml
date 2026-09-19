@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="formula_widget_background">#1F2420</color>
-    <color name="formula_widget_text">#F2F4F1</color>
-    <color name="formula_widget_muted">#BCC8C0</color>
-    <color name="formula_widget_switch_background">#39433D</color>
-    <color name="formula_widget_switch_text">#F2F4F1</color>
+    <color name="formula_widget_background">#FFFFFF</color>
+    <color name="formula_widget_border">#F2F2F4</color>
+    <color name="formula_widget_text">#1C1C1E</color>
+    <color name="formula_widget_muted">#9C9CA0</color>
+    <color name="formula_widget_switch_background">#F4F5F6</color>
+    <color name="formula_widget_switch_text">#5F5F63</color>
 </resources>

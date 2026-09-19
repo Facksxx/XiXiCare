@@ -88,6 +88,7 @@ function AppContent() {
   const [detectedRelease, setDetectedRelease] = useState<RemoteRelease | null>(null);
   const [showUpdatePrompt, setShowUpdatePrompt] = useState(false);
   const [widgetChartLaunch, setWidgetChartLaunch] = useState<{ chartType: string; token: number } | null>(null);
+  const [widgetRecordLaunch, setWidgetRecordLaunch] = useState<{ recordType: 'feeding' | 'sleep'; token: number } | null>(null);
   const lastUpdateCheckRef = useRef(0);
 
   useEffect(() => {
@@ -98,17 +99,25 @@ function AppContent() {
       setActiveTab('stats');
       setWidgetChartLaunch({ chartType, token: Date.now() });
     };
+    const openRecord = (recordType = 'feeding') => {
+      setShowWhiteNoise(false);
+      setShowSettings(false);
+      setActiveTab('dashboard');
+      setWidgetRecordLaunch({ recordType: recordType === 'sleep' ? 'sleep' : 'feeding', token: Date.now() });
+    };
     const handleWidgetOpen = (event: Event) => {
-      const rawDetail = (event as CustomEvent<{ chartType?: string } | string>).detail;
-      let detail: { chartType?: string } = {};
+      const rawDetail = (event as CustomEvent<{ target?: string; chartType?: string; recordType?: string } | string>).detail;
+      let detail: { target?: string; chartType?: string; recordType?: string } = {};
       try { detail = typeof rawDetail === 'string' ? JSON.parse(rawDetail) : (rawDetail ?? {}); }
       catch { /* Fall back to the milk chart if a launcher drops the extra. */ }
-      openStats(detail?.chartType || 'milk');
+      if (detail?.target === 'dashboard') openRecord(detail.recordType);
+      else openStats(detail?.chartType || 'milk');
       void WidgetCharts.consumeLaunchTarget().catch(() => undefined);
     };
     window.addEventListener('xixicareWidgetOpen', handleWidgetOpen);
-    void WidgetCharts.consumeLaunchTarget().then(({ target, chartType }) => {
+    void WidgetCharts.consumeLaunchTarget().then(({ target, chartType, recordType }) => {
       if (target === 'stats') openStats(chartType || 'milk');
+      if (target === 'dashboard') openRecord(recordType || 'feeding');
     }).catch(() => undefined);
     return () => window.removeEventListener('xixicareWidgetOpen', handleWidgetOpen);
   }, []);
@@ -662,6 +671,7 @@ function AppContent() {
           onUpdateLog={handleUpdateLog}
           editingLog={externalEditingLog}
           onEditingDone={handleEditingDone}
+          widgetLaunch={widgetRecordLaunch}
         />
       );
     }

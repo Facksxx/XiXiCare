@@ -14,6 +14,7 @@ interface DashboardProps {
   onUpdateLog: (log: ActivityLog) => void;
   editingLog?: ActivityLog | null;
   onEditingDone?: () => void;
+  widgetLaunch?: { recordType: LogType; token: number } | null;
 }
 
 const getNowLocal = () => {
@@ -43,7 +44,7 @@ const getLogTypeLabel = (logType: LogType) => {
   return labels[logType] || logType;
 };
 
-export function Dashboard({ babyId, onAddLog, onUpdateLog, editingLog: externalEditingLog, onEditingDone }: DashboardProps) {
+export function Dashboard({ babyId, onAddLog, onUpdateLog, editingLog: externalEditingLog, onEditingDone, widgetLaunch }: DashboardProps) {
   const [activeTab, setActiveTab] = useState<LogType>('feeding');
   const [feedingType, setFeedingType] = useLocalStorage<FeedingType>(`babycare_last_feeding_type_${babyId}`, 'breast');
 
@@ -79,6 +80,12 @@ export function Dashboard({ babyId, onAddLog, onUpdateLog, editingLog: externalE
   // 自定义弹窗状态
   const [alertModal, setAlertModal] = useState<{ show: boolean; message: string }>({ show: false, message: '' });
   const [toast, setToast] = useState<{ show: boolean; message: string; type: 'success' | 'error' }>({ show: false, message: '', type: 'success' });
+
+  useEffect(() => {
+    if (widgetLaunch?.recordType === 'feeding' || widgetLaunch?.recordType === 'sleep') {
+      setActiveTab(widgetLaunch.recordType);
+    }
+  }, [widgetLaunch]);
 
   const showToast = (message: string, type: 'success' | 'error' = 'success') => {
     setToast({ show: true, message, type });

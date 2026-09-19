@@ -1,9 +1,6 @@
 package com.xixicare.app;
 
-import android.appwidget.AppWidgetManager;
-import android.content.ComponentName;
 import android.content.Context;
-import android.os.Build;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
@@ -19,36 +16,14 @@ public class WidgetChartsPlugin extends Plugin {
             .getString("launch_target", "");
         String chartType = getContext().getSharedPreferences("widget_charts", Context.MODE_PRIVATE)
             .getString("launch_chart", "");
+        String recordType = getContext().getSharedPreferences("widget_charts", Context.MODE_PRIVATE)
+            .getString("launch_record_type", "");
         getContext().getSharedPreferences("widget_charts", Context.MODE_PRIVATE)
-            .edit().remove("launch_target").remove("launch_chart").apply();
+            .edit().remove("launch_target").remove("launch_chart").remove("launch_record_type").apply();
         JSObject result = new JSObject();
         result.put("target", target);
         result.put("chartType", chartType);
-        call.resolve(result);
-    }
-
-    @PluginMethod
-    public void requestPinWidget(PluginCall call) {
-        String kind = call.getString("kind", "native");
-        JSObject result = new JSObject();
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
-            result.put("supported", false);
-            result.put("requested", false);
-            call.resolve(result);
-            return;
-        }
-        AppWidgetManager manager = getContext().getSystemService(AppWidgetManager.class);
-        boolean supported = manager != null && manager.isRequestPinAppWidgetSupported();
-        boolean requested = false;
-        if (supported) {
-            Class<?> providerClass = "vivo".equals(kind)
-                ? FormulaWidgetProvider.class
-                : NativeFormulaWidgetProvider.class;
-            ComponentName provider = new ComponentName(getContext(), providerClass);
-            requested = manager.requestPinAppWidget(provider, null, null);
-        }
-        result.put("supported", supported);
-        result.put("requested", requested);
+        result.put("recordType", recordType);
         call.resolve(result);
     }
 

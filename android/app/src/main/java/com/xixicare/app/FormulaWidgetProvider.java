@@ -31,16 +31,15 @@ public class FormulaWidgetProvider extends AppWidgetProvider {
     private static final String PREFS = "widget_charts";
     private static final String ACTION_TYPE = "com.xixicare.app.widget.CHART_TYPE";
     private static final String[] NAMES = { "瓶喂奶量", "睡眠时长", "喂养间隔" };
-    private static final String[] UNITS = { "ml", "小时", "小时" };
-    private static final int[] LIGHT_COLORS = { 0xFFD99A72, 0xFF988FB5, 0xFF7A9A8B };
-    private static final int[] DARK_COLORS = { 0xFFE2A47F, 0xFFB2A8CB, 0xFF9FC0AC };
+    private static final int[] LIGHT_COLORS = { 0xFFEBBF97, 0xFFB8AEC9, 0xFF9DB892 };
+    private static final int[] DARK_COLORS = { 0xFFEBBF97, 0xFFB8AEC9, 0xFF9DB892 };
+    private static final int[] HIGHLIGHT_COLORS = { 0xFFCE8A55, 0xFF8E82A7, 0xFF6F8C64 };
     private static final ExecutorService RENDERER = Executors.newSingleThreadExecutor();
 
     public static void refreshAll(Context context) {
         Context appContext = context.getApplicationContext();
         RENDERER.execute(() -> {
             AppWidgetManager manager = AppWidgetManager.getInstance(appContext);
-            render(appContext, manager, manager.getAppWidgetIds(new ComponentName(appContext, FormulaWidgetProvider.class)));
             render(appContext, manager, manager.getAppWidgetIds(new ComponentName(appContext, NativeFormulaWidgetProvider.class)));
         });
     }
@@ -78,7 +77,7 @@ public class FormulaWidgetProvider extends AppWidgetProvider {
     }
 
     private static PendingIntent toggle(Context context, int id, String action, int offset) {
-        Intent intent = new Intent(context, FormulaWidgetProvider.class);
+        Intent intent = new Intent(context, NativeFormulaWidgetProvider.class);
         intent.setAction(action);
         intent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, id);
         return PendingIntent.getBroadcast(context, id * 4 + offset, intent,
@@ -89,11 +88,23 @@ public class FormulaWidgetProvider extends AppWidgetProvider {
         Intent intent = new Intent(context, MainActivity.class);
         intent.setAction(Intent.ACTION_MAIN);
         intent.addCategory(Intent.CATEGORY_LAUNCHER);
-        intent.putExtra("from", "vivo_atom_widget");
+        intent.putExtra("from", "native_widget");
         intent.putExtra("target", "stats");
         intent.putExtra("chartType", dataKey(type));
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
         return PendingIntent.getActivity(context, id * 4 + 3, intent,
+            PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+    }
+
+    private static PendingIntent openRecord(Context context, int id, int type) {
+        Intent intent = new Intent(context, MainActivity.class);
+        intent.setAction(Intent.ACTION_MAIN);
+        intent.addCategory(Intent.CATEGORY_LAUNCHER);
+        intent.putExtra("from", "native_widget");
+        intent.putExtra("target", "dashboard");
+        intent.putExtra("recordType", type == 1 ? "sleep" : "feeding");
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        return PendingIntent.getActivity(context, id * 4 + 2, intent,
             PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
     }
 
@@ -108,15 +119,16 @@ public class FormulaWidgetProvider extends AppWidgetProvider {
             double[] values = buckets(daily, type);
             double dailyAverage = recordedDailyAverage(daily, type);
             RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.formula_widget);
-            views.setTextViewText(R.id.chart_type_button, NAMES[type] + " · 近7天");
+            views.setTextViewText(R.id.chart_type_button, NAMES[type]);
             String amount = averageLabel(dailyAverage, type);
-            String summary = type <= 1
-                ? (dailyAverage > 0 ? "日均 " + amount + UNITS[type] + "（不包含今日）" : "日均 暂无数据（不包含今日）")
-                : (dailyAverage > 0 ? "近7天记录日均 " + amount + UNITS[type] : "近7天暂无" + NAMES[type] + "记录");
+            String summary;
+            if (type == 0) summary = dailyAverage > 0 ? "日均 " + amount + "ml（不包含今日）" : "日均 暂无数据（不包含今日）";
+            else summary = dailyAverage > 0 ? "近7天记录日均 " + amount + " 小时" : "近7天暂无" + NAMES[type] + "记录";
             views.setTextViewText(R.id.chart_summary, summary);
             Uri chartUri = writeChart(context, id, chart(values, labels(daily), type, DARK_COLORS[type], LIGHT_COLORS[type], dark));
             if (chartUri != null) views.setImageViewUri(R.id.chart_image, chartUri);
             views.setOnClickPendingIntent(R.id.chart_switch_button, toggle(context, id, ACTION_TYPE, 1));
+            views.setOnClickPendingIntent(R.id.chart_record_button, openRecord(context, id, type));
             PendingIntent open = openApp(context, id, type);
             views.setOnClickPendingIntent(R.id.formula_widget_root, open);
             views.setOnClickPendingIntent(R.id.chart_type_button, open);
@@ -217,32 +229,29 @@ public class FormulaWidgetProvider extends AppWidgetProvider {
         // Send the chart through a content URI so the desktop receives a crisp 3x image
         // without crossing vivo's 100 KB RemoteViews bitmap limit.
         final int width = 840;
-        final int height = 156;
+        final int height = 216;
         Bitmap bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
         Canvas canvas = new Canvas(bitmap);
         Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.SUBPIXEL_TEXT_FLAG);
-        int textColor = dark ? 0xFFF2F4F1 : 0xFF302B27;
-        int mutedColor = dark ? 0xFFBCC8C0 : 0xFF736C65;
+        int textColor = 0xFF48484A;
+        int mutedColor = 0xFFAEAEB0;
         paint.setTextAlign(Paint.Align.CENTER);
         paint.setTypeface(android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.NORMAL));
         float step = (float) width / values.length;
         double maximum = 0;
         for (double value : values) maximum = Math.max(maximum, value);
-        paint.setColor(dark ? 0xFF526057 : 0xFFE8E1DA);
-        paint.setStrokeWidth(4);
-        canvas.drawLine(0, 112, width, 112, paint);
         for (int index = 0; index < values.length; index++) {
             float center = step * (index + .5f);
             double value = values[index];
-            paint.setColor(dark ? darkColor : lightColor);
-            float barHeight = maximum <= 0 || value <= 0 ? 0 : (float) (value / maximum * 56d);
-            if (barHeight > 0) canvas.drawRoundRect(center - 25, 112 - barHeight, center + 25, 112, 12, 12, paint);
+            paint.setColor(value > 0 && value == maximum ? HIGHLIGHT_COLORS[type] : lightColor);
+            float barHeight = maximum <= 0 || value <= 0 ? 24 : Math.max(24, (float) (value / maximum * 108d));
+            canvas.drawRoundRect(center - 30, 150 - barHeight, center + 30, 150, 18, 18, paint);
             paint.setTextSize(36);
-            paint.setColor(textColor);
-            canvas.drawText(valueLabel(value, type), center, Math.max(34, 100 - barHeight), paint);
-            paint.setTextSize(30);
+            paint.setColor(value > 0 && value == maximum ? 0xFF1C1C1E : textColor);
+            canvas.drawText(valueLabel(value, type), center, Math.max(34, 135 - barHeight), paint);
+            paint.setTextSize(33);
             paint.setColor(mutedColor);
-            canvas.drawText(labels[index], center, 151, paint);
+            canvas.drawText(labels[index], center, 207, paint);
         }
         return bitmap;
     }

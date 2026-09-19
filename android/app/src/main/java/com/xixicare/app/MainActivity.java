@@ -35,15 +35,21 @@ public class MainActivity extends BridgeActivity {
     }
 
     private void handleWidgetIntent(Intent intent) {
-        if (intent == null || !"stats".equals(intent.getStringExtra("target"))) return;
+        if (intent == null) return;
+        String target = intent.getStringExtra("target");
+        if (!"stats".equals(target) && !"dashboard".equals(target)) return;
         String chartType = intent.getStringExtra("chartType");
         if (chartType == null) chartType = "milk";
+        String recordType = intent.getStringExtra("recordType");
+        if (recordType == null) recordType = "feeding";
         getSharedPreferences("widget_charts", MODE_PRIVATE).edit()
-            .putString("launch_target", "stats")
+            .putString("launch_target", target)
             .putString("launch_chart", chartType)
+            .putString("launch_record_type", recordType)
             .apply();
         if (bridge != null) bridge.triggerWindowJSEvent("xixicareWidgetOpen",
-            "{\"target\":\"stats\",\"chartType\":\"" + chartType + "\"}");
+            "{\"target\":\"" + target + "\",\"chartType\":\"" + chartType
+                + "\",\"recordType\":\"" + recordType + "\"}");
     }
 
 }
