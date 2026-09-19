@@ -40,7 +40,7 @@ public class FormulaWidgetProvider extends AppWidgetProvider {
         Context appContext = context.getApplicationContext();
         RENDERER.execute(() -> {
             AppWidgetManager manager = AppWidgetManager.getInstance(appContext);
-            render(appContext, manager, manager.getAppWidgetIds(new ComponentName(appContext, NativeFormulaWidgetProvider.class)));
+            render(appContext, manager, manager.getAppWidgetIds(new ComponentName(appContext, FormulaWidgetProvider.class)));
         });
     }
 
@@ -77,7 +77,7 @@ public class FormulaWidgetProvider extends AppWidgetProvider {
     }
 
     private static PendingIntent toggle(Context context, int id, String action, int offset) {
-        Intent intent = new Intent(context, NativeFormulaWidgetProvider.class);
+        Intent intent = new Intent(context, FormulaWidgetProvider.class);
         intent.setAction(action);
         intent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, id);
         return PendingIntent.getBroadcast(context, id * 4 + offset, intent,
@@ -119,21 +119,20 @@ public class FormulaWidgetProvider extends AppWidgetProvider {
             double[] values = buckets(daily, type);
             double dailyAverage = recordedDailyAverage(daily, type);
             RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.formula_widget);
-            views.setTextViewText(R.id.chart_type_button, NAMES[type]);
+            views.setTextViewText(R.id.chart_type_button, NAMES[type] + "  近7天");
             String amount = averageLabel(dailyAverage, type);
             String summary;
             if (type == 0) summary = dailyAverage > 0 ? "日均 " + amount + "ml（不包含今日）" : "日均 暂无数据（不包含今日）";
             else summary = dailyAverage > 0 ? "近7天记录日均 " + amount + " 小时" : "近7天暂无" + NAMES[type] + "记录";
-            views.setTextViewText(R.id.chart_summary, summary);
+            views.setTextViewText(R.id.chart_summary, summary + "   ↑ 记一笔");
             Uri chartUri = writeChart(context, id, chart(values, labels(daily), type, DARK_COLORS[type], LIGHT_COLORS[type], dark));
             if (chartUri != null) views.setImageViewUri(R.id.chart_image, chartUri);
             views.setOnClickPendingIntent(R.id.chart_switch_button, toggle(context, id, ACTION_TYPE, 1));
-            views.setOnClickPendingIntent(R.id.chart_record_button, openRecord(context, id, type));
             PendingIntent open = openApp(context, id, type);
             views.setOnClickPendingIntent(R.id.formula_widget_root, open);
             views.setOnClickPendingIntent(R.id.chart_type_button, open);
             views.setOnClickPendingIntent(R.id.chart_image, open);
-            views.setOnClickPendingIntent(R.id.chart_summary, open);
+            views.setOnClickPendingIntent(R.id.chart_summary, openRecord(context, id, type));
             manager.updateAppWidget(id, views);
         }
     }
