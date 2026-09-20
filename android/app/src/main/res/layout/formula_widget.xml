@@ -11,10 +11,9 @@
             android:layout_height="36dp" android:layout_weight="1" android:gravity="center_vertical"
             android:text="瓶喂奶量  近7天" android:textColor="@color/formula_widget_text"
             android:textSize="15sp" android:fontFamily="sans-serif-medium" android:singleLine="true" />
-        <TextView android:id="@+id/chart_switch_button" android:layout_width="60dp"
-            android:layout_height="36dp" android:gravity="center"
-            android:text="切换" android:textColor="@color/formula_widget_switch_text"
-            android:textSize="12sp" android:fontFamily="sans-serif-medium" android:singleLine="true"
+        <ImageView android:id="@+id/chart_switch_button" android:layout_width="36dp"
+            android:layout_height="36dp" android:padding="11dp"
+            android:src="@drawable/ic_widget_switch"
             android:background="@drawable/formula_widget_switch_background"
             android:contentDescription="切换" />
     </LinearLayout>
