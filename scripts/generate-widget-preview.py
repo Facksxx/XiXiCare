@@ -27,8 +27,8 @@ def draw_preview(project: Path, dark: bool):
     draw.line((727, 73, 718, 82, 727, 91), fill=switch_text, width=4, joint='curve')
     values = (120, 180, 150, 210, 160, 240, 200)
     days = ('12', '13', '14', '15', '16', '17', '18')
-    value_font = ImageFont.truetype(FONT, 36)
-    day_font = ImageFont.truetype(FONT, 33)
+    value_font = ImageFont.truetype(FONT, 34)
+    day_font = ImageFont.truetype(FONT, 30)
     for i, value in enumerate(values):
         x = 96 + i * 105
         height = max(24, value * .38)
@@ -37,8 +37,8 @@ def draw_preview(project: Path, dark: bool):
         draw.text((x, 274), days[i], font=day_font, fill=muted, anchor='mm')
     draw.line((54, 291, 786, 291), fill=border, width=3)
     draw.text((54, 307), '日均 180ml（不包含今日）', font=ImageFont.truetype(FONT, 36), fill=muted)
-    draw.rounded_rectangle((604, 300, 786, 336), radius=18, fill=switch_background)
-    draw.text((695, 318), '↑ 记一笔', font=ImageFont.truetype(FONT, 33), fill=switch_text, anchor='mm')
+    draw.rounded_rectangle((586, 297, 786, 339), radius=21, fill=switch_background)
+    draw.text((686, 318), '↑ 记一笔', font=ImageFont.truetype(FONT, 33), fill='#3C3C40', anchor='mm')
     folder = project / 'android/app/src/main/res' / ('drawable-night-nodpi' if dark else 'drawable-nodpi')
     folder.mkdir(parents=True, exist_ok=True)
     image.save(folder / 'formula_widget_preview.png')

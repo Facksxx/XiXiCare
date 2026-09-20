@@ -124,15 +124,16 @@ public class FormulaWidgetProvider extends AppWidgetProvider {
             String summary;
             if (type == 0) summary = dailyAverage > 0 ? "日均 " + amount + "ml（不包含今日）" : "日均 暂无数据（不包含今日）";
             else summary = dailyAverage > 0 ? "近7天记录日均 " + amount + " 小时" : "近7天暂无" + NAMES[type] + "记录";
-            views.setTextViewText(R.id.chart_summary, summary + "   ↑ 记一笔");
+            views.setTextViewText(R.id.chart_summary, summary);
             Uri chartUri = writeChart(context, id, chart(values, labels(daily), type, DARK_COLORS[type], LIGHT_COLORS[type], dark));
             if (chartUri != null) views.setImageViewUri(R.id.chart_image, chartUri);
             views.setOnClickPendingIntent(R.id.chart_switch_button, toggle(context, id, ACTION_TYPE, 1));
+            views.setOnClickPendingIntent(R.id.chart_record_button, openRecord(context, id, type));
             PendingIntent open = openApp(context, id, type);
             views.setOnClickPendingIntent(R.id.formula_widget_root, open);
             views.setOnClickPendingIntent(R.id.chart_type_button, open);
             views.setOnClickPendingIntent(R.id.chart_image, open);
-            views.setOnClickPendingIntent(R.id.chart_summary, openRecord(context, id, type));
+            views.setOnClickPendingIntent(R.id.chart_summary, open);
             manager.updateAppWidget(id, views);
         }
     }
@@ -245,10 +246,12 @@ public class FormulaWidgetProvider extends AppWidgetProvider {
             paint.setColor(value > 0 && value == maximum ? HIGHLIGHT_COLORS[type] : lightColor);
             float barHeight = maximum <= 0 || value <= 0 ? 24 : Math.max(24, (float) (value / maximum * 108d));
             canvas.drawRoundRect(center - 30, 150 - barHeight, center + 30, 150, 18, 18, paint);
-            paint.setTextSize(36);
+            paint.setTypeface(android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.NORMAL));
+            paint.setTextSize(34);
             paint.setColor(value > 0 && value == maximum ? 0xFF1C1C1E : textColor);
             canvas.drawText(valueLabel(value, type), center, Math.max(34, 135 - barHeight), paint);
-            paint.setTextSize(33);
+            paint.setTypeface(android.graphics.Typeface.create("sans-serif", android.graphics.Typeface.NORMAL));
+            paint.setTextSize(30);
             paint.setColor(mutedColor);
             canvas.drawText(labels[index], center, 207, paint);
         }
