@@ -393,23 +393,30 @@ export function Stats({ logs, birthday, widgetLaunch }: StatsProps) {
     return Array.from({ length: 12 }, (_, monthIndex) => {
       const monthStart = addMonths(firstYearMonth, monthIndex);
       const nextMonth = addMonths(monthStart, 1);
+      const monthStartKey = toDateKey(monthStart);
+      const nextMonthKey = toDateKey(nextMonth);
       const items = dailyStats
         .map(item => ({ item, date: parseDateKey(item.date) }))
         .filter(entry => entry.date >= monthStart && entry.date < nextMonth)
         .map(entry => entry.item);
-      const bucket = makeBucket(items, toDateKey(monthStart), `${monthStart.getMonth() + 1}月`);
+      const bucket = makeBucket(items, monthStartKey, `${monthStart.getMonth() + 1}月`);
       const monthWeightLogs = logs
         .filter(log => log.logType === 'growth' && Number(log.metadata.weightKg) > 0)
         .filter(log => {
-          const date = new Date(log.timestamp);
-          return date >= monthStart && date < nextMonth;
+          const dateKey = log.timestamp.split('T')[0];
+          return dateKey >= monthStartKey && dateKey < nextMonthKey;
         })
         .sort((a, b) => a.timestamp.localeCompare(b.timestamp));
       const birthDate = birthday ? parseDateKey(birthday) : null;
       const isBirthMonth = birthDate
         && birthDate.getFullYear() === monthStart.getFullYear()
         && birthDate.getMonth() === monthStart.getMonth();
-      const monthWeightLog = isBirthMonth ? monthWeightLogs[0] : monthWeightLogs.at(-1);
+      const birthDayWeightLog = isBirthMonth
+        ? monthWeightLogs.find(log => log.timestamp.split('T')[0] === birthday)
+        : undefined;
+      const monthWeightLog = isBirthMonth
+        ? birthDayWeightLog ?? monthWeightLogs[0]
+        : monthWeightLogs.at(-1);
       return monthWeightLog
         ? { ...bucket, weight: Number(monthWeightLog.metadata.weightKg), hasWeightLog: true }
         : bucket;
@@ -459,7 +466,7 @@ export function Stats({ logs, birthday, widgetLaunch }: StatsProps) {
 
       <SoftChartCard
         title="体重增长"
-        subtitle="仅显示实际体重记录"
+        subtitle={rangeMode === 'year' ? '出生月取初始体重，其余月份取月末体重' : '仅显示实际体重记录'}
         icon={<Scale size={17} />}
         tone="rose"
       >
