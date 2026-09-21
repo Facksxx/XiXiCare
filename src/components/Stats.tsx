@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import * as echarts from 'echarts/core';
 import type { EChartsOption } from 'echarts';
@@ -17,6 +17,9 @@ interface StatsProps {
   birthday: string;
   widgetLaunch?: { chartType: string; token: number } | null;
 }
+
+type RangeMode = 'week' | 'month' | 'year';
+type BucketMode = 'day' | 'week' | 'month';
 
 interface DailyStat {
   date: string;
@@ -41,6 +44,12 @@ interface BucketStat {
   hasWeightLog: boolean;
 }
 
+const RANGE_OPTIONS: Array<{ mode: RangeMode; label: string; days: number; bucket: BucketMode; hint: string }> = [
+  { mode: 'week', label: '7天', days: 7, bucket: 'day', hint: '每日' },
+  { mode: 'month', label: '30天', days: 30, bucket: 'week', hint: '按周日均' },
+  { mode: 'year', label: '1年', days: 365, bucket: 'month', hint: '按月日均' }
+];
+
 const pad = (n: number) => String(n).padStart(2, '0');
 
 const toDateKey = (date: Date) => `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
@@ -56,10 +65,20 @@ const addDays = (date: Date, days: number) => {
   return next;
 };
 
+const addMonths = (date: Date, months: number) => {
+  const next = new Date(date);
+  next.setMonth(next.getMonth() + months);
+  return next;
+};
+
 const shortDate = (dateKey: string) => {
   const d = parseDateKey(dateKey);
   return `${d.getMonth() + 1}/${d.getDate()}`;
 };
+
+const formatRangeLabel = (start: string, end: string) => (
+  start === end ? shortDate(start) : `${shortDate(start)}-${shortDate(end)}`
+);
 
 const cssColor = (name: string, fallback: string) => getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
 
@@ -263,7 +282,7 @@ function GrowthChart({ buckets }: { buckets: BucketStat[] }) {
   return <LineChart buckets={growthBuckets} valueKey="weight" color={cssColor('--rose', '#d88f8f')} unit="kg" />;
 }
 
-export function Stats({ logs, widgetLaunch }: StatsProps) {
+export function Stats({ logs, birthday, widgetLaunch }: StatsProps) {
   useEffect(() => {
     if (!widgetLaunch) return;
     const frame = window.requestAnimationFrame(() => {
@@ -271,9 +290,12 @@ export function Stats({ logs, widgetLaunch }: StatsProps) {
     });
     return () => window.cancelAnimationFrame(frame);
   }, [widgetLaunch]);
+  const [rangeMode, setRangeMode] = useState<RangeMode>('week');
+  const range = RANGE_OPTIONS.find(option => option.mode === rangeMode) ?? RANGE_OPTIONS[0];
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const startDate = addDays(today, -6);
+  const firstYearMonth = new Date(today.getFullYear(), today.getMonth() - 11, 1);
+  const startDate = rangeMode === 'year' ? firstYearMonth : addDays(today, -(range.days - 1));
 
   const rangeDayCount = Math.round((today.getTime() - startDate.getTime()) / 86400000) + 1;
   const dateRange = Array.from({ length: rangeDayCount }, (_, i) => toDateKey(addDays(startDate, i)));
@@ -354,7 +376,45 @@ export function Stats({ logs, widgetLaunch }: StatsProps) {
     };
   };
 
-  const buckets: BucketStat[] = dailyStats.map(item => makeBucket([item], item.date, shortDate(item.date)));
+  const buckets: BucketStat[] = (() => {
+    if (range.bucket === 'day') {
+      return dailyStats.map(item => makeBucket([item], item.date, shortDate(item.date)));
+    }
+
+    if (range.bucket === 'week') {
+      const chunks: BucketStat[] = [];
+      for (let i = 0; i < dailyStats.length; i += 7) {
+        const items = dailyStats.slice(i, i + 7);
+        chunks.push(makeBucket(items, `week-${i}`, formatRangeLabel(items[0].date, items[items.length - 1].date)));
+      }
+      return chunks;
+    }
+
+    return Array.from({ length: 12 }, (_, monthIndex) => {
+      const monthStart = addMonths(firstYearMonth, monthIndex);
+      const nextMonth = addMonths(monthStart, 1);
+      const items = dailyStats
+        .map(item => ({ item, date: parseDateKey(item.date) }))
+        .filter(entry => entry.date >= monthStart && entry.date < nextMonth)
+        .map(entry => entry.item);
+      const bucket = makeBucket(items, toDateKey(monthStart), `${monthStart.getMonth() + 1}月`);
+      const monthWeightLogs = logs
+        .filter(log => log.logType === 'growth' && Number(log.metadata.weightKg) > 0)
+        .filter(log => {
+          const date = new Date(log.timestamp);
+          return date >= monthStart && date < nextMonth;
+        })
+        .sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+      const birthDate = birthday ? parseDateKey(birthday) : null;
+      const isBirthMonth = birthDate
+        && birthDate.getFullYear() === monthStart.getFullYear()
+        && birthDate.getMonth() === monthStart.getMonth();
+      const monthWeightLog = isBirthMonth ? monthWeightLogs[0] : monthWeightLogs.at(-1);
+      return monthWeightLog
+        ? { ...bucket, weight: Number(monthWeightLog.metadata.weightKg), hasWeightLog: true }
+        : bucket;
+    });
+  })();
 
   const todayKey = toDateKey(today);
   const todayStats = dailyStats.find(stat => stat.date === todayKey) ?? { milk: 0, sleepHrs: 0, pee: 0, poop: 0 };
@@ -379,10 +439,21 @@ export function Stats({ logs, widgetLaunch }: StatsProps) {
       <section className="stats-control-panel">
         <div>
           <span className="stats-control-label">图表范围</span>
-          <strong className="stats-fixed-range">近7天</strong>
+          <div className="stats-segmented">
+            {RANGE_OPTIONS.map(option => (
+              <button
+                key={option.mode}
+                type="button"
+                className={rangeMode === option.mode ? 'active' : ''}
+                onClick={() => setRangeMode(option.mode)}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
         </div>
         <p className="stats-grain-note">
-          {shortDate(toDateKey(startDate))} - {shortDate(toDateKey(today))} · 每日汇总
+          {shortDate(toDateKey(startDate))} - {shortDate(toDateKey(today))} · 自动{range.hint}汇总{birthday && rangeMode === 'year' ? ` · 出生 ${birthday.replaceAll('-', '/')}` : ''}
         </p>
       </section>
 
@@ -398,7 +469,7 @@ export function Stats({ logs, widgetLaunch }: StatsProps) {
       <SoftChartCard
         id="stats-chart-milk"
         title="瓶喂奶量"
-        subtitle="每日，单位 ml/天"
+        subtitle={`${range.hint}，单位 ml/天`}
         icon={<Milk size={17} />}
         tone="amber"
       >
@@ -414,7 +485,7 @@ export function Stats({ logs, widgetLaunch }: StatsProps) {
       <SoftChartCard
         id="stats-chart-sleep"
         title="睡眠时长"
-        subtitle="每日，单位 小时/天"
+        subtitle={`${range.hint}，单位 小时/天`}
         icon={<Moon size={17} />}
         tone="lavender"
       >
@@ -424,7 +495,7 @@ export function Stats({ logs, widgetLaunch }: StatsProps) {
       <SoftChartCard
         id="stats-chart-interval"
         title="喂养间隔"
-        subtitle="每日，单位 小时"
+        subtitle={`${range.hint}，单位 小时`}
         icon={<Clock3 size={18} />}
         tone="sage"
       >
@@ -433,7 +504,7 @@ export function Stats({ logs, widgetLaunch }: StatsProps) {
 
       <SoftChartCard
         title="排泄统计"
-        subtitle="每日，单位 次/天"
+        subtitle={`${range.hint}，单位 次/天`}
         icon={<Heart size={17} />}
         tone="peach"
         legend={(

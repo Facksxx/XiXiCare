@@ -1,11 +1,11 @@
 {
-  "version": "1.3.11",
-  "tag": "v1.3.11",
-  "htmlUrl": "https://gitee.com/Facksxx/xi-xi-care/releases/tag/v1.3.11",
-  "apkUrl": "https://gitee.com/Facksxx/xi-xi-care/releases/download/v1.3.11/XiXiCare.apk",
-  "publishedAt": "2026-09-20T03:13:58.521Z",
-  "notes": "七日趋势桌面组件切换按钮恢复为圆形双向箭头，移除文字椭圆按钮；保持已验证可显示的 FormulaWidgetProvider 与基础布局。",
-  "sha256": "af74b19b2bf66318f729c7bf9dca536661de1c896d280eb03e013f432829a98e",
+  "version": "1.3.12",
+  "tag": "v1.3.12",
+  "htmlUrl": "https://gitee.com/Facksxx/xi-xi-care/releases/tag/v1.3.12",
+  "apkUrl": "https://gitee.com/Facksxx/xi-xi-care/releases/download/v1.3.12/XiXiCare.apk",
+  "publishedAt": "2026-09-21T09:07:37.000Z",
+  "notes": "恢复成长统计页面的7天、30天和1年图表范围切换，并按范围自动采用每日、按周日均和按月日均汇总；桌面七日趋势组件保持近7天不变。",
+  "sha256": "8ce3d898268a693962c316a39df5739715e2511bfa591ec86f08a74a3ae13d97",
   "history": [
     {
       "version": "1.1.14",
@@ -201,6 +201,11 @@
       "version": "1.3.11",
       "publishedAt": "2026-09-20T03:13:58.521Z",
       "notes": "七日趋势桌面组件切换按钮恢复为圆形双向箭头，移除文字椭圆按钮；保持已验证可显示的 FormulaWidgetProvider 与基础布局。"
+    },
+    {
+      "version": "1.3.12",
+      "publishedAt": "2026-09-21T09:07:37.000Z",
+      "notes": "恢复成长统计页面的7天、30天和1年图表范围切换，并按范围自动采用每日、按周日均和按月日均汇总；桌面七日趋势组件保持近7天不变。"
     }
   ]
 }
