@@ -20,10 +20,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import java.io.File;
 import java.io.FileOutputStream;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.List;
-import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -122,7 +119,7 @@ public class FormulaWidgetProvider extends AppWidgetProvider {
             views.setTextViewText(R.id.chart_type_button, NAMES[type] + "  近7天");
             String amount = averageLabel(dailyAverage, type);
             String summary;
-            if (type == 0) summary = dailyAverage > 0 ? "日均 " + amount + "ml（不包含今日）" : "日均 暂无数据（不包含今日）";
+            if (type == 0) summary = dailyAverage > 0 ? "近7天记录日均 " + amount + "ml" : "近7天暂无" + NAMES[type] + "记录";
             else summary = dailyAverage > 0 ? "近7天记录日均 " + amount + " 小时" : "近7天暂无" + NAMES[type] + "记录";
             views.setTextViewText(R.id.chart_summary, summary);
             Uri chartUri = writeChart(context, id, chart(values, labels(daily), type, DARK_COLORS[type], LIGHT_COLORS[type], dark));
@@ -165,18 +162,13 @@ public class FormulaWidgetProvider extends AppWidgetProvider {
         return type == 0 ? "milk" : type == 1 ? "sleep" : "interval";
     }
 
-    private static String todayKey() {
-        return new SimpleDateFormat("yyyy-MM-dd", Locale.CHINA).format(new Date());
-    }
-
     private static double recordedDailyAverage(JSONArray daily, int type) {
         double total = 0;
         int recordedDays = 0;
         int start = Math.max(0, daily.length() - 7);
-        String today = todayKey();
         for (int index = start; index < daily.length(); index++) {
             JSONObject item = daily.optJSONObject(index);
-            if (item == null || (type <= 1 && today.equals(item.optString("date")))) continue;
+            if (item == null) continue;
             double value = Math.max(0, item.optDouble(dataKey(type), 0));
             if (value > 0) { total += value; recordedDays++; }
         }

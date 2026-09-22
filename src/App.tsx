@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, type TouchEvent as ReactTouchEvent } from 'react';
+import { useState, useEffect, useRef, useCallback, type TouchEvent as ReactTouchEvent } from 'react';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import type { ActivityLog, BabyInfo } from './types/baby';
 import { compressImage } from './utils/imageCompress';
@@ -96,12 +96,14 @@ function AppContent() {
     const openStats = (chartType = 'milk') => {
       setShowWhiteNoise(false);
       setShowSettings(false);
+      setSwipePreview(null);
       setActiveTab('stats');
       setWidgetChartLaunch({ chartType, token: Date.now() });
     };
     const openRecord = (recordType = 'feeding') => {
       setShowWhiteNoise(false);
       setShowSettings(false);
+      setSwipePreview(null);
       setActiveTab('dashboard');
       setWidgetRecordLaunch({ recordType: recordType === 'sleep' ? 'sleep' : 'feeding', token: Date.now() });
     };
@@ -114,12 +116,20 @@ function AppContent() {
       else openStats(detail?.chartType || 'milk');
       void WidgetCharts.consumeLaunchTarget().catch(() => undefined);
     };
-    window.addEventListener('xixicareWidgetOpen', handleWidgetOpen);
-    void WidgetCharts.consumeLaunchTarget().then(({ target, chartType, recordType }) => {
+    const consumeWidgetLaunch = () => void WidgetCharts.consumeLaunchTarget().then(({ target, chartType, recordType }) => {
       if (target === 'stats') openStats(chartType || 'milk');
       if (target === 'dashboard') openRecord(recordType || 'feeding');
     }).catch(() => undefined);
-    return () => window.removeEventListener('xixicareWidgetOpen', handleWidgetOpen);
+    const handleVisibility = () => { if (!document.hidden) consumeWidgetLaunch(); };
+    window.addEventListener('xixicareWidgetOpen', handleWidgetOpen);
+    window.addEventListener('focus', consumeWidgetLaunch);
+    document.addEventListener('visibilitychange', handleVisibility);
+    consumeWidgetLaunch();
+    return () => {
+      window.removeEventListener('xixicareWidgetOpen', handleWidgetOpen);
+      window.removeEventListener('focus', consumeWidgetLaunch);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
   }, []);
 
   useEffect(() => {
@@ -517,9 +527,9 @@ function AppContent() {
   };
 
   // Dashboard finishes editing, clears external edit
-  const handleEditingDone = () => {
+  const handleEditingDone = useCallback(() => {
     setExternalEditingLog(null);
-  };
+  }, []);
 
   const handleEditBaby = (babyId = baby.id) => {
     const target = babies.find((item) => item.id === babyId);

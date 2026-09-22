@@ -286,7 +286,9 @@ export function Stats({ logs, birthday, widgetLaunch }: StatsProps) {
   useEffect(() => {
     if (!widgetLaunch) return;
     const frame = window.requestAnimationFrame(() => {
-      document.getElementById(`stats-chart-${widgetLaunch.chartType}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      window.requestAnimationFrame(() => {
+        document.getElementById(`stats-chart-${widgetLaunch.chartType}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
     });
     return () => window.cancelAnimationFrame(frame);
   }, [widgetLaunch]);

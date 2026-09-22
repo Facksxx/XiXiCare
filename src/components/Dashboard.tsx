@@ -28,6 +28,14 @@ const toISO = (localStr: string) => {
   return localStr.length === 16 ? `${localStr}:00` : localStr;
 };
 
+const toLocalInputValue = (timestamp: string) => {
+  if (!timestamp.endsWith('Z') && !/[+-]\d{2}:?\d{2}$/.test(timestamp)) return timestamp.substring(0, 16);
+  const date = new Date(timestamp);
+  if (Number.isNaN(date.getTime())) return timestamp.replace('Z', '').substring(0, 16);
+  const pad = (value: number) => String(value).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+};
+
 interface SleepTimerState {
   startedAt: string;
   elapsedMs: number;
@@ -81,12 +89,6 @@ export function Dashboard({ babyId, onAddLog, onUpdateLog, editingLog: externalE
   const [alertModal, setAlertModal] = useState<{ show: boolean; message: string }>({ show: false, message: '' });
   const [toast, setToast] = useState<{ show: boolean; message: string; type: 'success' | 'error' }>({ show: false, message: '', type: 'success' });
 
-  useEffect(() => {
-    if (widgetLaunch?.recordType === 'feeding' || widgetLaunch?.recordType === 'sleep') {
-      setActiveTab(widgetLaunch.recordType);
-    }
-  }, [widgetLaunch]);
-
   const showToast = (message: string, type: 'success' | 'error' = 'success') => {
     setToast({ show: true, message, type });
     setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 2500);
@@ -110,7 +112,7 @@ export function Dashboard({ babyId, onAddLog, onUpdateLog, editingLog: externalE
     if (externalEditingLog) {
       const log = externalEditingLog;
       setActiveTab(log.logType);
-      setStartTime(log.timestamp.replace('Z', '').substring(0, 16));
+      setStartTime(toLocalInputValue(log.timestamp));
 
       if (log.logType === 'sleep') setSleepDurationMinutes(Math.max(5, Number(log.metadata.durationMinutes) || 30));
 
@@ -142,12 +144,31 @@ export function Dashboard({ babyId, onAddLog, onUpdateLog, editingLog: externalE
     }
   }, [externalEditingLog]);
 
-  // 当切换tab时重置选择状态
+  const selectRecordTab = (nextTab: LogType) => {
+    if (nextTab === activeTab) return;
+    if (editingLog) resetForm();
+    setActiveTab(nextTab);
+  };
+
   useEffect(() => {
-    if (editingLog) {
-      resetForm();
-    }
-  }, [activeTab]);
+    if (widgetLaunch?.recordType !== 'feeding' && widgetLaunch?.recordType !== 'sleep') return;
+    setStartTime(getNowLocal());
+    setSolidsName('');
+    setBreastLeft(10);
+    setBreastRight(10);
+    setDiaperPee(true);
+    setDiaperPoop(false);
+    setGrowthType('weight');
+    setEditingLog(null);
+    onEditingDone?.();
+    setActiveTab(widgetLaunch.recordType);
+    const firstFrame = window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        document.getElementById('dashboard-record-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    });
+    return () => window.cancelAnimationFrame(firstFrame);
+  }, [widgetLaunch, onEditingDone]);
 
   useEffect(() => {
     if (!sleepTimer?.runningSince) return;
@@ -267,7 +288,7 @@ export function Dashboard({ babyId, onAddLog, onUpdateLog, editingLog: externalE
 
   return (
     <div className="container fade-in">
-      <div className="card dashboard-card">
+      <div className="card dashboard-card" id="dashboard-record-card">
         {editingLog && (
           <div className="editing-banner">
             <div className="editing-banner-icon">
@@ -288,16 +309,16 @@ export function Dashboard({ babyId, onAddLog, onUpdateLog, editingLog: externalE
         )}
 
         <div className="record-tab-grid">
-          <button type="button" className={`pill-option icon-pill ${activeTab === 'feeding' ? 'active-amber' : ''}`} onClick={() => setActiveTab('feeding')}>
+          <button type="button" className={`pill-option icon-pill ${activeTab === 'feeding' ? 'active-amber' : ''}`} onClick={() => selectRecordTab('feeding')}>
             <Milk size={16} /> 喂养
           </button>
-          <button type="button" className={`pill-option icon-pill ${activeTab === 'sleep' ? 'active-lavender' : ''}`} onClick={() => setActiveTab('sleep')}>
+          <button type="button" className={`pill-option icon-pill ${activeTab === 'sleep' ? 'active-lavender' : ''}`} onClick={() => selectRecordTab('sleep')}>
             <Moon size={16} /> 睡眠
           </button>
-          <button type="button" className={`pill-option icon-pill ${activeTab === 'diaper' ? 'active' : ''}`} onClick={() => setActiveTab('diaper')}>
+          <button type="button" className={`pill-option icon-pill ${activeTab === 'diaper' ? 'active' : ''}`} onClick={() => selectRecordTab('diaper')}>
             <Droplets size={16} /> 尿布
           </button>
-          <button type="button" className={`pill-option icon-pill ${activeTab === 'growth' ? 'active-amber' : ''}`} onClick={() => setActiveTab('growth')}>
+          <button type="button" className={`pill-option icon-pill ${activeTab === 'growth' ? 'active-amber' : ''}`} onClick={() => selectRecordTab('growth')}>
             <Scale size={16} /> 体征
           </button>
         </div>
