@@ -112,6 +112,12 @@ body {
   align-items: flex-start;
   min-height: 100dvh;
   overflow-x: clip;
+  overscroll-behavior: none;
+}
+
+html,
+#root {
+  overscroll-behavior: none;
 }
 
 button,
@@ -492,6 +498,10 @@ select {
   --container-gutter: 14px;
   padding: 12px 14px;
   flex: 1;
+}
+
+.dashboard-side-panel {
+  display: none;
 }
 
 .card {
@@ -1779,12 +1789,12 @@ select {
 
 .sound-pack-row {
   position: relative;
-  min-height: 62px;
+  min-height: 50px;
   display: grid;
   grid-template-columns: 32px minmax(0, 1fr) auto;
   align-items: center;
   gap: 9px;
-  padding: 9px 10px;
+  padding: 6px 8px;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   background: var(--bg-input);
@@ -1809,7 +1819,8 @@ select {
 .sound-pack-copy strong {
   display: flex;
   align-items: center;
-  gap: 7px;
+  justify-content: space-between;
+  gap: 8px;
   color: var(--text-heading);
   font-size: 13px;
 }
@@ -1825,10 +1836,18 @@ select {
   white-space: nowrap;
 }
 
+.sound-pack-copy strong em b {
+  margin-left: 5px;
+  padding-left: 5px;
+  border-left: 1px solid var(--border);
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
 .sound-pack-copy small {
   color: var(--text-muted);
   font-size: 10px;
-  line-height: 1.4;
+  line-height: 1.25;
   white-space: normal;
   overflow-wrap: anywhere;
 }
@@ -4847,7 +4866,7 @@ body.modal-open {
 
   .container {
     --container-gutter: 24px;
-    max-width: 480px;
+    max-width: 680px;
     margin: 0 auto;
     padding: 24px;
   }
@@ -4857,44 +4876,426 @@ body.modal-open {
   }
 }
 
-@media screen and (min-width: 768px) {
+@media screen and (min-width: 600px) {
   #root {
-    max-width: 560px;
-    margin: 0 auto;
-    border-radius: 32px;
-    box-shadow: 0 0 80px rgba(74, 69, 64, 0.12);
-    min-height: auto;
-    margin-top: 20px;
-    margin-bottom: 20px;
+    max-width: none;
+    margin: 0;
+    border-radius: 0;
+    box-shadow: none;
+    min-height: 100dvh;
   }
 
   .app-shell {
-    padding-bottom: calc(70px + var(--safe-bottom));
+    height: 100dvh;
+    min-height: 0;
+    padding-bottom: 0;
+    overflow: hidden;
+  }
+
+  .app-shell .app-main {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    height: auto;
+    overflow: hidden;
+  }
+
+  .app-shell .page-swipe-stage {
+    flex: 1;
+    min-height: 0;
+    height: auto;
+    overflow: hidden;
+  }
+
+  .app-shell .page-swipe-view {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    min-height: 0;
+    height: auto;
+    overflow: hidden;
+  }
+
+  .dashboard-page,
+  .guide-page,
+  .vaccine-page,
+  .stats-page,
+  .settings-page {
+    height: 100%;
+    min-height: 0;
+    padding-bottom: calc(92px + var(--safe-bottom));
+    overflow-y: auto;
+    overscroll-behavior-y: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .dashboard-page {
+    overflow: hidden;
   }
 
   .container {
-    max-width: 520px;
+    --container-gutter: 28px;
+    width: 100%;
+    max-width: 1120px;
+    padding: 24px 28px;
+  }
+
+  .guide-page {
+    padding-top: 8px;
   }
 
   .nav-tabs {
+    bottom: calc(14px + var(--safe-bottom));
+    width: min(calc(100% - 40px), 1040px);
+    height: 68px;
+    padding: 0;
+    border: 1px solid var(--border);
+    border-radius: 22px;
+    box-shadow: 0 12px 32px rgba(74, 69, 64, 0.14);
+  }
+
+  .header {
+    padding-right: max(28px, calc((100vw - 1064px) / 2));
+    padding-left: max(28px, calc((100vw - 1064px) / 2));
+  }
+
+  .dashboard-fold-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 260px;
+    align-items: start;
+    gap: 20px;
+  }
+
+  .dashboard-card {
+    min-width: 0;
     max-width: none;
+    margin: 0;
+  }
+
+  .dashboard-side-panel {
+    position: sticky;
+    top: calc(var(--app-sticky-top) + 18px);
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    gap: 14px;
+    align-self: stretch;
+  }
+
+  .dashboard-overview-card {
+    padding: 13px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    background: var(--bg-card);
+    box-shadow: var(--shadow);
+  }
+
+  .dashboard-side-heading,
+  .dashboard-side-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .dashboard-side-heading > div {
+    display: grid;
+    gap: 3px;
+  }
+
+  .dashboard-side-heading span,
+  .dashboard-side-title span {
+    color: var(--text-heading);
+    font-size: 14px;
+    font-weight: 700;
+  }
+
+  .dashboard-side-heading strong,
+  .dashboard-side-title small {
+    color: var(--text-muted);
+    font-size: 10px;
+    font-weight: 500;
+  }
+
+  .dashboard-side-heading svg { color: var(--sage); }
+
+  .dashboard-overview-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+    margin-top: 10px;
+  }
+
+  .dashboard-overview-item {
+    display: grid;
+    gap: 4px;
+    padding: 8px 9px;
+    border-radius: var(--radius-md);
+    background: var(--bg-input);
+  }
+
+  .dashboard-overview-item span { color: var(--text-muted); font-size: 10px; }
+  .dashboard-overview-item strong { color: var(--text-heading); font-size: 17px; }
+  .dashboard-overview-item.feeding { background: var(--amber-light); }
+  .dashboard-overview-item.sleep { background: var(--lavender-light); }
+  .dashboard-overview-item.diaper { background: var(--sage-light); }
+  .dashboard-overview-item.growth { background: var(--rose-light); }
+
+  .dashboard-recent-card { min-width: 0; }
+  .dashboard-recent-list { display: grid; margin-top: 5px; }
+  .dashboard-recent-item {
+    display: grid;
+    grid-template-columns: 30px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .dashboard-recent-item:last-child { border-bottom: 0; }
+  .dashboard-recent-icon { width: 30px; height: 30px; display: grid; place-items: center; border-radius: 9px; color: var(--sage); background: var(--sage-light); }
+  .dashboard-recent-icon.feeding { color: var(--amber); background: var(--amber-light); }
+  .dashboard-recent-icon.sleep { color: var(--lavender); background: var(--lavender-light); }
+  .dashboard-recent-icon.growth { color: var(--rose); background: var(--rose-light); }
+  .dashboard-recent-item > span:nth-child(2) { min-width: 0; display: grid; gap: 2px; }
+  .dashboard-recent-item strong { color: var(--text-heading); font-size: 11px; }
+  .dashboard-recent-item small { color: var(--text-muted); font-size: 9px; }
+  .dashboard-recent-item b { color: var(--text); font-size: 10px; font-weight: 650; white-space: nowrap; }
+  .dashboard-recent-empty { margin-top: 12px; color: var(--text-muted); font-size: 11px; line-height: 1.6; }
+
+  .record-tab-grid,
+  .pill-selection.wrap-selection {
+    gap: 8px;
+  }
+
+  .records-page {
+    display: grid;
+    grid-template-columns: 210px minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
+    align-items: stretch;
+    gap: 24px;
+    height: 100%;
+    padding-top: 12px;
+    padding-bottom: calc(92px + var(--safe-bottom));
+    overflow: hidden;
+  }
+
+  .records-tools-card {
+    position: relative;
+    top: auto;
+    align-self: start;
+    margin-bottom: 0;
+    padding: 0;
+    border: 0;
     border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    overflow: visible;
+  }
+
+  .records-tools-card::before {
+    display: none;
+  }
+
+  .records-tools-card:hover {
+    box-shadow: none;
+    transform: none;
+  }
+
+  .records-date-range {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  .records-date-range > svg,
+  .records-date-range > span {
+    display: none;
+  }
+
+  .records-date-range .date-time-picker,
+  .records-date-range .input-field,
+  .records-clear-filter {
+    width: 100%;
+  }
+
+  .records-date-range .custom-date-trigger {
+    border-radius: var(--radius-md);
+  }
+
+  .records-type-filter,
+  .records-feeding-filter {
+    grid-template-columns: 1fr;
+  }
+
+  .records-type-filter {
+    margin-top: 8px;
+  }
+
+  .records-type-filter,
+  .records-feeding-filter {
+    padding: 4px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--bg-input);
+  }
+
+  .records-type-filter button,
+  .records-feeding-filter button {
+    height: 34px;
+    text-align: left;
+    padding: 0 11px;
+    border: 0;
+    border-radius: var(--radius-sm);
+  }
+
+  .records-list-pane {
+    min-width: 0;
+    min-height: 0;
+    height: auto;
+    padding-right: 2px;
+    overflow-y: scroll;
+    overscroll-behavior-y: contain;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
+    scrollbar-gutter: stable;
+  }
+
+  .records-list-pane > div:first-child > .timeline-title {
+    margin-top: 0;
+  }
+
+  .stats-page {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-content: start;
+    align-items: stretch;
+    gap: 14px;
+    overflow-y: auto;
+  }
+
+  .stats-page > .stats-summary-grid,
+  .stats-page > .stats-control-panel {
+    grid-column: 1 / -1;
+    margin-bottom: 0;
+  }
+
+  .stats-page > .stats-card {
+    min-height: 300px;
+    margin-bottom: 0;
+  }
+
+  .settings-page {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+    gap: 14px;
+  }
+
+  .guide-page {
+    display: block;
+  }
+
+  .settings-heading {
+    grid-column: 1 / -1;
+  }
+
+  .guide-card-columns {
+    column-count: 2;
+    column-gap: 14px;
+  }
+
+  .guide-card-columns > .card {
+    display: inline-block;
+    width: 100%;
+    height: auto;
+    margin-bottom: 14px;
+    vertical-align: top;
+    break-inside: avoid;
+  }
+
+  .guide-scroller {
+    top: 0;
+  }
+
+  .settings-section {
+    height: auto;
+    align-self: start;
+    margin-bottom: 0;
+  }
+
+
+  .settings-page {
+    padding: 0 28px 40px;
+    column-gap: 14px;
+    row-gap: 0;
+  }
+
+  .settings-heading {
+    margin: 0 -28px;
+    padding-right: 28px;
+    padding-left: 28px;
+  }
+
+  .settings-section {
+    min-height: 0;
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+
+  .settings-about,
+  .settings-privacy-row {
+    min-height: 42px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+  }
+
+  .settings-privacy-link {
+    min-height: 38px;
+  }
+
+  .vaccine-page {
+    grid-template-columns: 190px minmax(0, 1fr);
+    align-items: start;
+    gap: 20px;
+    padding-top: 18px;
+  }
+
+  .vaccine-sticky {
+    top: 8px;
+    margin: 0;
+    padding: 0;
+    background: transparent;
+  }
+
+  .vaccine-overview {
+    grid-template-columns: 1fr;
+  }
+
+  .vaccine-filter {
+    grid-template-columns: 1fr;
+  }
+
+  .vaccine-filter button {
+    text-align: left;
+    padding: 0 12px;
+  }
+
+  .vaccine-content-pane {
+    min-width: 0;
+    display: grid;
+    gap: 8px;
+  }
+
+  .vaccine-clinic-time {
+    justify-content: flex-start;
+    margin: 0;
+    padding: 0 2px;
   }
 }
 
 @media screen and (min-width: 1024px) {
-  #root {
-    max-width: 600px;
-    margin-top: 40px;
-    margin-bottom: 40px;
-  }
-
   .container {
-    max-width: 560px;
-  }
-
-  .nav-tabs {
-    max-width: none;
+    max-width: 1200px;
   }
 }
 

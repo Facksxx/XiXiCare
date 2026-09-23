@@ -2,6 +2,7 @@ package com.xixicare.app;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.view.View;
 import androidx.activity.OnBackPressedCallback;
 
 import com.getcapacitor.BridgeActivity;
@@ -16,6 +17,10 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(WidgetChartsPlugin.class);
         registerPlugin(PrivacyActionsPlugin.class);
         super.onCreate(savedInstanceState);
+        if (bridge != null && bridge.getWebView() != null) {
+            bridge.getWebView().setOverScrollMode(View.OVER_SCROLL_NEVER);
+            bridge.getWebView().setVerticalScrollBarEnabled(false);
+        }
         handleWidgetIntent(getIntent());
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
             @Override public void handleOnBackPressed() {

@@ -117,7 +117,7 @@ const axisBase = (labels: string[]) => ({
     boundaryGap: true,
     axisLine: { lineStyle: { color: cssColor('--border', '#e9e5df') } },
     axisTick: { show: false },
-    axisLabel: { color: cssColor('--text-muted', '#8b857f'), fontSize: 11, interval: 'auto' as const, hideOverlap: true, margin: 12 }
+    axisLabel: { color: cssColor('--text-muted', '#8b857f'), fontSize: 11, interval: labels.length <= 7 ? 0 : 'auto' as const, hideOverlap: labels.length > 7, margin: 12 }
   },
   yAxis: {
     type: 'value' as const,
@@ -222,64 +222,59 @@ function BarChart({
   unit: string;
   minMax: number;
 }) {
-  const dataBuckets = buckets.filter(bucket => Number(bucket[valueKey]) > 0);
-  if (dataBuckets.length === 0) {
-    return <EmptyChart text="当前范围暂无瓶喂数据" />;
+  if (!buckets.some(bucket => Number(bucket[valueKey]) > 0)) {
+    return <EmptyChart text="无数据" />;
   }
 
-  const base = axisBase(dataBuckets.map(bucket => bucket.label));
-  const axis = zeroBasedAxis(Math.max(...dataBuckets.map(bucket => Number(bucket[valueKey]))), minMax);
-  return <EChart option={{ ...base, yAxis: { ...(base.yAxis as object), ...axis, axisLabel: { color: cssColor('--text-muted', '#8b857f'), formatter: (value: number) => `${Math.round(value)}${unit}` } }, series: [{ name: valueKey === 'milk' ? '瓶喂奶量' : '次数', type: 'bar', data: dataBuckets.map(bucket => Number(bucket[valueKey])), barMaxWidth: 28, ...stableBarStates(color, [7, 7, 2, 2]), label: valueLabel(value => String(Math.round(value))), tooltip: { valueFormatter: (value) => `${Math.round(Number(value))}${unit}` } }] }} />;
+  const base = axisBase(buckets.map(bucket => bucket.label));
+  const axis = zeroBasedAxis(Math.max(...buckets.map(bucket => Number(bucket[valueKey]))), minMax);
+  return <EChart option={{ ...base, yAxis: { ...(base.yAxis as object), ...axis, axisLabel: { color: cssColor('--text-muted', '#8b857f'), formatter: (value: number) => `${Math.round(value)}${unit}` } }, series: [{ name: valueKey === 'milk' ? '瓶喂奶量' : '次数', type: 'bar', data: buckets.map(bucket => Number(bucket[valueKey])), barMaxWidth: 28, ...stableBarStates(color, [7, 7, 2, 2]), label: valueLabel(value => Number(value) > 0 ? String(Math.round(value)) : ''), tooltip: { valueFormatter: (value) => Number(value) > 0 ? `${Math.round(Number(value))}${unit}` : '无数据' } }] }} />;
 }
 
 function SleepChart({ buckets }: { buckets: BucketStat[] }) {
-  const dataBuckets = buckets.filter(bucket => bucket.sleepHrs > 0);
-  if (dataBuckets.length === 0) {
-    return <EmptyChart text="当前范围暂无睡眠数据" />;
+  if (!buckets.some(bucket => bucket.sleepHrs > 0)) {
+    return <EmptyChart text="无数据" />;
   }
 
-  return <LineChart buckets={dataBuckets} valueKey="sleepHrs" color={cssColor('--lavender', '#a59ab8')} unit="h" minimumSpan={8} />;
+  return <LineChart buckets={buckets} valueKey="sleepHrs" color={cssColor('--lavender', '#a59ab8')} unit="h" minimumSpan={8} />;
 }
 
 function FeedingIntervalChart({ buckets }: { buckets: BucketStat[] }) {
-  const dataBuckets = buckets.filter(bucket => bucket.feedingIntervalHrs > 0);
-  if (dataBuckets.length === 0) return <EmptyChart text="当前范围暂无连续喂养间隔数据" />;
-  return <LineChart buckets={dataBuckets} valueKey="feedingIntervalHrs" color={cssColor('--sage', '#7fa894')} unit="h" minimumSpan={4} />;
+  if (!buckets.some(bucket => bucket.feedingIntervalHrs > 0)) return <EmptyChart text="无数据" />;
+  return <LineChart buckets={buckets} valueKey="feedingIntervalHrs" color={cssColor('--sage', '#7fa894')} unit="h" minimumSpan={4} />;
 }
 
 function LineChart({ buckets, valueKey, color, unit, minimumSpan = 0 }: { buckets: BucketStat[]; valueKey: 'sleepHrs' | 'feedingIntervalHrs' | 'weight'; color: string; unit: string; minimumSpan?: number }) {
-  const values = buckets.map(bucket => Number(bucket[valueKey]));
+  const values = buckets.map(bucket => Number(bucket[valueKey])).filter(value => value > 0);
   const rawMin = Math.min(...values);
   const rawMax = Math.max(...values);
   const axis = valueKey === 'weight' ? rangedAxis(rawMin, rawMax) : zeroBasedAxis(rawMax, minimumSpan);
   const base = axisBase(buckets.map(bucket => bucket.label));
   const decimals = valueKey === 'weight' ? 1 : 0;
   const seriesName = valueKey === 'weight' ? '体重' : valueKey === 'sleepHrs' ? '睡眠时长' : '喂养间隔';
-  return <EChart option={{ ...base, yAxis: { ...(base.yAxis as object), ...axis, axisLabel: { color: cssColor('--text-muted', '#8b857f'), formatter: (value: number) => `${value.toFixed(decimals)}${unit}` } }, series: [{ name: seriesName, type: 'line', data: values, smooth: 0.22, symbol: 'circle', symbolSize: 9, lineStyle: { width: 3, color }, itemStyle: { color: cssColor('--bg-card', '#fff'), borderColor: color, borderWidth: 3 }, label: valueLabel(value => `${value.toFixed(1)}${valueKey === 'weight' ? 'kg' : ''}`), tooltip: { valueFormatter: (value) => `${Number(value).toFixed(1)}${unit}` }, emphasis: { focus: 'series' } }] }} />;
+  return <EChart option={{ ...base, yAxis: { ...(base.yAxis as object), ...axis, axisLabel: { color: cssColor('--text-muted', '#8b857f'), formatter: (value: number) => `${value.toFixed(decimals)}${unit}` } }, series: [{ name: seriesName, type: 'line', data: buckets.map(bucket => Number(bucket[valueKey]) > 0 ? Number(bucket[valueKey]) : null), smooth: 0.22, symbol: 'circle', symbolSize: 9, lineStyle: { width: 3, color }, itemStyle: { color: cssColor('--bg-card', '#fff'), borderColor: color, borderWidth: 3 }, label: valueLabel(value => `${value.toFixed(1)}${valueKey === 'weight' ? 'kg' : ''}`), tooltip: { valueFormatter: (value) => value == null || Number(value) <= 0 ? '无数据' : `${Number(value).toFixed(1)}${unit}` }, emphasis: { focus: 'series' } }] }} />;
 }
 
 function DiaperChart({ buckets }: { buckets: BucketStat[] }) {
-  const dataBuckets = buckets.filter(bucket => bucket.pee + bucket.poop > 0);
-  if (dataBuckets.length === 0) {
-    return <EmptyChart text="当前范围暂无排泄数据" />;
+  if (!buckets.some(bucket => bucket.pee + bucket.poop > 0)) {
+    return <EmptyChart text="无数据" />;
   }
 
-  const base = axisBase(dataBuckets.map(bucket => bucket.label));
-  const totalMax = Math.max(...dataBuckets.map(bucket => bucket.pee + bucket.poop), 5);
+  const base = axisBase(buckets.map(bucket => bucket.label));
+  const totalMax = Math.max(...buckets.map(bucket => bucket.pee + bucket.poop), 5);
   const axis = zeroBasedAxis(totalMax, 5);
   return <EChart option={{ ...base, yAxis: { ...(base.yAxis as object), ...axis, axisLabel: { color: cssColor('--text-muted', '#8b857f'), formatter: (value: number) => `${Math.round(value)}次` } }, series: [
-    { name: '嘘嘘', type: 'bar', stack: 'total', data: dataBuckets.map(bucket => bucket.pee), barMaxWidth: 28, ...stableBarStates(cssColor('--sage', '#7fa894'), [0, 0, 3, 3]), tooltip: { valueFormatter: (value) => `${Math.round(Number(value))}次` } },
-    { name: '便便', type: 'bar', stack: 'total', data: dataBuckets.map(bucket => bucket.poop), barMaxWidth: 28, ...stableBarStates(cssColor('--amber', '#dca072'), [7, 7, 0, 0]), label: { ...valueLabel((_value) => ''), formatter: (params: CallbackDataParams) => String(Number(dataBuckets[params.dataIndex].pee + dataBuckets[params.dataIndex].poop).toFixed(1)).replace('.0', '') }, tooltip: { valueFormatter: (value) => `${Math.round(Number(value))}次` } }
+    { name: '嘘嘘', type: 'bar', stack: 'total', data: buckets.map(bucket => bucket.pee), barMaxWidth: 28, ...stableBarStates(cssColor('--sage', '#7fa894'), [0, 0, 3, 3]), tooltip: { valueFormatter: (value) => Number(value) > 0 ? `${Math.round(Number(value))}次` : '无数据' } },
+    { name: '便便', type: 'bar', stack: 'total', data: buckets.map(bucket => bucket.poop), barMaxWidth: 28, ...stableBarStates(cssColor('--amber', '#dca072'), [7, 7, 0, 0]), label: { ...valueLabel((_value) => ''), formatter: (params: CallbackDataParams) => { const total = buckets[params.dataIndex].pee + buckets[params.dataIndex].poop; return total > 0 ? String(total.toFixed(1)).replace('.0', '') : ''; } }, tooltip: { valueFormatter: (value) => Number(value) > 0 ? `${Math.round(Number(value))}次` : '无数据' } }
   ] }} />;
 }
 
 function GrowthChart({ buckets }: { buckets: BucketStat[] }) {
-  const growthBuckets = buckets.filter(bucket => bucket.hasWeightLog && bucket.weight > 0);
-  if (growthBuckets.length === 0) {
-    return <div className="stats-empty">暂无体重数据，可以在记录大盘中补一条体重。</div>;
+  if (!buckets.some(bucket => bucket.hasWeightLog && bucket.weight > 0)) {
+    return <div className="stats-empty">无数据</div>;
   }
 
-  return <LineChart buckets={growthBuckets} valueKey="weight" color={cssColor('--rose', '#d88f8f')} unit="kg" />;
+  return <LineChart buckets={buckets.map(bucket => ({ ...bucket, weight: bucket.hasWeightLog ? bucket.weight : 0 }))} valueKey="weight" color={cssColor('--rose', '#d88f8f')} unit="kg" />;
 }
 
 export function Stats({ logs, birthday, widgetLaunch }: StatsProps) {
@@ -299,8 +294,10 @@ export function Stats({ logs, birthday, widgetLaunch }: StatsProps) {
   const firstYearMonth = new Date(today.getFullYear(), today.getMonth() - 11, 1);
   const startDate = rangeMode === 'year' ? firstYearMonth : addDays(today, -(range.days - 1));
 
-  const rangeDayCount = Math.round((today.getTime() - startDate.getTime()) / 86400000) + 1;
-  const dateRange = Array.from({ length: rangeDayCount }, (_, i) => toDateKey(addDays(startDate, i)));
+  const dateRange: string[] = [];
+  for (let date = new Date(startDate); date <= today; date = addDays(date, 1)) {
+    dateRange.push(toDateKey(date));
+  }
   const weightLogDates = new Set(
     logs
       .filter(log => log.logType === 'growth' && log.metadata.weightKg)
@@ -446,24 +443,24 @@ export function Stats({ logs, birthday, widgetLaunch }: StatsProps) {
       </div>
 
       <section className="stats-control-panel">
-        <div>
-          <span className="stats-control-label">图表范围</span>
-          <div className="stats-segmented">
-            {RANGE_OPTIONS.map(option => (
-              <button
-                key={option.mode}
-                type="button"
-                className={rangeMode === option.mode ? 'active' : ''}
-                onClick={() => setRangeMode(option.mode)}
-              >
-                {option.label}
-              </button>
-            ))}
+          <div>
+            <span className="stats-control-label">图表范围</span>
+            <div className="stats-segmented">
+              {RANGE_OPTIONS.map(option => (
+                <button
+                  key={option.mode}
+                  type="button"
+                  className={rangeMode === option.mode ? 'active' : ''}
+                  onClick={() => setRangeMode(option.mode)}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
-        <p className="stats-grain-note">
-          {shortDate(toDateKey(startDate))} - {shortDate(toDateKey(today))} · 自动{range.hint}汇总{birthday && rangeMode === 'year' ? ` · 出生 ${birthday.replaceAll('-', '/')}` : ''}
-        </p>
+          <p className="stats-grain-note">
+            {shortDate(toDateKey(startDate))} - {shortDate(toDateKey(today))} · 自动{range.hint}汇总{birthday && rangeMode === 'year' ? ` · 出生 ${birthday.replaceAll('-', '/')}` : ''}
+          </p>
       </section>
 
       <SoftChartCard

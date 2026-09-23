@@ -276,6 +276,18 @@ function AppContent() {
   const legacyBabyInfo = JSON.stringify(baby);
 
   useEffect(() => {
+    if (showSettings || activeTab !== 'stats') return;
+    const frame = window.requestAnimationFrame(() => {
+      window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+      currentPageRef.current?.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+      currentPageRef.current?.querySelector<HTMLElement>('.stats-page')?.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [activeTab, showSettings]);
+
+  useEffect(() => {
     if (Capacitor.getPlatform() !== 'android') return;
     let disposed = false;
     let remove: (() => Promise<void>) | undefined;
@@ -681,6 +693,7 @@ function AppContent() {
         <Dashboard
           key={`dashboard-${baby.id}`}
           babyId={baby.id}
+          logs={activeLogs}
           onAddLog={handleAddLog}
           onUpdateLog={handleUpdateLog}
           editingLog={externalEditingLog}
@@ -697,7 +710,7 @@ function AppContent() {
   };
 
   return (
-    <div className={`app-shell${showSettings ? ' settings-shell' : ''}`}>
+    <div className={`app-shell${showSettings ? ' settings-shell' : ''}${!showSettings && activeTab === 'records' ? ' app-shell-records' : ''}`}>
       {/* Header Bar */}
       {!showSettings && <header className="header">
         <div className="baby-info">

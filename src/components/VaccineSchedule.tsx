@@ -139,10 +139,11 @@ export function VaccineSchedule({ baby }: { baby: BabyInfo }) {
               <button type="button" role="tab" aria-selected={filter === key} className={filter === key ? 'active' : ''} onClick={() => setFilter(key)} key={key}>{label}</button>
             ))}
           </div>
-          <p className="vaccine-clinic-time"><Clock3 size={13} />接种时间:每周二至周六上午(夏令7:30-11:00;冬令8:00-11:00)</p>
         </div>
 
-        <section className="vaccine-table" aria-label="儿童疫苗接种程序表">
+        <div className="vaccine-content-pane">
+          <p className="vaccine-clinic-time"><Clock3 size={13} />接种时间：每周二至周六上午（夏令 7:30-11:00；冬令 8:00-11:00）</p>
+          <section className="vaccine-table" aria-label="儿童疫苗接种程序表">
           <header><span>月龄</span><span>免规疫苗（免费）</span><span>非免规疫苗（自费）</span><span>状态</span></header>
           {groupedRows.map(group => (
             <article className="vaccine-age-row" key={group.key}>
@@ -160,8 +161,9 @@ export function VaccineSchedule({ baby }: { baby: BabyInfo }) {
             </article>
           ))}
           {selectedRows.length === 0 && <div className="vaccine-table-empty">当前分类暂无接种项目</div>}
-        </section>
-        <p className="vaccine-page-note"><Calendar size={13} /> 日期按出生日期自动推算，疫苗安排与价格请以当地接种门诊为准。</p>
+          </section>
+          <p className="vaccine-page-note"><Calendar size={13} /> 日期按出生日期自动推算，疫苗安排与价格请以当地接种门诊为准。</p>
+        </div>
       </div>
       <ConfirmModal compact isOpen={Boolean(resetItemId)} title="取消接种标记" message="确定切换为未接种吗？" type="warning" confirmText="确认切换" onCancel={() => setResetItemId(null)} onConfirm={() => {
         if (resetItemId) setStatus({ ...status, [`schedule:${resetItemId}`]: false });

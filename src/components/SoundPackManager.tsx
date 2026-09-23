@@ -51,8 +51,11 @@ export function SoundPackManager() {
       return <div className="sound-pack-row" key={pack.id}>
         <span className="sound-pack-icon"><Music2 size={18} /></span>
         <span className="sound-pack-copy">
-          <strong>{pack.name}{ready && <em><Check size={12} />已下载</em>}</strong>
-          <small>{pack.description} · {pack.sizeMb.toFixed(1)} MB</small>
+          <strong>
+            <span>{pack.name}</span>
+            <em>{ready && <Check size={12} />}{loading ? `${progress[pack.id]}%` : ready ? '已下载' : '未下载'}<b>{pack.sizeMb.toFixed(1)} MB</b></em>
+          </strong>
+          <small>{pack.description}</small>
           {loading && <i><b style={{ width: `${progress[pack.id]}%` }} /></i>}
         </span>
         {ready ? <button type="button" className="sound-pack-remove" onClick={() => void remove(pack.id)} aria-label={`删除${pack.name}`}><Trash2 size={16} /></button>

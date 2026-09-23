@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import type { ActivityLog, LogType, FeedingType } from '../types/baby';
 import { 
-  Milk, Moon, Droplets, Scale, Check, Edit2, AlertTriangle, Pause, Play, X
+  Milk, Moon, Droplets, Scale, Check, Edit2, AlertTriangle, Pause, Play, X, Clock3
 } from 'lucide-react';
 import { ConfirmModal } from './ConfirmModal';
 import { Incrementor } from './Incrementor';
@@ -10,6 +10,7 @@ import { DateTimePicker } from './DateTimePicker';
 
 interface DashboardProps {
   babyId: string;
+  logs: ActivityLog[];
   onAddLog: (log: ActivityLog) => void;
   onUpdateLog: (log: ActivityLog) => void;
   editingLog?: ActivityLog | null;
@@ -53,7 +54,7 @@ const getLogTypeLabel = (logType: LogType) => {
   return labels[logType] || logType;
 };
 
-export function Dashboard({ babyId, onAddLog, onUpdateLog, editingLog: externalEditingLog, onEditingDone, widgetLaunch, onWidgetLaunchHandled }: DashboardProps) {
+export function Dashboard({ babyId, logs, onAddLog, onUpdateLog, editingLog: externalEditingLog, onEditingDone, widgetLaunch, onWidgetLaunchHandled }: DashboardProps) {
   const [activeTab, setActiveTab] = useState<LogType>('feeding');
   const [feedingType, setFeedingType] = useLocalStorage<FeedingType>(`babycare_last_feeding_type_${babyId}`, 'breast');
 
@@ -89,6 +90,36 @@ export function Dashboard({ babyId, onAddLog, onUpdateLog, editingLog: externalE
   // 自定义弹窗状态
   const [alertModal, setAlertModal] = useState<{ show: boolean; message: string }>({ show: false, message: '' });
   const [toast, setToast] = useState<{ show: boolean; message: string; type: 'success' | 'error' }>({ show: false, message: '', type: 'success' });
+
+  const wideOverview = useMemo(() => {
+    const now = new Date();
+    const pad = (value: number) => String(value).padStart(2, '0');
+    const todayKey = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+    const todayLogs = logs.filter(log => log.timestamp.split('T')[0] === todayKey);
+    return {
+      counts: (['feeding', 'sleep', 'diaper', 'growth'] as LogType[]).map(logType => ({
+        logType,
+        label: getLogTypeLabel(logType),
+        count: todayLogs.filter(log => log.logType === logType).length
+      })),
+      recent: [...logs].sort((a, b) => b.timestamp.localeCompare(a.timestamp)).slice(0, 3)
+    };
+  }, [logs]);
+
+  const getRecentSummary = (log: ActivityLog) => {
+    const meta = log.metadata;
+    if (log.logType === 'feeding') {
+      if (meta.feedingType === 'bottle') return `${meta.bottle?.volumeMl ?? 0} ml`;
+      if (meta.feedingType === 'breast') return `${(meta.breast?.leftMinutes ?? 0) + (meta.breast?.rightMinutes ?? 0)} 分钟`;
+      return meta.solids?.foodName || '辅食';
+    }
+    if (log.logType === 'sleep') return `${meta.durationMinutes ?? 0} 分钟`;
+    if (log.logType === 'diaper') return [meta.pee && '嘘嘘', meta.poop && '便便'].filter(Boolean).join('、') || '已记录';
+    if (meta.weightKg) return `${meta.weightKg} kg`;
+    if (meta.heightCm) return `${meta.heightCm} cm`;
+    if (meta.temperatureC) return `${meta.temperatureC} °C`;
+    return '已记录';
+  };
 
   const showToast = (message: string, type: 'success' | 'error' = 'success') => {
     setToast({ show: true, message, type });
@@ -290,8 +321,9 @@ export function Dashboard({ babyId, onAddLog, onUpdateLog, editingLog: externalE
   };
 
   return (
-    <div className="container fade-in">
-      <div className="card dashboard-card" id="dashboard-record-card">
+    <div className="container dashboard-page fade-in">
+      <div className="dashboard-fold-layout">
+        <div className="card dashboard-card" id="dashboard-record-card">
         {editingLog && (
           <div className="editing-banner">
             <div className="editing-banner-icon">
@@ -522,6 +554,45 @@ export function Dashboard({ babyId, onAddLog, onUpdateLog, editingLog: externalE
             </button>
           </div>
         </form>
+        </div>
+
+        <aside className="dashboard-side-panel" aria-label="今日记录概览">
+          <section className="dashboard-overview-card">
+            <div className="dashboard-side-heading">
+              <div><span>今日概览</span><strong>{wideOverview.counts.reduce((sum, item) => sum + item.count, 0)} 条记录</strong></div>
+              <Clock3 size={19} />
+            </div>
+            <div className="dashboard-overview-grid">
+              {wideOverview.counts.map(item => (
+                <div key={item.logType} className={`dashboard-overview-item ${item.logType}`}>
+                  <span>{item.label}</span><strong>{item.count}</strong>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section className="dashboard-overview-card dashboard-recent-card">
+            <div className="dashboard-side-title"><span>最近记录</span><small>自动更新</small></div>
+            {wideOverview.recent.length === 0 ? (
+              <p className="dashboard-recent-empty">保存第一条记录后会显示在这里</p>
+            ) : (
+              <div className="dashboard-recent-list">
+                {wideOverview.recent.map(log => (
+                  <div className="dashboard-recent-item" key={log.id}>
+                    <span className={`dashboard-recent-icon ${log.logType}`}>
+                      {log.logType === 'feeding' && <Milk size={15} />}
+                      {log.logType === 'sleep' && <Moon size={15} />}
+                      {log.logType === 'diaper' && <Droplets size={15} />}
+                      {log.logType === 'growth' && <Scale size={15} />}
+                    </span>
+                    <span><strong>{getLogTypeLabel(log.logType)}</strong><small>{log.timestamp.slice(5, 16).replace('T', ' ')}</small></span>
+                    <b>{getRecentSummary(log)}</b>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+        </aside>
       </div>
 
       <ConfirmModal

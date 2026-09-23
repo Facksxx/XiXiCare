@@ -139,7 +139,7 @@ export function Records({ logs, onEditLog, onDeleteLog }: RecordsProps) {
   };
 
   return (
-    <div className="container fade-in">
+    <div className="container records-page fade-in">
       <div className="card records-tools-card">
         <div className="records-filter-row">
           <div className="records-date-range">
@@ -208,44 +208,46 @@ export function Records({ logs, onEditLog, onDeleteLog }: RecordsProps) {
         <div className="records-count"><Calendar size={14} /><span>共 <strong>{filteredLogs.length}</strong> 条记录{hasFilter && '（已筛选）'}</span></div>
       </div>
 
-      {sortedDateKeys.length === 0 ? (
-        <div className="card records-empty">
-          <Calendar size={40} />
-          <p>{hasFilter ? '所选条件下暂无记录' : '暂无记录，快去记录大盘添加吧'}</p>
-        </div>
-      ) : sortedDateKeys.map(date => (
-        <div key={date}>
-          <h4 className="timeline-title">{getFormatDateTitle(date)}</h4>
-          <div className="timeline">
-            {groupedLogs[date].map(log => (
-              <div key={log.id} className="timeline-item fade-in">
-                <div className="timeline-content-left" onClick={() => onEditLog(log)}>
-                  <div className={`timeline-icon-box ${log.logType}`}>
-                    {log.logType === 'feeding' && <Milk size={18} />}
-                    {log.logType === 'sleep' && <Moon size={18} />}
-                    {log.logType === 'diaper' && <Droplets size={18} />}
-                    {log.logType === 'growth' && <Scale size={18} />}
-                  </div>
-                  <div className="timeline-details">
-                    <h4>{getLogDisplayDetails(log)}</h4>
-                    {log.logType === 'feeding' && (
-                      <p className="timeline-feeding-meta">
-                        <span>{feedingTypeLabel(log.metadata.feedingType)}</span>
-                        {feedingIntervals.has(log.id) && <span>距上次喂养 {formatInterval(feedingIntervals.get(log.id) ?? 0)}</span>}
-                      </p>
-                    )}
-                    <p className="timeline-time-line"><span>{log.timestamp.split('T')[0]}</span><span>{getFormatTime(log.timestamp)}</span></p>
-                  </div>
-                </div>
-                <div className="timeline-actions">
-                  <button onClick={() => onEditLog(log)} className="timeline-edit-btn" title="编辑"><Edit2 size={14} /></button>
-                  <button onClick={() => handleDeleteClick(log.id)} className="timeline-delete-btn" title="删除"><Trash2 size={15} /></button>
-                </div>
-              </div>
-            ))}
+      <div className="records-list-pane">
+        {sortedDateKeys.length === 0 ? (
+          <div className="card records-empty">
+            <Calendar size={40} />
+            <p>{hasFilter ? '所选条件下暂无记录' : '暂无记录，快去记录大盘添加吧'}</p>
           </div>
-        </div>
-      ))}
+        ) : sortedDateKeys.map(date => (
+          <div key={date}>
+            <h4 className="timeline-title">{getFormatDateTitle(date)}</h4>
+            <div className="timeline">
+              {groupedLogs[date].map(log => (
+                <div key={log.id} className="timeline-item fade-in">
+                  <div className="timeline-content-left" onClick={() => onEditLog(log)}>
+                    <div className={`timeline-icon-box ${log.logType}`}>
+                      {log.logType === 'feeding' && <Milk size={18} />}
+                      {log.logType === 'sleep' && <Moon size={18} />}
+                      {log.logType === 'diaper' && <Droplets size={18} />}
+                      {log.logType === 'growth' && <Scale size={18} />}
+                    </div>
+                    <div className="timeline-details">
+                      <h4>{getLogDisplayDetails(log)}</h4>
+                      {log.logType === 'feeding' && (
+                        <p className="timeline-feeding-meta">
+                          <span>{feedingTypeLabel(log.metadata.feedingType)}</span>
+                          {feedingIntervals.has(log.id) && <span>距上次喂养 {formatInterval(feedingIntervals.get(log.id) ?? 0)}</span>}
+                        </p>
+                      )}
+                      <p className="timeline-time-line"><span>{log.timestamp.split('T')[0]}</span><span>{getFormatTime(log.timestamp)}</span></p>
+                    </div>
+                  </div>
+                  <div className="timeline-actions">
+                    <button onClick={() => onEditLog(log)} className="timeline-edit-btn" title="编辑"><Edit2 size={14} /></button>
+                    <button onClick={() => handleDeleteClick(log.id)} className="timeline-delete-btn" title="删除"><Trash2 size={15} /></button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
 
       <ConfirmModal
         isOpen={deleteTargetId !== null}

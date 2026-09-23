@@ -131,6 +131,7 @@ export function Guide({ baby }: { baby: BabyInfo }) {
         ))}
       </div>
 
+      <div className="guide-card-columns">
       {/* Feeding requirements */}
       <div className="card">
         <h3 className="card-title">
@@ -256,6 +257,7 @@ export function Guide({ baby }: { baby: BabyInfo }) {
             </ul>
           </div>
         </div>
+      </div>
       </div>
     </div>
   );
