@@ -14,7 +14,7 @@ interface RecordsProps {
 type TypeFilter = 'all' | LogType;
 type FeedingFilter = 'all' | FeedingType;
 type BottleFilter = 'all' | 'formula' | 'breastmilk';
-type GrowthFilter = 'all' | 'weight' | 'height' | 'head' | 'temperature';
+type GrowthFilter = 'all' | 'weight' | 'height' | 'temperature';
 
 const TYPE_FILTERS: Array<{ value: TypeFilter; label: string }> = [
   { value: 'all', label: '全部' },
@@ -41,7 +41,6 @@ const GROWTH_FILTERS: Array<{ value: GrowthFilter; label: string }> = [
   { value: 'all', label: '全部体征' },
   { value: 'weight', label: '体重' },
   { value: 'height', label: '身高' },
-  { value: 'head', label: '头围' },
   { value: 'temperature', label: '体温' }
 ];
 
@@ -76,8 +75,7 @@ export function Records({ logs, onEditLog, onDeleteLog }: RecordsProps) {
     if (typeFilter === 'growth' && growthFilter !== 'all') {
       const field = growthFilter === 'weight' ? 'weightKg'
         : growthFilter === 'height' ? 'heightCm'
-          : growthFilter === 'head' ? 'headCircumferenceCm'
-            : 'temperatureC';
+          : 'temperatureC';
       if (log.metadata[field] === undefined) return false;
     }
     return true;

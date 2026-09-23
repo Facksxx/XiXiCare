@@ -1,11 +1,11 @@
 {
-  "version": "1.3.18",
-  "tag": "v1.3.18",
-  "htmlUrl": "https://gitee.com/Facksxx/xi-xi-care/releases/tag/v1.3.18",
-  "apkUrl": "https://gitee.com/Facksxx/xi-xi-care/releases/download/v1.3.18/XiXiCare.apk",
-  "publishedAt": "2026-09-23T06:06:29.497Z",
-  "notes": "折叠屏布局全面优化；成长统计最近7天包含当前日期，空数据与滚动修复；时间轴体征筛选、指南双列与页面样式修复",
-  "sha256": "b819d0c9b83ccdfba842ddda63e9d887dd2497597dcb63e2b5c24250c7f088a9",
+  "version": "1.3.19",
+  "tag": "v1.3.19",
+  "htmlUrl": "https://gitee.com/Facksxx/xi-xi-care/releases/tag/v1.3.19",
+  "apkUrl": "https://gitee.com/Facksxx/xi-xi-care/releases/download/v1.3.19/XiXiCare.apk",
+  "publishedAt": "2026-09-23T06:26:04.185Z",
+  "notes": "设置页按折叠屏与手机态重新排序；时间轴移除头围筛选；成长统计无数据图表填充修复",
+  "sha256": "7bae4f163ff681182f5de07a54d4ddfbb8c48d522e10d8b6644608e0c913ef25",
   "history": [
     {
       "version": "1.1.14",
@@ -231,6 +231,11 @@
       "version": "1.3.18",
       "publishedAt": "2026-09-23T06:06:29.497Z",
       "notes": "折叠屏布局全面优化；成长统计最近7天包含当前日期，空数据与滚动修复；时间轴体征筛选、指南双列与页面样式修复"
+    },
+    {
+      "version": "1.3.19",
+      "publishedAt": "2026-09-23T06:26:04.185Z",
+      "notes": "设置页按折叠屏与手机态重新排序；时间轴移除头围筛选；成长统计无数据图表填充修复"
     }
   ]
 }
