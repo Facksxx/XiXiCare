@@ -531,6 +531,10 @@ function AppContent() {
     setExternalEditingLog(null);
   }, []);
 
+  const handleWidgetRecordLaunchHandled = useCallback((token: number) => {
+    setWidgetRecordLaunch(current => current?.token === token ? null : current);
+  }, []);
+
   const handleEditBaby = (babyId = baby.id) => {
     const target = babies.find((item) => item.id === babyId);
     if (!target) return;
@@ -682,6 +686,7 @@ function AppContent() {
           editingLog={externalEditingLog}
           onEditingDone={handleEditingDone}
           widgetLaunch={widgetRecordLaunch}
+          onWidgetLaunchHandled={handleWidgetRecordLaunchHandled}
         />
       );
     }

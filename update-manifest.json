@@ -1,11 +1,11 @@
 {
-  "version": "1.3.14",
-  "tag": "v1.3.14",
-  "htmlUrl": "https://gitee.com/Facksxx/xi-xi-care/releases/tag/v1.3.14",
-  "apkUrl": "https://gitee.com/Facksxx/xi-xi-care/releases/download/v1.3.14/XiXiCare.apk",
-  "publishedAt": "2026-09-22T05:14:34.000Z",
-  "notes": "修复喂养、睡眠、尿布和体征记录编辑时丢失编辑状态、时间重置并误新增的问题；七日桌面图统计包含今天；增强 App 已打开时记一笔和图表点击的前台跳转与定位。",
-  "sha256": "410ca7b445635e66154df6b6009c778f58e49dfc190a0dff89766669be8f92db",
+  "version": "1.3.15",
+  "tag": "v1.3.15",
+  "htmlUrl": "https://gitee.com/Facksxx/xi-xi-care/releases/tag/v1.3.15",
+  "apkUrl": "https://gitee.com/Facksxx/xi-xi-care/releases/download/v1.3.15/XiXiCare.apk",
+  "publishedAt": "2026-09-23T00:42:56.072Z",
+  "notes": "修复喂养记录编辑状态被旧的小组件指令重置；修复云同步过程中删除或编辑的数据被旧快照恢复。",
+  "sha256": "c4c09b9aeea1145324e761b6150a334084316f376df3d7f4ed9617db6efbf84b",
   "history": [
     {
       "version": "1.1.14",
@@ -216,6 +216,11 @@
       "version": "1.3.14",
       "publishedAt": "2026-09-22T05:14:34.000Z",
       "notes": "修复喂养、睡眠、尿布和体征记录编辑时丢失编辑状态、时间重置并误新增的问题；七日桌面图统计包含今天；增强 App 已打开时记一笔和图表点击的前台跳转与定位。"
+    },
+    {
+      "version": "1.3.15",
+      "publishedAt": "2026-09-23T00:42:56.072Z",
+      "notes": "修复喂养记录编辑状态被旧的小组件指令重置；修复云同步过程中删除或编辑的数据被旧快照恢复。"
     }
   ]
 }

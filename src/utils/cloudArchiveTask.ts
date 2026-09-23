@@ -92,12 +92,14 @@ export const runCloudArchiveAutoSync = async () => {
   const pendingToken = localStorage.getItem('babycare_cloud_archive_pending');
   setState({ phase: 'uploading', message: '正在自动同步…', syncedAt: state.syncedAt });
   try {
-    const local = captureArchiveSnapshot();
+    let local = captureArchiveSnapshot();
     const localEnvelope = await encryptArchiveSnapshot(local, code, birthday);
     let meta = await fetchCloudArchiveMeta(code, birthday);
     if (stopAutoSyncIfDisabled()) return;
     if (meta && meta.digest === localEnvelope.digest) {
-      if (localStorage.getItem('babycare_cloud_archive_pending') === pendingToken) localStorage.removeItem('babycare_cloud_archive_pending');
+      const currentToken = localStorage.getItem('babycare_cloud_archive_pending');
+      if (currentToken === pendingToken) localStorage.removeItem('babycare_cloud_archive_pending');
+      else window.setTimeout(() => void runCloudArchiveAutoSync(), 0);
       markSynced('已是最新存档', meta.updatedAt);
       return;
     }
@@ -108,6 +110,14 @@ export const runCloudArchiveAutoSync = async () => {
       if (remoteEnvelope) snapshot = mergeArchiveSnapshots(await decryptArchiveSnapshot(remoteEnvelope, code, birthday), local);
     }
     if (stopAutoSyncIfDisabled()) return;
+
+    // 网络请求期间可能又发生编辑或删除。上传前必须重新读取当前本地状态，
+    // 否则较早捕获的快照会把刚刚完成的操作覆盖掉。
+    const tokenBeforeUpload = localStorage.getItem('babycare_cloud_archive_pending');
+    if (tokenBeforeUpload !== pendingToken) {
+      local = captureArchiveSnapshot();
+      snapshot = mergeArchiveSnapshots(snapshot, local);
+    }
     try {
       await saveCloudArchive(code, birthday, await encryptArchiveSnapshot(snapshot, code, birthday), meta?.revision ?? 0);
     } catch (error) {
@@ -115,13 +125,19 @@ export const runCloudArchiveAutoSync = async () => {
       meta = await fetchCloudArchiveMeta(code, birthday);
       const latestEnvelope = await fetchCloudArchive(code, birthday);
       if (stopAutoSyncIfDisabled()) return;
+      local = captureArchiveSnapshot();
       snapshot = latestEnvelope ? mergeArchiveSnapshots(await decryptArchiveSnapshot(latestEnvelope, code, birthday), local) : local;
       await saveCloudArchive(code, birthday, await encryptArchiveSnapshot(snapshot, code, birthday), meta?.revision ?? 0);
     }
+    const tokenAfterUpload = localStorage.getItem('babycare_cloud_archive_pending');
+    const localChangedDuringSync = tokenAfterUpload !== tokenBeforeUpload;
     const changedLocally = JSON.stringify(snapshot.values) !== JSON.stringify(local.values);
-    if (changedLocally) applyArchiveSnapshot(snapshot);
-    if (localStorage.getItem('babycare_cloud_archive_pending') === pendingToken) localStorage.removeItem('babycare_cloud_archive_pending');
+    // 只允许把远端合并结果应用到捕获时的同一份本地状态。若同步期间又有
+    // 新操作，保留当前页面数据，并让现有 pending 标记触发下一次同步。
+    if (changedLocally && !localChangedDuringSync) applyArchiveSnapshot(snapshot);
+    if (!localChangedDuringSync && tokenAfterUpload === tokenBeforeUpload) localStorage.removeItem('babycare_cloud_archive_pending');
     markSynced('自动同步完成', snapshot.updatedAt);
+    if (localChangedDuringSync) window.setTimeout(() => void runCloudArchiveAutoSync(), 0);
   } catch (error) {
     localStorage.setItem('babycare_cloud_archive_pending', '1');
     fail(error, '自动同步失败，联网后重试');

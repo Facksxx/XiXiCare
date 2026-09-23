@@ -15,6 +15,7 @@ interface DashboardProps {
   editingLog?: ActivityLog | null;
   onEditingDone?: () => void;
   widgetLaunch?: { recordType: LogType; token: number } | null;
+  onWidgetLaunchHandled?: (token: number) => void;
 }
 
 const getNowLocal = () => {
@@ -52,7 +53,7 @@ const getLogTypeLabel = (logType: LogType) => {
   return labels[logType] || logType;
 };
 
-export function Dashboard({ babyId, onAddLog, onUpdateLog, editingLog: externalEditingLog, onEditingDone, widgetLaunch }: DashboardProps) {
+export function Dashboard({ babyId, onAddLog, onUpdateLog, editingLog: externalEditingLog, onEditingDone, widgetLaunch, onWidgetLaunchHandled }: DashboardProps) {
   const [activeTab, setActiveTab] = useState<LogType>('feeding');
   const [feedingType, setFeedingType] = useLocalStorage<FeedingType>(`babycare_last_feeding_type_${babyId}`, 'breast');
 
@@ -152,6 +153,7 @@ export function Dashboard({ babyId, onAddLog, onUpdateLog, editingLog: externalE
 
   useEffect(() => {
     if (widgetLaunch?.recordType !== 'feeding' && widgetLaunch?.recordType !== 'sleep') return;
+    const launchToken = widgetLaunch.token;
     setStartTime(getNowLocal());
     setSolidsName('');
     setBreastLeft(10);
@@ -162,13 +164,14 @@ export function Dashboard({ babyId, onAddLog, onUpdateLog, editingLog: externalE
     setEditingLog(null);
     onEditingDone?.();
     setActiveTab(widgetLaunch.recordType);
+    onWidgetLaunchHandled?.(launchToken);
     const firstFrame = window.requestAnimationFrame(() => {
       window.requestAnimationFrame(() => {
         document.getElementById('dashboard-record-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       });
     });
     return () => window.cancelAnimationFrame(firstFrame);
-  }, [widgetLaunch, onEditingDone]);
+  }, [widgetLaunch, onEditingDone, onWidgetLaunchHandled]);
 
   useEffect(() => {
     if (!sleepTimer?.runningSince) return;
