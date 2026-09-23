@@ -41,6 +41,8 @@ export function Settings({ logs, babies, activeBabyId, onAddBaby, onSwitchBaby, 
         <h1>设置</h1>
       </div>
 
+      <div className="settings-columns">
+      <div className="settings-column settings-column-primary">
       <section className="settings-section" aria-labelledby="baby-management-title">
         <div className="settings-item-heading settings-baby-heading">
           <span className="settings-icon" aria-hidden="true"><Users size={18} /></span>
@@ -61,10 +63,6 @@ export function Settings({ logs, babies, activeBabyId, onAddBaby, onSwitchBaby, 
         </div>
       </section>
 
-      <section className="settings-section" aria-labelledby="data-management-title">
-        <div id="data-management-title"><DataTransfer logs={logs} babies={babies} activeBabyId={activeBabyId} /></div>
-      </section>
-
       <section className="settings-section" aria-labelledby="cloud-archive-title">
         <div className="settings-item-heading">
           <span className="settings-icon" aria-hidden="true"><Database size={18} /></span>
@@ -72,6 +70,16 @@ export function Settings({ logs, babies, activeBabyId, onAddBaby, onSwitchBaby, 
           <button type="button" className={`settings-switch${autoSyncEnabled ? ' active' : ''}`} role="switch" aria-checked={autoSyncEnabled} aria-label="自动同步云存档" onClick={toggleAutoSync}><span /></button>
         </div>
         <CloudArchiveManager babies={babies} activeBabyId={activeBabyId} />
+      </section>
+
+      {Capacitor.getPlatform() !== 'ios' && <section className="settings-section" aria-labelledby="about-title">
+        <div id="about-title"><UpdateChecker detectedRelease={detectedRelease} onReleaseChange={onReleaseChange} /></div>
+      </section>}
+      </div>
+
+      <div className="settings-column settings-column-secondary">
+      <section className="settings-section" aria-labelledby="data-management-title">
+        <div id="data-management-title"><DataTransfer logs={logs} babies={babies} activeBabyId={activeBabyId} /></div>
       </section>
 
       <section className="settings-section" aria-labelledby="sound-packs-title">
@@ -82,9 +90,6 @@ export function Settings({ logs, babies, activeBabyId, onAddBaby, onSwitchBaby, 
         <SoundPackManager />
       </section>
 
-      {Capacitor.getPlatform() !== 'ios' && <section className="settings-section" aria-labelledby="about-title">
-        <div id="about-title"><UpdateChecker detectedRelease={detectedRelease} onReleaseChange={onReleaseChange} /></div>
-      </section>}
       <section className="settings-section" aria-labelledby="privacy-settings-title">
         <div className="settings-item-heading settings-privacy-row">
           <span className="settings-icon" aria-hidden="true"><ShieldCheck size={18} /></span>
@@ -92,6 +97,8 @@ export function Settings({ logs, babies, activeBabyId, onAddBaby, onSwitchBaby, 
           <button type="button" className="settings-privacy-link" onClick={() => void openPrivacyPolicy().catch(() => window.alert('隐私政策暂时无法打开，请检查网络后重试。'))}>查看</button>
         </div>
       </section>
+      </div>
+      </div>
 
     </div>
   );

@@ -14,6 +14,7 @@ interface RecordsProps {
 type TypeFilter = 'all' | LogType;
 type FeedingFilter = 'all' | FeedingType;
 type BottleFilter = 'all' | 'formula' | 'breastmilk';
+type GrowthFilter = 'all' | 'weight' | 'height' | 'head' | 'temperature';
 
 const TYPE_FILTERS: Array<{ value: TypeFilter; label: string }> = [
   { value: 'all', label: '全部' },
@@ -36,6 +37,14 @@ const BOTTLE_FILTERS: Array<{ value: BottleFilter; label: string }> = [
   { value: 'breastmilk', label: '母乳' }
 ];
 
+const GROWTH_FILTERS: Array<{ value: GrowthFilter; label: string }> = [
+  { value: 'all', label: '全部体征' },
+  { value: 'weight', label: '体重' },
+  { value: 'height', label: '身高' },
+  { value: 'head', label: '头围' },
+  { value: 'temperature', label: '体温' }
+];
+
 const feedingTypeLabel = (type?: FeedingType) => (
   type === 'bottle' ? '奶瓶' : type === 'solids' ? '辅食' : '母乳'
 );
@@ -53,6 +62,7 @@ export function Records({ logs, onEditLog, onDeleteLog }: RecordsProps) {
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');
   const [feedingFilter, setFeedingFilter] = useState<FeedingFilter>('all');
   const [bottleFilter, setBottleFilter] = useState<BottleFilter>('all');
+  const [growthFilter, setGrowthFilter] = useState<GrowthFilter>('all');
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
 
   const sortedLogs = useMemo(() => [...logs].sort((a, b) => b.timestamp.localeCompare(a.timestamp)), [logs]);
@@ -63,8 +73,15 @@ export function Records({ logs, onEditLog, onDeleteLog }: RecordsProps) {
     if (typeFilter !== 'all' && log.logType !== typeFilter) return false;
     if (typeFilter === 'feeding' && feedingFilter !== 'all' && log.metadata.feedingType !== feedingFilter) return false;
     if (typeFilter === 'feeding' && feedingFilter === 'bottle' && bottleFilter !== 'all' && log.metadata.bottle?.fluidType !== bottleFilter) return false;
+    if (typeFilter === 'growth' && growthFilter !== 'all') {
+      const field = growthFilter === 'weight' ? 'weightKg'
+        : growthFilter === 'height' ? 'heightCm'
+          : growthFilter === 'head' ? 'headCircumferenceCm'
+            : 'temperatureC';
+      if (log.metadata[field] === undefined) return false;
+    }
     return true;
-  }), [sortedLogs, startDate, endDate, typeFilter, feedingFilter, bottleFilter]);
+  }), [sortedLogs, startDate, endDate, typeFilter, feedingFilter, bottleFilter, growthFilter]);
 
   const feedingIntervals = useMemo(() => {
     return new Map(getEffectiveFeedingIntervals(logs).map(item => [item.log.id, item.minutes]));
@@ -129,13 +146,14 @@ export function Records({ logs, onEditLog, onDeleteLog }: RecordsProps) {
     setDeleteTargetId(id);
   };
 
-  const hasFilter = Boolean(startDate || endDate || typeFilter !== 'all' || feedingFilter !== 'all' || bottleFilter !== 'all');
+  const hasFilter = Boolean(startDate || endDate || typeFilter !== 'all' || feedingFilter !== 'all' || bottleFilter !== 'all' || growthFilter !== 'all');
   const clearFilter = () => {
     setStartDate('');
     setEndDate('');
     setTypeFilter('all');
     setFeedingFilter('all');
     setBottleFilter('all');
+    setGrowthFilter('all');
   };
 
   return (
@@ -164,6 +182,7 @@ export function Records({ logs, onEditLog, onDeleteLog }: RecordsProps) {
                   setFeedingFilter('all');
                   setBottleFilter('all');
                 }
+                if (option.value !== 'growth') setGrowthFilter('all');
               }}
             >
               {option.label}
@@ -199,6 +218,22 @@ export function Records({ logs, onEditLog, onDeleteLog }: RecordsProps) {
                 aria-checked={bottleFilter === option.value}
                 className={bottleFilter === option.value ? 'active' : ''}
                 onClick={() => setBottleFilter(option.value)}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        )}
+        {typeFilter === 'growth' && (
+          <div className="records-feeding-filter records-growth-filter" role="radiogroup" aria-label="体征类型">
+            {GROWTH_FILTERS.map(option => (
+              <button
+                key={option.value}
+                type="button"
+                role="radio"
+                aria-checked={growthFilter === option.value}
+                className={growthFilter === option.value ? 'active' : ''}
+                onClick={() => setGrowthFilter(option.value)}
               >
                 {option.label}
               </button>

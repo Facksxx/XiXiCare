@@ -1212,6 +1212,14 @@ select {
   border-bottom: 1px solid var(--border);
 }
 
+.settings-column {
+  min-width: 0;
+}
+
+.settings-columns {
+  display: block;
+}
+
 .settings-item-heading {
   display: flex;
   align-items: center;
@@ -1457,8 +1465,7 @@ select {
 }
 
 .settings-data-actions > button > svg {
-  position: absolute;
-  left: 10px;
+  position: static;
   flex: 0 0 17px;
 }
 
@@ -2254,6 +2261,17 @@ select {
   margin-right: calc(-1 * var(--container-gutter));
   padding-left: var(--container-gutter);
   padding-right: var(--container-gutter);
+}
+
+.guide-scroller::before {
+  content: '';
+  position: absolute;
+  right: 0;
+  bottom: 100%;
+  left: 0;
+  height: 32px;
+  background: var(--bg);
+  pointer-events: none;
 }
 
 .guide-scroller::-webkit-scrollbar {
@@ -4929,6 +4947,13 @@ body.modal-open {
     -webkit-overflow-scrolling: touch;
   }
 
+  .guide-page,
+  .vaccine-page,
+  .settings-page {
+    padding-bottom: calc(132px + var(--safe-bottom));
+    scroll-padding-bottom: calc(132px + var(--safe-bottom));
+  }
+
   .dashboard-page {
     overflow: hidden;
   }
@@ -4961,7 +4986,7 @@ body.modal-open {
 
   .dashboard-fold-layout {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 260px;
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
     align-items: start;
     gap: 20px;
   }
@@ -5118,7 +5143,7 @@ body.modal-open {
   }
 
   .records-date-range .custom-date-trigger {
-    border-radius: var(--radius-md);
+    border-radius: var(--radius-sm);
   }
 
   .records-type-filter,
@@ -5152,6 +5177,8 @@ body.modal-open {
     min-height: 0;
     height: auto;
     padding-right: 2px;
+    padding-bottom: calc(112px + var(--safe-bottom));
+    scroll-padding-bottom: calc(112px + var(--safe-bottom));
     overflow-y: scroll;
     overscroll-behavior-y: contain;
     -webkit-overflow-scrolling: touch;
@@ -5169,7 +5196,15 @@ body.modal-open {
     align-content: start;
     align-items: stretch;
     gap: 14px;
+    padding-bottom: calc(132px + var(--safe-bottom));
+    scroll-padding-bottom: calc(132px + var(--safe-bottom));
     overflow-y: auto;
+  }
+
+  .guide-page,
+  .vaccine-page {
+    padding-bottom: calc(132px + var(--safe-bottom));
+    scroll-padding-bottom: calc(132px + var(--safe-bottom));
   }
 
   .stats-page > .stats-summary-grid,
@@ -5184,32 +5219,51 @@ body.modal-open {
   }
 
   .settings-page {
+    display: block;
+  }
+
+  .settings-columns {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     align-items: start;
     gap: 14px;
   }
 
-  .guide-page {
-    display: block;
+  .settings-columns > .settings-column {
+    display: flex;
+    width: 100%;
+    min-width: 0;
+    flex-direction: column;
+    gap: 0;
   }
 
-  .settings-heading {
-    grid-column: 1 / -1;
+  .guide-page {
+    display: block;
+    padding-top: 0;
   }
 
   .guide-card-columns {
-    column-count: 2;
-    column-gap: 14px;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-auto-flow: row;
+    gap: 14px;
+    align-items: start;
   }
 
   .guide-card-columns > .card {
-    display: inline-block;
     width: 100%;
     height: auto;
-    margin-bottom: 14px;
-    vertical-align: top;
-    break-inside: avoid;
+    margin-bottom: 0;
+  }
+
+  .guide-feeding-card,
+  .guide-solids-card {
+    grid-column: 1;
+  }
+
+  .guide-milestones-card {
+    grid-column: 2;
+    grid-row: 1 / span 2;
   }
 
   .guide-scroller {
@@ -5217,8 +5271,9 @@ body.modal-open {
   }
 
   .settings-section {
+    width: 100%;
     height: auto;
-    align-self: start;
+    align-self: stretch;
     margin-bottom: 0;
   }
 

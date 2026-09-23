@@ -133,7 +133,7 @@ export function Guide({ baby }: { baby: BabyInfo }) {
 
       <div className="guide-card-columns">
       {/* Feeding requirements */}
-      <div className="card">
+      <div className="card guide-feeding-card">
         <h3 className="card-title">
           <Utensils size={18} className="text-[var(--amber)]" />
           喂养建议 (乳类)
@@ -160,7 +160,7 @@ export function Guide({ baby }: { baby: BabyInfo }) {
 
       {/* Solids introduction (4-6 months onwards) */}
       {activeStage.solidsGuide && (
-        <div className="card">
+        <div className="card guide-solids-card">
           <h3 className="card-title">
             <Utensils size={18} className="text-[var(--sage)]" />
             辅食引入计划
@@ -217,7 +217,7 @@ export function Guide({ baby }: { baby: BabyInfo }) {
       )}
 
       {/* Developmental Milestones */}
-      <div className="card">
+      <div className="card guide-milestones-card">
         <h3 className="card-title">
           <Award size={18} className="text-[var(--lavender)]" />
           发育里程碑
