@@ -1,11 +1,11 @@
 {
-  "version": "1.3.19",
-  "tag": "v1.3.19",
-  "htmlUrl": "https://gitee.com/Facksxx/xi-xi-care/releases/tag/v1.3.19",
-  "apkUrl": "https://gitee.com/Facksxx/xi-xi-care/releases/download/v1.3.19/XiXiCare.apk",
-  "publishedAt": "2026-09-23T06:26:04.185Z",
-  "notes": "设置页按折叠屏与手机态重新排序；时间轴移除头围筛选；成长统计无数据图表填充修复",
-  "sha256": "7bae4f163ff681182f5de07a54d4ddfbb8c48d522e10d8b6644608e0c913ef25",
+  "version": "1.3.20",
+  "tag": "v1.3.20",
+  "htmlUrl": "https://gitee.com/Facksxx/xi-xi-care/releases/tag/v1.3.20",
+  "apkUrl": "https://gitee.com/Facksxx/xi-xi-care/releases/download/v1.3.20/XiXiCare.apk",
+  "publishedAt": "2026-09-23T06:33:54.299Z",
+  "notes": "排泄统计无数据时隐藏图例；普通模式疫苗日期完整显示年月日并保持单行",
+  "sha256": "59c1a718417baa758d409fd459282a009fbb5e5fd79bd90148d5507d936a3fbb",
   "history": [
     {
       "version": "1.1.14",
@@ -236,6 +236,11 @@
       "version": "1.3.19",
       "publishedAt": "2026-09-23T06:26:04.185Z",
       "notes": "设置页按折叠屏与手机态重新排序；时间轴移除头围筛选；成长统计无数据图表填充修复"
+    },
+    {
+      "version": "1.3.20",
+      "publishedAt": "2026-09-23T06:33:54.299Z",
+      "notes": "排泄统计无数据时隐藏图例；普通模式疫苗日期完整显示年月日并保持单行"
     }
   ]
 }

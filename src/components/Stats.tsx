@@ -430,6 +430,7 @@ export function Stats({ logs, birthday, widgetLaunch }: StatsProps) {
     { label: '今日嘘嘘', value: todayStats.pee, unit: '次' },
     { label: '今日便便', value: todayStats.poop, unit: '次' }
   ];
+  const hasDiaperData = buckets.some(bucket => bucket.pee + bucket.poop > 0);
 
   return (
     <div className="container fade-in stats-page">
@@ -513,12 +514,12 @@ export function Stats({ logs, birthday, widgetLaunch }: StatsProps) {
         subtitle={`${range.hint}，单位 次/天`}
         icon={<Heart size={17} />}
         tone="peach"
-        legend={(
+        legend={hasDiaperData ? (
           <div className="stats-legend">
             <span><i className="legend-pee" />嘘嘘</span>
             <span><i className="legend-poop" />便便</span>
           </div>
-        )}
+        ) : undefined}
       >
         <DiaperChart buckets={buckets} />
       </SoftChartCard>
