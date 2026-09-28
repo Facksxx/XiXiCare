@@ -1,9 +1,10 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { ActivityLog, FeedingType, LogType } from '../types/baby';
-import { Calendar, Droplets, Edit2, Milk, Moon, Scale, Trash2 } from 'lucide-react';
+import { Calendar, Clock3, Droplets, Edit2, Milk, Moon, Scale, Trash2 } from 'lucide-react';
 import { ConfirmModal } from './ConfirmModal';
 import { DateTimePicker } from './DateTimePicker';
 import { getEffectiveFeedingIntervals } from '../utils/feedingIntervals';
+import { getNextFeedingPrediction, FEEDING_PREDICTION_WINDOW_DAYS } from '../utils/feedingPrediction';
 
 interface RecordsProps {
   logs: ActivityLog[];
@@ -55,6 +56,19 @@ const formatInterval = (minutes: number) => {
   return rest ? `${hours}小时${rest}分钟` : `${hours}小时`;
 };
 
+const formatPredictionTime = (timestamp: number) => {
+  const date = new Date(timestamp);
+  const now = new Date();
+  const pad = (value: number) => String(value).padStart(2, '0');
+  const time = `${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  const dayDiff = Math.round(
+    (new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime()
+      - new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()) / 86400000
+  );
+  const dayLabel = dayDiff === 0 ? '今天' : dayDiff === 1 ? '明天' : dayDiff === -1 ? '昨天' : `${date.getMonth() + 1}/${date.getDate()}`;
+  return `${dayLabel} ${time}`;
+};
+
 export function Records({ logs, onEditLog, onDeleteLog }: RecordsProps) {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -63,6 +77,13 @@ export function Records({ logs, onEditLog, onDeleteLog }: RecordsProps) {
   const [bottleFilter, setBottleFilter] = useState<BottleFilter>('all');
   const [growthFilter, setGrowthFilter] = useState<GrowthFilter>('all');
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
+  const [nowTick, setNowTick] = useState(() => Date.now());
+
+  // 每 30 秒刷新一次当前时间，保证超过 6 小时后预测内容能自动隐藏
+  useEffect(() => {
+    const timer = window.setInterval(() => setNowTick(Date.now()), 30000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   const sortedLogs = useMemo(() => [...logs].sort((a, b) => b.timestamp.localeCompare(a.timestamp)), [logs]);
   const filteredLogs = useMemo(() => sortedLogs.filter(log => {
@@ -84,6 +105,10 @@ export function Records({ logs, onEditLog, onDeleteLog }: RecordsProps) {
   const feedingIntervals = useMemo(() => {
     return new Map(getEffectiveFeedingIntervals(logs).map(item => [item.log.id, item.minutes]));
   }, [logs]);
+
+  const prediction = useMemo(() => getNextFeedingPrediction(logs, nowTick), [logs, nowTick]);
+  const predictionDeltaMinutes = prediction ? Math.round((prediction.predictedAt - nowTick) / 60000) : 0;
+  const predictionOverdue = predictionDeltaMinutes < 0;
 
   const groupedLogs = useMemo(() => {
     const groups: Record<string, ActivityLog[]> = {};
@@ -242,6 +267,24 @@ export function Records({ logs, onEditLog, onDeleteLog }: RecordsProps) {
       </div>
 
       <div className="records-list-pane">
+        {prediction && (
+          <div className="card next-feeding-banner fade-in" role="status">
+            <span className="next-feeding-icon" aria-hidden="true"><Milk size={18} /></span>
+            <div className="next-feeding-copy">
+              <p className="next-feeding-label">预计下次喂奶</p>
+              <strong className="next-feeding-time">{formatPredictionTime(prediction.predictedAt)}</strong>
+              <p className="next-feeding-meta">
+                <Clock3 size={12} />
+                <span>近{FEEDING_PREDICTION_WINDOW_DAYS}天 {prediction.sampleCount} 次间隔 · 平均 {formatInterval(prediction.averageIntervalMinutes)}</span>
+              </p>
+            </div>
+            <span className={`next-feeding-status${predictionOverdue ? ' overdue' : ''}`}>
+              {predictionOverdue
+                ? `已超 ${formatInterval(Math.max(1, -predictionDeltaMinutes))}`
+                : `还有 ${formatInterval(Math.max(1, predictionDeltaMinutes))}`}
+            </span>
+          </div>
+        )}
         {sortedDateKeys.length === 0 ? (
           <div className="card records-empty">
             <Calendar size={40} />
