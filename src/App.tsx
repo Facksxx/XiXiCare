@@ -86,7 +86,6 @@ function AppContent() {
   const [showBabySwitcher, setShowBabySwitcher] = useState(false);
   const [isWhiteNoisePlaying, setIsWhiteNoisePlaying] = useState(false);
   const [detectedRelease, setDetectedRelease] = useState<RemoteRelease | null>(null);
-  const [showUpdatePrompt, setShowUpdatePrompt] = useState(false);
   const [widgetChartLaunch, setWidgetChartLaunch] = useState<{ chartType: string; token: number } | null>(null);
   const [widgetRecordLaunch, setWidgetRecordLaunch] = useState<{ recordType: 'feeding' | 'sleep'; token: number } | null>(null);
   const lastUpdateCheckRef = useRef(0);
@@ -185,8 +184,8 @@ function AppContent() {
         lastUpdateCheckRef.current = Date.now();
         if (!cancelled) {
           const nextRelease = release.version && isNewer(release.version) ? release : null;
+          // 发现新版本只做静默记录：设置入口显示小红点，由用户主动进入设置查看，不自动弹窗
           setDetectedRelease(nextRelease);
-          if (nextRelease) setShowUpdatePrompt(true);
         }
       } catch {
         // Keep the last-success timestamp unchanged so foreground/online checks can retry.
@@ -871,18 +870,6 @@ function AppContent() {
         isOpen={showWhiteNoise}
         onClose={() => setShowWhiteNoise(false)}
         onPlaybackChange={setIsWhiteNoisePlaying}
-      />
-
-      <ConfirmModal
-        compact
-        isOpen={Boolean(detectedRelease && showUpdatePrompt && !showSettings)}
-        title="发现新版本"
-        message={detectedRelease ? `XiXiCare v${detectedRelease.version} 已发布，是否前往设置查看并更新？` : ''}
-        type="info"
-        confirmText="查看更新"
-        cancelText="稍后再说"
-        onConfirm={() => { setShowUpdatePrompt(false); openSettings(); }}
-        onCancel={() => setShowUpdatePrompt(false)}
       />
 
       {showBabySwitcher && (
