@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { ActivityLog, FeedingType, LogType } from '../types/baby';
-import { Calendar, Clock3, Droplets, Edit2, Milk, Moon, Scale, Trash2 } from 'lucide-react';
+import { Calendar, Droplets, Edit2, Milk, Moon, Scale, Trash2 } from 'lucide-react';
 import { ConfirmModal } from './ConfirmModal';
 import { DateTimePicker } from './DateTimePicker';
 import { getEffectiveFeedingIntervals } from '../utils/feedingIntervals';
@@ -270,19 +270,19 @@ export function Records({ logs, onEditLog, onDeleteLog }: RecordsProps) {
         {prediction && (
           <div className="card next-feeding-banner fade-in" role="status">
             <span className="next-feeding-icon" aria-hidden="true"><Milk size={18} /></span>
-            <div className="next-feeding-copy">
+            <div className="next-feeding-main">
               <p className="next-feeding-label">预计下次喂奶</p>
               <strong className="next-feeding-time">{formatPredictionTime(prediction.predictedAt)}</strong>
-              <p className="next-feeding-meta">
-                <Clock3 size={12} />
-                <span>近{FEEDING_PREDICTION_WINDOW_DAYS}天 {prediction.sampleCount} 次间隔 · 平均 {formatInterval(prediction.averageIntervalMinutes)}</span>
-              </p>
+              <span className={`next-feeding-status${predictionOverdue ? ' overdue' : ''}`}>
+                {predictionOverdue
+                  ? `已超 ${formatInterval(Math.max(1, -predictionDeltaMinutes))}`
+                  : `还有 ${formatInterval(Math.max(1, predictionDeltaMinutes))}`}
+              </span>
             </div>
-            <span className={`next-feeding-status${predictionOverdue ? ' overdue' : ''}`}>
-              {predictionOverdue
-                ? `已超 ${formatInterval(Math.max(1, -predictionDeltaMinutes))}`
-                : `还有 ${formatInterval(Math.max(1, predictionDeltaMinutes))}`}
-            </span>
+            <div className="next-feeding-side">
+              <p className="next-feeding-meta">近{FEEDING_PREDICTION_WINDOW_DAYS}天 {prediction.sampleCount} 次间隔</p>
+              <p className="next-feeding-meta">平均 {formatInterval(prediction.averageIntervalMinutes)}</p>
+            </div>
           </div>
         )}
         {sortedDateKeys.length === 0 ? (

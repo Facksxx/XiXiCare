@@ -1,11 +1,11 @@
 {
-  "version": "1.3.21",
-  "tag": "v1.3.21",
-  "htmlUrl": "https://gitee.com/Facksxx/xi-xi-care/releases/tag/v1.3.21",
-  "apkUrl": "https://gitee.com/Facksxx/xi-xi-care/releases/download/v1.3.21/XiXiCare.apk",
-  "publishedAt": "2026-09-28T08:46:41.858Z",
-  "notes": "体验优化与问题修复",
-  "sha256": "81f4314bb3572632afe1cbb1478e7c35da52f3f60890f36ebfee735142ab58a0",
+  "version": "1.3.22",
+  "tag": "v1.3.22",
+  "htmlUrl": "https://gitee.com/Facksxx/xi-xi-care/releases/tag/v1.3.22",
+  "apkUrl": "https://gitee.com/Facksxx/xi-xi-care/releases/download/v1.3.22/XiXiCare.apk",
+  "publishedAt": "2026-09-28T15:26:53.000Z",
+  "notes": "优化图表范围展示与喂奶预测卡片布局",
+  "sha256": "14af15e54370114b683288dc6bcb2cf469d5d681ecf98f37271ff7695cb99aea",
   "history": [
     {
       "version": "1.1.14",
@@ -246,6 +246,11 @@
       "version": "1.3.21",
       "publishedAt": "2026-09-28T08:46:41.858Z",
       "notes": "体验优化与问题修复"
+    },
+    {
+      "version": "1.3.22",
+      "publishedAt": "2026-09-28T15:26:53.000Z",
+      "notes": "优化图表范围展示与喂奶预测卡片布局"
     }
   ]
 }

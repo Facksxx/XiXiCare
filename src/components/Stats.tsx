@@ -679,11 +679,12 @@ export function Stats({ logs, birthday, widgetLaunch }: StatsProps) {
   })();
 
   const todayStats = dailyStats.find(stat => stat.date === todayKey) ?? { milk: 0, sleepHrs: 0, pee: 0, poop: 0 };
+  // 今日喂奶次数 = 今日全部喂养记录（瓶喂 + 母乳）
+  const todayFeedingCount = logs.filter(log => log.logType === 'feeding' && log.timestamp.split('T')[0] === todayKey).length;
   const activeSummary = [
     { label: '今日瓶喂', value: todayStats.milk, unit: 'ml' },
-    { label: '今日睡眠', value: todayStats.sleepHrs, unit: '小时' },
-    { label: '今日嘘嘘', value: todayStats.pee, unit: '次' },
-    { label: '今日便便', value: todayStats.poop, unit: '次' }
+    { label: '今日喂奶', value: todayFeedingCount, unit: '次' },
+    { label: '今日睡眠', value: todayStats.sleepHrs, unit: '小时' }
   ];
   const hasDiaperData = buckets.some(bucket => bucket.pee + bucket.poop > 0);
 
@@ -832,7 +833,6 @@ export function Stats({ logs, birthday, widgetLaunch }: StatsProps) {
             </div>
           )}
           <p className="stats-grain-note">{rangeNote}</p>
-          <p className="stats-zoom-hint">图表支持拖动平移，双指捏合或 Ctrl+滚轮缩放；放大后会显示数值</p>
           {sortMode && <p className="stats-sort-note">点击卡片右上角的上下箭头调整图表顺序，调整结果会自动保存。</p>}
       </section>
 
