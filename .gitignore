@@ -16,4 +16,13 @@ XiXiCare.apk
 /tmp/
 /XIXI-CARE-MiniProgram.zip
 /XIXI-CARE-Site/
+/XIXI-CARE-Admin/
 **/xcuserdata/
+
+# 本地工具与产物
+/.workbuddy/
+/.wbapp_*.genie
+/output/
+
+# 安装包不入库（根目录与离线版同理）
+XIXI-CARE-Offline/XIXI-CARE-Offline.apk
