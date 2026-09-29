@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="formula_widget_background">#1F2420</color>
+    <color name="formula_widget_text">#F2F4F1</color>
+    <color name="formula_widget_muted">#BCC8C0</color>
+</resources>

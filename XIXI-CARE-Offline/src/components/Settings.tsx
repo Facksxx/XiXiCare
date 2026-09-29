@@ -1,6 +1,7 @@
-import { ChevronDown, Edit2, Plus, Trash2, Users } from 'lucide-react';
+import { ChevronDown, Edit2, Plus, Trash2, Users, ShieldCheck } from 'lucide-react';
 import type { ActivityLog, BabyInfo } from '../types/baby';
 import { DataTransfer } from './DataTransfer';
+import { openPrivacyPolicy } from '../privacy';
 
 interface SettingsProps {
   logs: ActivityLog[];
@@ -49,6 +50,14 @@ export function Settings({ logs, babies, activeBabyId, onAddBaby, onSwitchBaby, 
         <div className="settings-item-heading settings-contact-row">
           <span className="settings-icon" aria-hidden="true"><Users size={18} /></span>
           <div><h2 id="contact-title">联系作者</h2><p>微信 Facksxx</p></div>
+        </div>
+      </section>
+
+      <section className="settings-section" aria-labelledby="privacy-settings-title">
+        <div className="settings-item-heading settings-privacy-row">
+          <span className="settings-icon" aria-hidden="true"><ShieldCheck size={18} /></span>
+          <h2 id="privacy-settings-title">隐私政策</h2>
+          <button type="button" className="settings-privacy-link" onClick={() => void openPrivacyPolicy().catch(() => window.alert('隐私政策暂时无法打开，请检查网络后重试。'))}>查看</button>
         </div>
       </section>
     </div>

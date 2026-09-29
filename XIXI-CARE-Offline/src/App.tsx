@@ -14,6 +14,10 @@ import { WhiteNoisePlayer } from './components/WhiteNoisePlayer';
 import { ConfirmModal } from './components/ConfirmModal';
 import { DateTimePicker } from './components/DateTimePicker';
 import { BackNavigation } from './plugins/backNavigation';
+import { WidgetCharts } from './plugins/widgetCharts';
+import { buildWidgetChartSnapshot } from './utils/widgetChartSnapshot';
+import { PrivacyConsent } from './components/PrivacyConsent';
+import { PRIVACY_CONSENT_KEY } from './privacy';
 import { Capacitor } from '@capacitor/core';
 import { Sun, Moon, Calendar, BookOpen, BarChart2, Edit2, Check, Sparkles, Settings, Music2, ChevronDown, Plus } from 'lucide-react';
 import type { Icon } from 'lucide-react';
@@ -60,6 +64,11 @@ const readInitialBabies = (): BabyInfo[] => {
 const createBabyId = () => `baby-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 
 export default function App() {
+  const [agreed, setAgreed] = useState(() => localStorage.getItem(PRIVACY_CONSENT_KEY) === 'agreed');
+  return agreed ? <AppContent /> : <PrivacyConsent onAgree={() => setAgreed(true)} />;
+}
+
+function AppContent() {
   // Navigation tabs: 'dashboard' | 'guide' | 'stats' | 'records'
   const [activeTab, setActiveTab] = useState<AppTab>('dashboard');
   const [swipePreview, setSwipePreview] = useState<SwipePreview | null>(null);
@@ -108,6 +117,11 @@ export default function App() {
   const [activeBabyId, setActiveBabyId] = useLocalStorage<string>('babycare_active_baby_id', babies[0]?.id ?? '');
   const baby = babies.find((item) => item.id === activeBabyId) ?? babies[0] ?? { id: '', name: '', birthday: '' };
   const activeLogs = logs.filter((log) => log.babyId === baby.id);
+
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+    void WidgetCharts.updateSnapshot({ daily: JSON.stringify(buildWidgetChartSnapshot(logs, baby.id)) });
+  }, [logs, baby.id]);
   const isFirstSetup = babies.length === 0;
 
   // Edit baby info modal state
@@ -123,16 +137,35 @@ export default function App() {
   const swipeTimerRef = useRef<number | null>(null);
   const swipeStartRef = useRef<{ x: number; y: number; time: number; blocked: boolean; horizontal: boolean } | null>(null);
   const settingsSwipeRef = useRef<{ x: number; y: number } | null>(null);
+  const backOverlayRef = useRef({ showSettings, showWhiteNoise });
+  backOverlayRef.current = { showSettings, showWhiteNoise };
   const legacyBabyInfo = JSON.stringify(baby);
 
   useEffect(() => {
-    if (!Capacitor.isNativePlatform()) return;
-    const intercepting = showSettings || showWhiteNoise;
-    void BackNavigation.setIntercepting({ enabled: intercepting });
+    if (Capacitor.getPlatform() !== 'android') return;
+    let disposed = false;
     let remove: (() => Promise<void>) | undefined;
-    const handleBack = () => showWhiteNoise ? setShowWhiteNoise(false) : closeSettings();
-    void BackNavigation.addListener('backPressed', handleBack).then(handle => { remove = () => handle.remove(); });
-    return () => { void remove?.(); };
+    void BackNavigation.addListener('backPressed', () => {
+      const overlay = backOverlayRef.current;
+      if (overlay.showWhiteNoise) setShowWhiteNoise(false);
+      else if (overlay.showSettings) {
+        if (window.history.state?.xixicareSettings) window.history.back();
+        else setShowSettings(false);
+      }
+    }).then(handle => {
+      if (disposed) void handle.remove();
+      else remove = () => handle.remove();
+    });
+    return () => {
+      disposed = true;
+      void remove?.();
+      void BackNavigation.setIntercepting({ enabled: false });
+    };
+  }, []);
+
+  useEffect(() => {
+    if (Capacitor.getPlatform() !== 'android') return;
+    void BackNavigation.setIntercepting({ enabled: showSettings || showWhiteNoise });
   }, [showSettings, showWhiteNoise]);
 
   const clearSwipeStyles = () => {
@@ -335,6 +368,7 @@ export default function App() {
   const handleAddLog = (newLog: ActivityLog) => {
     setLogs(current => [newLog, ...current]);
   };
+
 
   // Delete a log
   const handleDeleteLog = (id: string) => {
