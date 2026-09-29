@@ -1,0 +1,121 @@
+<view class="container theme-{{theme}}">
+  <view wx:if="{{showSettings}}" bindtouchstart="onSettingsTouchStart" bindtouchend="onSettingsTouchEnd">
+    <view class="topbar"><view class="icon-btn" bindtap="closeSettings"><image class="icon-glyph" src="/assets/action-back{{darkSuffix}}.png"/></view><view class="topbar-title">设置</view></view>
+    <view class="card settings-card">
+      <view class="settings-heading"><view class="settings-icon peach"><image src="/assets/settings-baby{{darkSuffix}}.png"/></view><view class="settings-copy"><view class="section-title small">宝宝管理</view><view class="muted">共 {{babies.length}} 位宝宝，点击宝宝即可切换</view></view></view>
+      <view class="settings-content">
+      <view wx:for="{{babies}}" wx:key="id" class="baby-row" data-id="{{item.id}}" bindtap="switchBaby"><view class="avatar"><image wx:if="{{item.avatar}}" class="baby-photo" src="{{item.avatar}}" mode="aspectFill"/><text wx:else>{{item.initial}}</text></view><view class="baby-copy"><view class="name">{{item.name}}</view><view class="muted">{{item.birthday}}</view></view><view class="baby-actions"><text wx:if="{{item.id===baby.id}}" class="current-baby">当前宝宝</text><view class="icon-action" data-id="{{item.id}}" catchtap="editBaby"><image class="icon-glyph" src="/assets/action-edit{{darkSuffix}}.png"/></view><view wx:if="{{babies.length>1}}" class="icon-action danger" data-id="{{item.id}}" catchtap="deleteBaby"><image class="icon-glyph" src="/assets/action-delete{{darkSuffix}}.png"/></view></view></view>
+      <button class="secondary settings-full-action" bindtap="openBabyForm">添加宝宝</button>
+      </view>
+    </view>
+    <view class="card settings-card">
+      <view class="settings-heading"><view class="settings-icon sage"><image src="/assets/settings-cloud{{darkSuffix}}.png"/></view><view class="settings-copy"><view class="section-title small">云存档</view><view class="muted">使用存档码和验证生日同步记录</view></view></view>
+      <view class="settings-content cloud-settings">
+        <view class="settings-form-row"><view class="field settings-field"><text class="field-label">6位存档码</text><input class="input" value="{{cloudCode}}" maxlength="6" placeholder="输入存档码" bindinput="onCloudCode"/></view><view class="field settings-field"><text class="field-label">验证生日</text><picker mode="date" value="{{cloudBirthday}}" end="{{date}}" bindchange="onCloudBirthday"><view class="picker">{{cloudBirthday || '请选择生日'}}<image class="picker-caret" src="/assets/action-down{{darkSuffix}}.png"/></view></picker></view></view>
+        <view class="settings-toggle"><view class="settings-copy"><view class="settings-row-title">自动同步</view><view class="muted">保存记录后自动同步</view></view><switch checked="{{autoSync}}" color="#7f9b8a" bindchange="toggleAutoSync"/></view>
+        <view class="button-pair">
+          <button class="primary" disabled="{{cloudBusy}}" bindtap="uploadCloud">{{cloudBusy?'处理中…':'上传存档'}}</button>
+          <button class="secondary" disabled="{{cloudBusy}}" bindtap="connectCloud">拉取存档</button>
+        </view>
+        <view wx:if="{{cloudMessage}}" class="cloud-message">{{cloudMessage}}</view><view wx:if="{{cloudSyncedAt}}" class="cloud-message">上次同步：{{cloudSyncedAt}}</view>
+      </view>
+    </view>
+    <view class="card settings-card settings-list-card">
+      <view class="settings-menu-row"><view class="settings-theme-symbol">{{nightMode?'夜':'日'}}</view><view class="settings-copy"><view class="settings-row-title">夜间模式</view><view class="muted">使用深色背景，降低夜间亮度</view></view><switch checked="{{nightMode}}" color="#7f9b8a" bindchange="toggleNightMode"/></view>
+      <view class="settings-divider"></view>
+      <view class="settings-menu-row" bindtap="showPrivacy"><view class="settings-icon lilac"><image src="/assets/settings-privacy{{darkSuffix}}.png"/></view><view class="settings-copy"><view class="settings-row-title">隐私政策</view><view class="muted">查看完整政策全文</view></view><image class="icon-glyph chevron" src="/assets/action-forward{{darkSuffix}}.png"/></view>
+      <view class="settings-divider"></view>
+      <view class="settings-menu-row"><view class="settings-icon sand"><image src="/assets/settings-storage{{darkSuffix}}.png"/></view><view class="settings-copy"><view class="settings-row-title">数据存储</view><view class="muted">记录保存在本机，开启同步后上传云存档</view></view></view>
+    </view>
+    <button class="withdraw-button" bindtap="withdrawConsent">撤回隐私同意</button>
+  </view>
+  <block wx:elif="{{showBabyForm}}">
+    <view class="hero row"><view class="hero-title">{{editingBabyId?'编辑宝宝':'添加宝宝'}}</view><text wx:if="{{babies.length}}" class="link" bindtap="cancelBabyForm">取消</text></view>
+    <view class="card"><view class="baby-photo-picker" bindtap="chooseBabyPhoto"><view class="baby-photo-preview"><image wx:if="{{babyPhoto}}" src="{{babyPhoto}}" mode="aspectFill"/><text wx:else>{{babyInitial}}</text></view><view class="baby-photo-copy"><view class="section-title small">宝宝头像</view><view class="muted">点击选择图片</view></view><text class="link">{{babyPhoto?'更换':'选择'}}</text></view><view class="field"><text class="field-label">宝宝昵称</text><input class="input" placeholder="请输入宝宝昵称" value="{{babyName}}" bindinput="onBabyName" maxlength="20"/></view><view class="field"><text class="field-label">出生日期</text><picker mode="date" value="{{birthday}}" end="{{date}}" bindchange="onBirthday"><view class="picker">{{birthday || '请选择出生日期'}}<image class="picker-caret" src="/assets/action-down{{darkSuffix}}.png"/></view></picker></view><button class="primary" bindtap="saveBaby">{{editingBabyId?'保存修改':'保存宝宝信息'}}</button></view>
+    <view class="card"><view class="section-title small">拉取云存档</view><view class="field"><text class="field-label">6位存档码</text><input class="input" value="{{cloudCode}}" maxlength="6" placeholder="输入存档码" bindinput="onCloudCode"/></view><view class="field"><text class="field-label">验证生日</text><picker mode="date" value="{{cloudBirthday}}" end="{{date}}" bindchange="onCloudBirthday"><view class="picker">{{cloudBirthday || '请选择生日'}}<image class="picker-caret" src="/assets/action-down{{darkSuffix}}.png"/></view></picker></view><button class="secondary" disabled="{{cloudBusy}}" bindtap="connectCloud">{{cloudBusy?'拉取中…':'拉取存档'}}</button><view wx:if="{{cloudMessage}}" class="cloud-message">{{cloudMessage}}</view></view>
+  </block>
+  <block wx:else>
+    <view class="app-header"><view class="baby-identity" bindtap="openSettings"><view class="baby-avatar"><image wx:if="{{baby.avatar}}" class="baby-photo" src="{{baby.avatar}}" mode="aspectFill"/><text wx:else>{{baby.initial}}</text></view><view class="baby-meta"><view class="baby-name-row">{{baby.name}}<image class="icon-glyph chevron-down" src="/assets/action-down{{darkSuffix}}.png"/></view><view class="baby-age">{{baby.birthday}}（{{baby.ageText}}）</view></view></view><view class="header-settings" role="button" bindtap="openSettings" aria-label="设置"><image class="settings-gear" src="/assets/action-settings{{darkSuffix}}.png"/></view></view>
+    <block wx:if="{{tab==='home'}}">
+      <view class="card dashboard-card">
+        <view wx:if="{{editingId}}" class="editing-banner">正在编辑{{typeLabel}}记录 <text class="edit-cancel" bindtap="cancelEdit">取消</text></view>
+        <view class="segment record-types"><view wx:for="{{types}}" wx:key="key" class="segment-item {{type===item.key?'selected':''}}" data-key="{{item.key}}" bindtap="setType">{{item.label}}</view></view>
+        <view class="time-panel"><view class="field-label">{{type==='feeding'||type==='sleep'?'开始时间':'记录时间'}}</view><view class="time-row"><picker class="time-picker time-picker-date" mode="date" value="{{date}}" end="{{today}}" bindchange="onDate"><view class="time-value"><view class="time-copy"><text class="time-kind">日期</text><text class="time-number">{{date}}</text></view><image class="time-caret" src="/assets/action-down{{darkSuffix}}.png"/></view></picker><picker class="time-picker time-picker-clock" mode="time" value="{{time}}" bindchange="onTime"><view class="time-value"><view class="time-copy"><text class="time-kind">时间</text><text class="time-number">{{time}}</text></view><image class="time-caret" src="/assets/action-down{{darkSuffix}}.png"/></view></picker><view class="now-button" bindtap="setNow">现在</view></view></view>
+        <view wx:if="{{type==='feeding'}}" class="form-stack"><view class="segment"><view wx:for="{{feedingTypes}}" wx:key="key" class="segment-item {{feedingType===item.key?'selected':''}}" data-key="{{item.key}}" bindtap="setFeedingType">{{item.label}}</view></view>
+          <view wx:if="{{feedingType==='bottle'}}" class="bottle-options"><view class="segment"><view class="segment-item {{fluidType==='formula'?'selected':''}}" data-key="formula" bindtap="setFluid">配方奶</view><view class="segment-item {{fluidType==='breastmilk'?'selected':''}}" data-key="breastmilk" bindtap="setFluid">母乳</view></view><view class="field-label amount-title">喂奶量</view><view class="amount-stepper"><view class="round-step" data-delta="-10" bindtap="adjustVolume"><image class="step-glyph" src="/assets/action-minus{{darkSuffix}}.png"/></view><view class="amount-value"><input class="volume-input" type="number" value="{{volume}}" bindinput="onVolume"/><text class="volume-unit">ml</text></view><view class="round-step" data-delta="10" bindtap="adjustVolume"><image class="step-glyph" src="/assets/action-plus{{darkSuffix}}.png"/></view></view><view class="quick-options volume-options"><view wx:for="{{volumePresets}}" wx:key="*this" class="quick-option {{volume==item?'chosen':''}}" data-value="{{item}}" bindtap="setVolume">{{item}}</view></view></view>
+          <view wx:if="{{feedingType==='breast'}}" class="pair-grid"><view><view class="field-label">左侧（分钟）</view><view class="amount-stepper compact"><view class="round-step" data-side="left" data-delta="-1" bindtap="adjustSide"><image class="step-glyph small" src="/assets/action-minus{{darkSuffix}}.png"/></view><input class="side-input" type="number" value="{{leftMinutes}}" bindinput="onLeft"/><view class="round-step" data-side="left" data-delta="1" bindtap="adjustSide"><image class="step-glyph small" src="/assets/action-plus{{darkSuffix}}.png"/></view></view></view><view><view class="field-label">右侧（分钟）</view><view class="amount-stepper compact"><view class="round-step" data-side="right" data-delta="-1" bindtap="adjustSide"><image class="step-glyph small" src="/assets/action-minus{{darkSuffix}}.png"/></view><input class="side-input" type="number" value="{{rightMinutes}}" bindinput="onRight"/><view class="round-step" data-side="right" data-delta="1" bindtap="adjustSide"><image class="step-glyph small" src="/assets/action-plus{{darkSuffix}}.png"/></view></view></view></view>
+          <view wx:if="{{feedingType==='solids'}}"><view class="field"><text class="field-label">食物名称</text><input class="input" value="{{foodName}}" bindinput="onFood" placeholder="如：胡萝卜泥"/></view><view class="pair-grid"><view class="field"><text class="field-label">摄入量</text><input class="input" value="{{foodAmount}}" bindinput="onFoodAmount"/></view><view class="field"><text class="field-label">过敏反应</text><picker mode="selector" range="{{reactionLabels}}" value="{{reactionIndex}}" bindchange="onReaction"><view class="picker">{{reactionLabels[reactionIndex]}}<image class="picker-caret" src="/assets/action-down{{darkSuffix}}.png"/></view></picker></view></view></view>
+        </view>
+        <view wx:if="{{type==='sleep'}}" class="form-stack"><view wx:if="{{!editingId}}" class="sleep-timer"><view><view class="field-label">睡眠计时</view><view class="timer-clock">{{timerClock}}</view></view><view class="timer-actions"><button class="round-step" bindtap="toggleSleepTimer">{{sleepTimer?(sleepTimer.runningSince?'暂停':'继续'):'开始'}}</button><button wx:if="{{sleepTimer}}" class="round-step" bindtap="cancelSleepTimer">取消</button></view></view><view wx:if="{{!sleepTimer||editingId}}"><view class="field-label">睡眠时长</view><view class="amount-stepper"><view class="round-step" data-delta="-5" bindtap="adjustDuration"><image class="step-glyph" src="/assets/action-minus{{darkSuffix}}.png"/></view><view class="amount-value"><input class="volume-input" type="number" value="{{duration}}" bindinput="onDuration"/><text class="volume-unit">分钟</text></view><view class="round-step" data-delta="5" bindtap="adjustDuration"><image class="step-glyph" src="/assets/action-plus{{darkSuffix}}.png"/></view></view><view class="quick-options"><view wx:for="{{durationPresets}}" wx:key="*this" class="quick-option {{duration==item?'chosen':''}}" data-value="{{item}}" bindtap="setDuration">{{item}}分钟</view></view></view></view>
+        <view wx:if="{{type==='diaper'}}" class="form-stack"><view class="segment"><view class="segment-item {{pee?'selected':''}}" bindtap="togglePee">嘘嘘</view><view class="segment-item {{poop?'selected':''}}" bindtap="togglePoop">便便</view></view><view wx:if="{{poop}}"><view class="field-label">便便颜色</view><view class="quick-options"><view wx:for="{{poopColors}}" wx:key="key" class="quick-option {{poopColor===item.key?'chosen':''}}" data-key="{{item.key}}" bindtap="setPoopColor">{{item.label}}</view></view></view></view>
+        <view wx:if="{{type==='growth'}}" class="form-stack"><view class="segment"><view wx:for="{{growthTypes}}" wx:key="key" class="segment-item {{growthType===item.key?'selected':''}}" data-key="{{item.key}}" bindtap="setGrowthType">{{item.label}}</view></view><view class="field"><text class="field-label">{{growthLabel}}</text><input class="input" type="digit" value="{{growthValue}}" bindinput="onGrowthValue" placeholder="请输入数值"/></view></view>
+        <button class="save-button" bindtap="saveLog">{{editingId?'更新记录':'保存记录'}}</button>
+      </view>
+    </block>
+    <block wx:elif="{{tab==='records'}}"><view class="card records-tools"><view class="row date-filters"><picker class="date-filter-picker" mode="date" value="{{startDate}}" end="{{today}}" bindchange="onStartDate"><view class="picker">{{startDate||'开始日期'}}<image class="picker-caret" src="/assets/action-down{{darkSuffix}}.png"/></view></picker><text class="date-sep">～</text><picker class="date-filter-picker" mode="date" value="{{endDate}}" end="{{today}}" bindchange="onEndDate"><view class="picker">{{endDate||'结束日期'}}<image class="picker-caret" src="/assets/action-down{{darkSuffix}}.png"/></view></picker></view><view class="segment"><view wx:for="{{filters}}" wx:key="key" class="segment-item {{recordFilter===item.key?'selected':''}}" data-key="{{item.key}}" bindtap="setRecordFilter">{{item.label}}</view></view><view wx:if="{{recordFilter==='feeding'}}" class="quick-options"><view wx:for="{{feedingFilters}}" wx:key="key" class="quick-option {{feedingFilter===item.key?'chosen':''}}" data-key="{{item.key}}" bindtap="setFeedingFilter">{{item.label}}</view></view><view wx:if="{{recordFilter==='feeding' && feedingFilter==='bottle'}}" class="quick-options"><view wx:for="{{bottleFilters}}" wx:key="key" class="quick-option {{bottleFilter===item.key?'chosen':''}}" data-key="{{item.key}}" bindtap="setBottleFilter">{{item.label}}</view></view><view class="record-count">共 {{filteredLogs.length}} 条记录 <text class="clear-filters" wx:if="{{startDate||endDate||recordFilter!=='all'}}" bindtap="clearRecordFilters">清除筛选</text></view></view><view wx:if="{{filteredLogs.length===0}}" class="card empty">还没有记录</view><block wx:for="{{filteredLogs}}" wx:key="id"><view wx:if="{{item.showDate}}" class="record-date">{{item.dateTitle}}</view><view class="card record-card"><view class="record-badge">{{item.typeInitial}}</view><view class="record-main"><view class="record-title">{{item.description}}</view><view class="muted">{{item.typeLabel}} · {{item.displayTime}}</view></view><text class="record-action" data-id="{{item.id}}" bindtap="editLog">编辑</text><text class="record-action danger" data-id="{{item.id}}" bindtap="deleteLog">删除</text></view></block></block>
+    <block wx:elif="{{tab==='guide'}}">
+      <view class="card stage-card"><scroll-view scroll-x enhanced show-scrollbar="false" scroll-with-animation scroll-into-view="{{stageIntoView}}" class="stage-scroll"><view class="chip-row stage-row"><view wx:for="{{stages}}" wx:key="id" id="stage-{{item.id}}" class="chip {{stage===item.id?'active':''}}" data-stage="{{item.id}}" bindtap="setStage">{{item.label}}</view></view></scroll-view><view class="stage-drag-hint">左右滑动查看更多</view></view>
+      <view class="card"><view class="section-title small">喂养建议（乳类）</view><view class="pair-grid guide-pair"><view class="guide-cell"><view class="muted">推荐奶量</view><view class="guide-highlight">{{activeGuide.milkRequirement.amountDesc}}</view></view><view class="guide-cell"><view class="muted">喂养频次</view><view class="guide-highlight">{{activeGuide.milkRequirement.frequencyDesc}}</view></view></view><view class="guide-text">{{activeGuide.milkRequirement.breastfeedingTips}}</view></view>
+      <view wx:if="{{activeGuide.solidsGuide}}" class="card"><view class="section-title small">辅食添加</view><view class="guide-text">{{activeGuide.solidsGuide.stageTitle}} · {{activeGuide.solidsGuide.textureDesc}}</view><view class="field-label allergen-heading">过敏原排查清单（点击切换状态）</view><view wx:for="{{allergenRows}}" wx:key="food" class="allergen-row" data-food="{{item.food}}" bindtap="cycleAllergen"><text>{{item.food}}</text><text class="allergen-status {{item.status}}">{{item.label}}</text></view><view class="guide-text">{{activeGuide.solidsGuide.tips}}</view></view>
+      <view class="card"><view class="section-title small">疫苗提示</view><view wx:for="{{activeGuide.vaccineGuide.vaccines}}" wx:key="name" class="guide-text">{{item.name}} · {{item.age}}</view></view>
+      <view class="card"><view class="section-title small">成长里程碑</view><view class="guide-text">大动作：{{activeGuide.milestones.grossMotor[0]}}</view><view class="guide-text">精细动作：{{activeGuide.milestones.fineMotor[0]}}</view><view class="guide-text">语言社交：{{activeGuide.milestones.languageSocial[0]}}</view></view>
+    </block>
+    <block wx:elif="{{tab==='vaccine'}}">
+      <view class="card vaccine-overview">
+        <view class="vaccine-stat"><view class="vaccine-stat-label">接种进度</view><view class="vaccine-stat-value">{{vaccineDone}}/{{vaccineCount}}</view></view>
+        <view class="vaccine-stat"><view class="vaccine-stat-label">方案总价</view><view class="vaccine-stat-value">¥{{vaccineTotal}}</view></view>
+        <view class="vaccine-stat"><view class="vaccine-stat-label">待支付</view><view class="vaccine-stat-value">¥{{vaccineRemaining}}</view></view>
+      </view>
+      <view class="card vaccine-tools">
+        <view class="segment vaccine-filter"><view wx:for="{{vaccineFilters}}" wx:key="key" class="segment-item {{vaccineFilter===item.key?'selected':''}}" data-key="{{item.key}}" bindtap="setVaccineFilter">{{item.label}}</view></view>
+        <view class="vaccine-clinic">{{vaccineClinicTime}}</view>
+      </view>
+      <view class="card vaccine-table-card">
+        <view class="vaccine-table">
+          <view class="vaccine-thead">
+            <view class="vth vth-age">月龄</view>
+            <view class="vth">免规疫苗<text class="vth-sub">（免费）</text></view>
+            <view class="vth">非免规疫苗<text class="vth-sub">（自费）</text></view>
+            <view class="vth vth-status">状态</view>
+          </view>
+          <view wx:for="{{vaccineGroups}}" wx:key="key" class="vaccine-age-row">
+            <view class="vaccine-table-age">
+              <text class="vaccine-age-label">{{item.ageLabel}}</text>
+              <text class="vaccine-age-date">{{item.due}}</text>
+            </view>
+            <view class="vaccine-age-items">
+              <view wx:for="{{item.rows}}" wx:for-item="row" wx:key="id" class="vaccine-vial-row {{row.level}}">
+                <view class="vaccine-cell">
+                  <block wx:if="{{row.freeCell.empty}}"><text class="vaccine-cell-empty">—</text></block>
+                  <block wx:else>
+                    <text class="vaccine-cell-name">{{row.freeCell.name}}</text>
+                    <view class="vaccine-brand-options">
+                      <view wx:for="{{row.freeCell.options}}" wx:for-item="opt" wx:key="id" class="vaccine-opt {{opt.active?'active':''}} {{opt.locked?'locked':''}}" data-id="{{row.id}}" data-choice="{{opt.id}}" data-kind="free" bindtap="chooseVaccine"><text wx:if="{{opt.brand}}" class="vaccine-opt-brand">{{opt.brand}}</text><text class="vaccine-opt-price">{{opt.brand ? opt.priceLabel : '免费'}}</text></view>
+                    </view>
+                    <text wx:if="{{row.freeCell.note}}" class="vaccine-cell-note">{{row.freeCell.note}}</text>
+                  </block>
+                </view>
+                <view class="vaccine-cell vaccine-paid-cell">
+                  <block wx:if="{{row.paidCell.empty}}"><text class="vaccine-cell-empty">—</text></block>
+                  <block wx:else>
+                    <text class="vaccine-cell-name">{{row.paidCell.name}}</text>
+                    <view class="vaccine-brand-options">
+                      <view wx:for="{{row.paidCell.options}}" wx:for-item="opt" wx:key="id" class="vaccine-opt {{opt.active?'active':''}} {{opt.locked?'locked':''}}" data-id="{{row.id}}" data-choice="{{opt.id}}" data-kind="paid" data-active="{{opt.active}}" data-locked="{{opt.locked}}" bindtap="chooseVaccine"><text wx:if="{{opt.brand}}" class="vaccine-opt-brand">{{opt.brand}}</text><text class="vaccine-opt-price">{{opt.priceLabel}}</text></view>
+                    </view>
+                    <text wx:if="{{row.paidCell.note}}" class="vaccine-cell-note">{{row.paidCell.note}}</text>
+                  </block>
+                </view>
+                <view class="vaccine-status-cell">
+                  <view class="vaccine-table-status {{row.requiresStatus?'':'unselected'}}" data-id="{{row.id}}" bindtap="toggleVaccine"><image wx:if="{{row.requiresStatus}}" class="status-glyph" src="/assets/status-{{row.isDone?'check':'help'}}{{darkSuffix}}.png"/><text class="vaccine-status-label">{{row.requiresStatus ? row.levelLabel : '未选择'}}</text></view>
+                </view>
+              </view>
+            </view>
+          </view>
+          <view wx:if="{{vaccineEmpty}}" class="vaccine-table-empty">当前分类暂无接种项目</view>
+        </view>
+      </view>
+      <view class="vaccine-page-note">{{vaccineNote}}</view>
+    </block>
+    <block wx:elif="{{tab==='stats'}}"><view class="stats-summary"><view wx:for="{{statsSummary}}" wx:key="label" class="stats-today"><view>{{item.label}}</view><view class="stats-number">{{item.value}}<text class="stats-unit">{{item.unit}}</text></view></view></view><view class="card"><view class="field-label">图表范围</view><view class="segment"><view class="segment-item {{statRange===7?'selected':''}}" data-days="7" bindtap="setStatRange">7天</view><view class="segment-item {{statRange===30?'selected':''}}" data-days="30" bindtap="setStatRange">30天</view><view class="segment-item {{statRange===365?'selected':''}}" data-days="365" bindtap="setStatRange">1年</view></view><view class="range-note">{{rangeNote}}</view></view><view wx:for="{{charts}}" wx:for-item="chart" wx:key="field" class="card chart-card"><view class="section-title small">{{chart.title}}</view><view wx:if="{{!chart.hasData}}" class="chart-empty">{{chart.empty}}</view><scroll-view wx:else scroll-x class="chart-scroll"><view class="chart-bars"><view wx:for="{{chart.points}}" wx:for-item="point" wx:key="label" class="bar-col"><text class="bar-value">{{point.valueLabel}}</text><view class="bar-track"><view wx:if="{{chart.field==='elimination'}}" class="bar stacked"><view class="bar-pee" style="height:{{point.peeHeight}}%"></view><view class="bar-poop" style="height:{{point.poopHeight}}%"></view></view><view wx:else class="bar {{chart.field}}" style="height:{{point.height}}%"></view></view><text class="bar-label">{{point.label}}</text></view></view></scroll-view><view class="chart-unit">{{chart.field==='weight'?'仅显示实际体重记录':'单位：'+chart.unit}}</view></view></block>
+  </block>
+</view>

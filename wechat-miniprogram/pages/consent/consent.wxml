@@ -1,0 +1,11 @@
+<view class="consent-screen theme-{{theme}}">
+  <view class="consent-title">欢迎使用 XIXI CARE</view>
+  <view class="consent-copy">在使用宝宝记录功能前，请阅读隐私政策，了解个人信息的处理规则。</view>
+  <view class="consent-card">
+    <view class="consent-card-title">隐私声明</view>
+    <view class="muted">我们将在你同意后保存宝宝资料和护理记录。云存档由你在设置中主动连接，连接后数据会在设备端加密上传并自动同步。你可以随时查看完整隐私政策。</view>
+    <view class="privacy-link" role="button" bindtap="showPrivacy">查看完整隐私政策</view>
+  </view>
+  <checkbox-group bindchange="toggleConsent" class="consent-check"><label class="consent-label"><checkbox class="consent-checkbox" value="agree" checked="{{checked}}" color="{{brandColor}}"/><text>我已阅读并同意隐私政策</text></label></checkbox-group>
+  <button class="primary consent-enter" disabled="{{!checked}}" bindtap="acceptPrivacy">同意并进入</button>
+</view>

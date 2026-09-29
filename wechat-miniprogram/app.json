@@ -1,0 +1,60 @@
+{
+  "pages": [
+    "pages/consent/consent",
+    "pages/index/index",
+    "pages/records/records",
+    "pages/guide/guide",
+    "pages/vaccine/vaccine",
+    "pages/stats/stats",
+    "pages/privacy/privacy"
+  ],
+  "window": {
+    "navigationBarTitleText": "希希护理",
+    "navigationBarBackgroundColor": "#fbfaf6",
+    "navigationBarTextStyle": "black",
+    "backgroundColor": "#fbfaf6"
+  },
+  "style": "v2",
+  "darkmode": true,
+  "lazyCodeLoading": "requiredComponents",
+  "themeLocation": "theme.json",
+  "sitemapLocation": "sitemap.json",
+  "tabBar": {
+    "color": "#96a09b",
+    "selectedColor": "#4f7d69",
+    "backgroundColor": "#ffffff",
+    "borderStyle": "white",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "text": "记录大盘",
+        "iconPath": "assets/tab-index.png",
+        "selectedIconPath": "assets/tab-index-active.png"
+      },
+      {
+        "pagePath": "pages/records/records",
+        "text": "时间轴",
+        "iconPath": "assets/tab-records.png",
+        "selectedIconPath": "assets/tab-records-active.png"
+      },
+      {
+        "pagePath": "pages/guide/guide",
+        "text": "喂养指南",
+        "iconPath": "assets/tab-guide.png",
+        "selectedIconPath": "assets/tab-guide-active.png"
+      },
+      {
+        "pagePath": "pages/vaccine/vaccine",
+        "text": "疫苗表",
+        "iconPath": "assets/tab-vaccine.png",
+        "selectedIconPath": "assets/tab-vaccine-active.png"
+      },
+      {
+        "pagePath": "pages/stats/stats",
+        "text": "成长统计",
+        "iconPath": "assets/tab-stats.png",
+        "selectedIconPath": "assets/tab-stats-active.png"
+      }
+    ]
+  }
+}

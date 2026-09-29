@@ -1,0 +1,7 @@
+<view class="container theme-{{theme}}">
+  <view class="card policy-card">
+    <view class="policy-head"><view class="settings-copy"><view class="section-title">隐私政策</view><view class="muted policy-summary">云存档数据会在设备端加密后上传并自动同步。</view></view></view>
+    <button class="secondary copy" bindtap="copyLink">复制在线政策链接</button>
+  </view>
+  <view class="card policy-card"><view wx:for="{{lines}}" wx:key="index" class="policy-line">{{item}}</view></view>
+</view>
