@@ -82,7 +82,7 @@ public class FormulaWidgetProvider extends AppWidgetProvider {
     }
 
     private static PendingIntent openApp(Context context, int id, int type) {
-        Intent intent = new Intent(context, MainActivity.class);
+        Intent intent = new Intent(context, NativeMainActivity.class);
         intent.setAction(Intent.ACTION_MAIN);
         intent.addCategory(Intent.CATEGORY_LAUNCHER);
         intent.putExtra("from", "native_widget");
@@ -94,7 +94,7 @@ public class FormulaWidgetProvider extends AppWidgetProvider {
     }
 
     private static PendingIntent openRecord(Context context, int id, int type) {
-        Intent intent = new Intent(context, MainActivity.class);
+        Intent intent = new Intent(context, NativeMainActivity.class);
         intent.setAction(Intent.ACTION_MAIN);
         intent.addCategory(Intent.CATEGORY_LAUNCHER);
         intent.putExtra("from", "native_widget");

@@ -13,8 +13,6 @@ import android.os.IBinder;
 
 import androidx.core.app.NotificationCompat;
 
-import com.getcapacitor.JSObject;
-
 import java.util.ArrayList;
 
 public class BackgroundAudioService extends Service implements MediaPlayer.OnCompletionListener, MediaPlayer.OnErrorListener {
@@ -129,14 +127,21 @@ public class BackgroundAudioService extends Service implements MediaPlayer.OnCom
         player = null;
     }
 
-    public static JSObject snapshot() {
+    public static AudioSnapshot snapshot() {
         BackgroundAudioService service = instance;
         if (service != null) service.captureState();
-        JSObject result = new JSObject();
-        result.put("trackId", activeTrackId);
-        result.put("positionMs", activePositionMs);
-        result.put("playing", activePlaying);
-        return result;
+        return new AudioSnapshot(activeTrackId, activePositionMs, activePlaying);
+    }
+
+    public static final class AudioSnapshot {
+        public final String trackId;
+        public final int positionMs;
+        public final boolean playing;
+        AudioSnapshot(String trackId, int positionMs, boolean playing) {
+            this.trackId = trackId;
+            this.positionMs = positionMs;
+            this.playing = playing;
+        }
     }
 
     private void createChannel() {
