@@ -4,7 +4,7 @@ const crypto = require('crypto');
 
 const COLLECTION = 'xixi_archive_meta';
 const MAX_BODY_BYTES = 5_500_000;
-const ADMIN_TOKEN_SHA256 = '8a99065f76a25a76a3c6d2afc7f2db58bf3bca00c04cd9fee4984e9f92824da8';
+const ADMIN_TOKEN_SHA256 = '73fb581e962239c37f48ecad7856666ac074ccd4e3e86f81b2ed2944987cf979';
 
 const response = (statusCode, body) => ({
   mpserverlessComposedResponse: true,
