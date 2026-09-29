@@ -8,8 +8,7 @@ export const RELEASE_REPO = 'Facksxx/xi-xi-care';
 export const RELEASES_PAGE_URL = `https://gitee.com/${RELEASE_REPO}/releases`;
 export const UPDATE_MANIFEST_URLS = [
   `https://gitee.com/${RELEASE_REPO}/raw/main/update-manifest.json`,
-  'https://raw.githubusercontent.com/Facksxx/XiXiCare/main/update-manifest.json',
-  'https://xixicare-cloud-sync.xixicare-facksxx.workers.dev/public/update-manifest.json'
+  'https://raw.githubusercontent.com/Facksxx/XiXiCare/main/update-manifest.json'
 ];
 
 const FETCH_TIMEOUT_MS = 12_000;
