@@ -32,6 +32,10 @@ export interface NextFeedingPrediction {
   period: FeedingPeriod;
   /** true = 使用了分时段样本，false = 回退到全时段样本。 */
   periodScoped: boolean;
+  /** 日间典型间隔（分钟），最近 7 天没有任何日间间隔时为 null。 */
+  dayIntervalMinutes: number | null;
+  /** 夜间典型间隔（分钟），最近 7 天没有任何夜间间隔时为 null。 */
+  nightIntervalMinutes: number | null;
   /** 最近一次喂养的奶量（毫升），非瓶喂或未记录为 null。 */
   lastVolumeMl: number | null;
   /** 奶量启发式修正量（分钟，正数表示延后）。 */
@@ -169,6 +173,9 @@ export const getNextFeedingPrediction = (
   const predictedAt = last.time + (baseMinutes + volumeAdjustmentMinutes) * 60000;
   if (Math.abs(now - predictedAt) > FEEDING_PREDICTION_MAX_GAP_MS) return null;
 
+  const daySamples = samples.filter(sample => sample.period === 'day');
+  const nightSamples = samples.filter(sample => sample.period === 'night');
+
   return {
     lastFeedingAt: last.time,
     predictedAt,
@@ -176,6 +183,8 @@ export const getNextFeedingPrediction = (
     sampleCount: picked.length,
     period: targetPeriod,
     periodScoped,
+    dayIntervalMinutes: daySamples.length > 0 ? Math.round(robustWeightedMean(daySamples)) : null,
+    nightIntervalMinutes: nightSamples.length > 0 ? Math.round(robustWeightedMean(nightSamples)) : null,
     lastVolumeMl,
     volumeAdjustmentMinutes
   };

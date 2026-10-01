@@ -28,9 +28,9 @@ interface SettingsProps {
 }
 
 const THEME_OPTIONS: Array<{ value: ThemePreference; label: string }> = [
+  { value: 'auto', label: '跟随系统' },
   { value: 'light', label: '日间' },
-  { value: 'dark', label: '深夜' },
-  { value: 'auto', label: '跟随系统' }
+  { value: 'dark', label: '深夜' }
 ];
 
 export function Settings({ logs, babies, activeBabyId, onAddBaby, onSwitchBaby, onEditBaby, onDeleteBaby, detectedRelease, onReleaseChange, themePreference, onThemePreferenceChange, onBack }: SettingsProps) {

@@ -23,7 +23,7 @@ import { buildWidgetChartSnapshot } from './utils/widgetChartSnapshot';
 import { applySystemBars, normalizeThemePreference, type ThemePreference } from './utils/theme';
 import { useResolvedTheme } from './hooks/useResolvedTheme';
 import { Capacitor } from '@capacitor/core';
-import { Sun, Moon, Calendar, BookOpen, BarChart2, Edit2, Check, Sparkles, Settings, Music2, ChevronDown, Plus, Syringe } from 'lucide-react';
+import { Calendar, BookOpen, BarChart2, Edit2, Check, Sparkles, Settings, Music2, ChevronDown, Plus, Syringe } from 'lucide-react';
 import type { Icon } from 'lucide-react';
 import { CLOUD_ARCHIVE_MUTATION_EVENT, isCloudArchiveAutoSyncEnabled } from './utils/cloudArchive';
 import { runCloudArchiveAutoSync } from './utils/cloudArchiveTask';
@@ -237,8 +237,8 @@ function AppContent() {
     else setShowSettings(false);
   };
 
-  // Theme preference: 'light' | 'dark' | 'auto'（auto = 跟随手机深浅色）
-  const [themePreference, setThemePreference] = useLocalStorage<ThemePreference>('babycare_theme', 'light');
+  // Theme preference: 'light' | 'dark' | 'auto'（auto = 跟随手机深浅色，默认）
+  const [themePreference, setThemePreference] = useLocalStorage<ThemePreference>('babycare_theme', 'auto');
   const theme = useResolvedTheme(normalizeThemePreference(themePreference));
 
   // Logs state: empty by default
@@ -518,17 +518,6 @@ function AppContent() {
     applySystemBars(theme);
   }, [theme]);
 
-  // 头部按钮只做「明暗翻转」：自动模式下会把偏好收敛成固定值，避免点了看似没反应
-  const toggleTheme = () => {
-    const nextTheme = theme === 'light' ? 'dark' : 'light';
-    document.documentElement.classList.add('theme-switching');
-    document.documentElement.setAttribute('data-theme', nextTheme);
-    setThemePreference(nextTheme);
-    window.requestAnimationFrame(() => window.requestAnimationFrame(() => {
-      document.documentElement.classList.remove('theme-switching');
-    }));
-  };
-
   // Add a log
   const handleAddLog = (newLog: ActivityLog) => {
     setLogs(current => [newLog, ...current]);
@@ -779,16 +768,6 @@ function AppContent() {
           >
             <Music2 size={20} />
             {isWhiteNoisePlaying && <span className="noise-playing-dot" aria-hidden="true" />}
-          </button>
-          <button 
-            onClick={toggleTheme} 
-            className="header-icon-btn"
-            aria-label="切换夜间模式"
-            title={themePreference === 'auto'
-              ? `跟随系统（当前${theme === 'dark' ? '深夜' : '日间'}模式），点击可固定主题`
-              : theme === 'light' ? '切换为深夜模式' : '切换为日间模式'}
-          >
-            {theme === 'light' ? <Moon size={20} /> : <Sun size={20} style={{ color: 'var(--amber)' }} />}
           </button>
         </div>
       </header>}

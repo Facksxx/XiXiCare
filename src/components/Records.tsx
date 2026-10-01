@@ -4,7 +4,7 @@ import { Calendar, Droplets, Edit2, Milk, Moon, Scale, Trash2 } from 'lucide-rea
 import { ConfirmModal } from './ConfirmModal';
 import { DateTimePicker } from './DateTimePicker';
 import { getEffectiveFeedingIntervals } from '../utils/feedingIntervals';
-import { getNextFeedingPrediction, FEEDING_PREDICTION_WINDOW_DAYS } from '../utils/feedingPrediction';
+import { getNextFeedingPrediction } from '../utils/feedingPrediction';
 
 interface RecordsProps {
   logs: ActivityLog[];
@@ -280,8 +280,12 @@ export function Records({ logs, onEditLog, onDeleteLog }: RecordsProps) {
               </span>
             </div>
             <div className="next-feeding-side">
-              <p className="next-feeding-meta">近{FEEDING_PREDICTION_WINDOW_DAYS}天 {prediction.sampleCount} 次间隔</p>
-              <p className="next-feeding-meta">{prediction.period === 'night' ? '夜间' : '日间'}基准 {formatInterval(prediction.averageIntervalMinutes)}</p>
+              {prediction.dayIntervalMinutes !== null && (
+                <p className="next-feeding-meta">日间 {formatInterval(prediction.dayIntervalMinutes)}</p>
+              )}
+              {prediction.nightIntervalMinutes !== null && (
+                <p className="next-feeding-meta">夜间 {formatInterval(prediction.nightIntervalMinutes)}</p>
+              )}
             </div>
           </div>
         )}
