@@ -26,3 +26,9 @@ XiXiCare.apk
 
 # 安装包不入库（根目录与离线版同理）
 XIXI-CARE-Offline/XIXI-CARE-Offline.apk
+
+# Capacitor 构建产物：由 cap sync 生成
+android/app/src/main/assets/public/
+android/app/src/main/assets/capacitor.config.json
+android/app/src/main/assets/capacitor.plugins.json
+.DS_Store
