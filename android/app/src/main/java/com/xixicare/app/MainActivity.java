@@ -43,7 +43,7 @@ public class MainActivity extends BridgeActivity {
 
     /** 系统深浅色切换时（uiMode 已在 configChanges 中，Activity 不重建）主动通知 Web 端。 */
     @Override
-    protected void onConfigurationChanged(Configuration newConfig) {
+    public void onConfigurationChanged(Configuration newConfig) {
         super.onConfigurationChanged(newConfig);
         if (bridge == null) return;
         String theme = SystemThemePlugin.isDark(this) ? "dark" : "light";
