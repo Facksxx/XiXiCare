@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { ChevronDown, Database, Edit2, Music2, Plus, ShieldCheck, Trash2, Users } from 'lucide-react';
+import { ChevronDown, Database, Edit2, Music2, Plus, ShieldCheck, Sun, Trash2, Users } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
 import type { RemoteRelease } from '../utils/version';
 import type { ActivityLog, BabyInfo } from '../types/baby';
+import type { ThemePreference } from '../utils/theme';
 import { DataTransfer } from './DataTransfer';
 import { UpdateChecker } from './UpdateChecker';
 import { SoundPackManager } from './SoundPackManager';
@@ -21,10 +22,18 @@ interface SettingsProps {
   onDeleteBaby: (babyId: string) => void;
   detectedRelease: RemoteRelease | null;
   onReleaseChange: (release: RemoteRelease | null) => void;
+  themePreference: ThemePreference;
+  onThemePreferenceChange: (preference: ThemePreference) => void;
   onBack: () => void;
 }
 
-export function Settings({ logs, babies, activeBabyId, onAddBaby, onSwitchBaby, onEditBaby, onDeleteBaby, detectedRelease, onReleaseChange, onBack }: SettingsProps) {
+const THEME_OPTIONS: Array<{ value: ThemePreference; label: string }> = [
+  { value: 'light', label: '日间' },
+  { value: 'dark', label: '深夜' },
+  { value: 'auto', label: '跟随系统' }
+];
+
+export function Settings({ logs, babies, activeBabyId, onAddBaby, onSwitchBaby, onEditBaby, onDeleteBaby, detectedRelease, onReleaseChange, themePreference, onThemePreferenceChange, onBack }: SettingsProps) {
   const [autoSyncEnabled, setAutoSyncEnabled] = useState(isCloudArchiveAutoSyncEnabled);
 
   const toggleAutoSync = () => {
@@ -33,6 +42,8 @@ export function Settings({ logs, babies, activeBabyId, onAddBaby, onSwitchBaby, 
     setAutoSyncEnabled(enabled);
     if (enabled) void runCloudArchiveAutoSync();
   };
+
+  const themeHint = themePreference === 'auto' ? '已跟随手机深浅色自动切换' : `当前固定为${themePreference === 'dark' ? '深夜模式' : '日间模式'}`;
 
   return (
     <div className="container settings-page fade-in">
@@ -78,6 +89,26 @@ export function Settings({ logs, babies, activeBabyId, onAddBaby, onSwitchBaby, 
       </div>
 
       <div className="settings-column settings-column-secondary">
+
+      <section className="settings-section" aria-labelledby="appearance-title">
+        <div className="settings-item-heading">
+          <span className="settings-icon" aria-hidden="true"><Sun size={18} /></span>
+          <div><h2 id="appearance-title">外观</h2><p>{themeHint}</p></div>
+        </div>
+        <div className="settings-segmented" role="group" aria-label="主题模式">
+          {THEME_OPTIONS.map(option => (
+            <button
+              type="button"
+              key={option.value}
+              className={themePreference === option.value ? 'active' : ''}
+              aria-pressed={themePreference === option.value}
+              onClick={() => onThemePreferenceChange(option.value)}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+      </section>
 
       <section className="settings-section" aria-labelledby="sound-packs-title">
         <div className="settings-item-heading">

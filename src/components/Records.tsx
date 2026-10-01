@@ -281,7 +281,7 @@ export function Records({ logs, onEditLog, onDeleteLog }: RecordsProps) {
             </div>
             <div className="next-feeding-side">
               <p className="next-feeding-meta">近{FEEDING_PREDICTION_WINDOW_DAYS}天 {prediction.sampleCount} 次间隔</p>
-              <p className="next-feeding-meta">平均 {formatInterval(prediction.averageIntervalMinutes)}</p>
+              <p className="next-feeding-meta">{prediction.period === 'night' ? '夜间' : '日间'}基准 {formatInterval(prediction.averageIntervalMinutes)}</p>
             </div>
           </div>
         )}

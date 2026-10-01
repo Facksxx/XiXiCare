@@ -1,6 +1,7 @@
 package com.xixicare.app;
 
 import android.content.Intent;
+import android.content.res.Configuration;
 import android.os.Bundle;
 import android.view.View;
 import androidx.activity.OnBackPressedCallback;
@@ -16,6 +17,7 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(BackNavigationPlugin.class);
         registerPlugin(WidgetChartsPlugin.class);
         registerPlugin(PrivacyActionsPlugin.class);
+        registerPlugin(SystemThemePlugin.class);
         super.onCreate(savedInstanceState);
         if (bridge != null && bridge.getWebView() != null) {
             bridge.getWebView().setOverScrollMode(View.OVER_SCROLL_NEVER);
@@ -37,6 +39,15 @@ public class MainActivity extends BridgeActivity {
         super.onNewIntent(intent);
         setIntent(intent);
         handleWidgetIntent(intent);
+    }
+
+    /** 系统深浅色切换时（uiMode 已在 configChanges 中，Activity 不重建）主动通知 Web 端。 */
+    @Override
+    protected void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        if (bridge == null) return;
+        String theme = SystemThemePlugin.isDark(this) ? "dark" : "light";
+        bridge.triggerWindowJSEvent("xixicareSystemTheme", "{\"theme\":\"" + theme + "\"}");
     }
 
     private void handleWidgetIntent(Intent intent) {

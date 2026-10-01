@@ -6,6 +6,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <meta name="description" content="科学育儿随身助手！一款极简、支持深夜单手操作的宝宝养育记录与指南App。轻松追踪母乳/瓶喂/辅食、睡眠打点计时器、尿布更换与便便颜色排查、身高体重体温等体征成长曲线。按月龄提供精细动作及语言发育里程碑参考。" />
     <title>XiXiCare - 科学喂养与成长追踪</title>
+    <script>
+      // 首屏按已保存的偏好（含跟随系统）预设主题，避免自动深色时闪白
+      (function () {
+        try {
+          var stored = window.localStorage.getItem('babycare_theme');
+          var preference = stored ? JSON.parse(stored) : 'light';
+          var dark = typeof window.matchMedia === 'function'
+            && window.matchMedia('(prefers-color-scheme: dark)').matches;
+          var theme = preference === 'dark' || (preference === 'auto' && dark) ? 'dark' : 'light';
+          document.documentElement.setAttribute('data-theme', theme);
+        } catch (error) {
+          document.documentElement.setAttribute('data-theme', 'light');
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

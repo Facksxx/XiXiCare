@@ -20,6 +20,8 @@ import { WidgetCharts } from './plugins/widgetCharts';
 import { PrivacyConsent } from './components/PrivacyConsent';
 import { PRIVACY_CONSENT_KEY } from './privacy';
 import { buildWidgetChartSnapshot } from './utils/widgetChartSnapshot';
+import { applySystemBars, normalizeThemePreference, type ThemePreference } from './utils/theme';
+import { useResolvedTheme } from './hooks/useResolvedTheme';
 import { Capacitor } from '@capacitor/core';
 import { Sun, Moon, Calendar, BookOpen, BarChart2, Edit2, Check, Sparkles, Settings, Music2, ChevronDown, Plus, Syringe } from 'lucide-react';
 import type { Icon } from 'lucide-react';
@@ -131,6 +133,14 @@ function AppContent() {
     };
   }, []);
 
+  // 桌面组件带来的「定位到某张图表」只在当次生效：一旦离开成长统计页（或进入设置页）就消费掉，
+  // 否则每次切回统计页都会重新滚动并锁定到同一张图表。
+  useEffect(() => {
+    if (!widgetChartLaunch) return;
+    if (activeTab === 'stats' && !showSettings) return;
+    setWidgetChartLaunch(null);
+  }, [activeTab, showSettings, widgetChartLaunch]);
+
   useEffect(() => {
     let running = false;
     const refreshIfDue = async () => {
@@ -227,8 +237,10 @@ function AppContent() {
     else setShowSettings(false);
   };
 
-  // Theme: 'light' | 'dark'
-  const [theme, setTheme] = useLocalStorage<'light' | 'dark'>('babycare_theme', 'light');
+  // Theme preference: 'light' | 'dark' | 'auto'（auto = 跟随手机深浅色）
+  const [themePreference, setThemePreference] = useLocalStorage<ThemePreference>('babycare_theme', 'light');
+  const theme = useResolvedTheme(normalizeThemePreference(themePreference));
+
   // Logs state: empty by default
   const [logs, setLogs] = useLocalStorage<ActivityLog[]>('babycare_logs', []);
 
@@ -500,16 +512,18 @@ function AppContent() {
   const [confirmModal, setConfirmModal] = useState<{ show: boolean; message: string; onConfirm: () => void }>({ show: false, message: '', onConfirm: () => {} });
   const [alertModal, setAlertModal] = useState<{ show: boolean; message: string }>({ show: false, message: '' });
 
-  // Apply theme to document
+  // Apply theme to document（自动模式下 theme 已按手机深浅色解析好）
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
+    applySystemBars(theme);
   }, [theme]);
 
+  // 头部按钮只做「明暗翻转」：自动模式下会把偏好收敛成固定值，避免点了看似没反应
   const toggleTheme = () => {
     const nextTheme = theme === 'light' ? 'dark' : 'light';
     document.documentElement.classList.add('theme-switching');
     document.documentElement.setAttribute('data-theme', nextTheme);
-    setTheme(nextTheme);
+    setThemePreference(nextTheme);
     window.requestAnimationFrame(() => window.requestAnimationFrame(() => {
       document.documentElement.classList.remove('theme-switching');
     }));
@@ -770,7 +784,9 @@ function AppContent() {
             onClick={toggleTheme} 
             className="header-icon-btn"
             aria-label="切换夜间模式"
-            title={theme === 'light' ? '切换为深夜模式' : '切换为日间模式'}
+            title={themePreference === 'auto'
+              ? `跟随系统（当前${theme === 'dark' ? '深夜' : '日间'}模式），点击可固定主题`
+              : theme === 'light' ? '切换为深夜模式' : '切换为日间模式'}
           >
             {theme === 'light' ? <Moon size={20} /> : <Sun size={20} style={{ color: 'var(--amber)' }} />}
           </button>
@@ -797,6 +813,8 @@ function AppContent() {
             onDeleteBaby={handleDeleteBaby}
             detectedRelease={detectedRelease}
             onReleaseChange={setDetectedRelease}
+            themePreference={normalizeThemePreference(themePreference)}
+            onThemePreferenceChange={setThemePreference}
             onBack={closeSettings}
           /></div>
           ) : (
