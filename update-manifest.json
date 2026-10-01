@@ -1,11 +1,11 @@
 {
-  "version": "1.3.22",
-  "tag": "v1.3.22",
-  "htmlUrl": "https://gitee.com/Facksxx/xi-xi-care/releases/tag/v1.3.22",
-  "apkUrl": "https://gitee.com/Facksxx/xi-xi-care/releases/download/v1.3.22/XiXiCare.apk",
-  "publishedAt": "2026-09-28T15:26:53.000Z",
-  "notes": "优化图表范围展示与喂奶预测卡片布局",
-  "sha256": "9dec06be7fe03e0db79ea380b804aa8dd78086f691fe81b110c61532c4c2cdc8",
+  "version": "1.3.23",
+  "tag": "v1.3.23",
+  "htmlUrl": "https://gitee.com/Facksxx/xi-xi-care/releases/tag/v1.3.23",
+  "apkUrl": "https://gitee.com/Facksxx/xi-xi-care/releases/download/v1.3.23/XiXiCare.apk",
+  "publishedAt": "2026-10-01T15:52:03.350Z",
+  "notes": "新增跟随系统的自动深浅色模式；修复桌面小组件跳转后图表定位被锁定的问题；预计下次喂奶时间更准确（区分昼夜、自动忽略异常记录）。",
+  "sha256": "9edcb70b705ca7c8c78017d0af2aab00cb678a6dbaee8dae66281c7cc426d8db",
   "history": [
     {
       "version": "1.1.14",
@@ -251,6 +251,11 @@
       "version": "1.3.22",
       "publishedAt": "2026-09-28T15:26:53.000Z",
       "notes": "优化图表范围展示与喂奶预测卡片布局"
+    },
+    {
+      "version": "1.3.23",
+      "publishedAt": "2026-10-01T15:52:03.350Z",
+      "notes": "新增跟随系统的自动深浅色模式；修复桌面小组件跳转后图表定位被锁定的问题；预计下次喂奶时间更准确（区分昼夜、自动忽略异常记录）。"
     }
   ]
 }
